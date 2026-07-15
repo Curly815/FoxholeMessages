@@ -31,6 +31,8 @@ class ConversationInfoAdapter @Inject constructor(
     val themeClicks: Subject<Long> = PublishSubject.create()
     val nameClicks: Subject<Unit> = PublishSubject.create()
     val notificationClicks: Subject<Unit> = PublishSubject.create()
+    val backgroundImageClicks: Subject<Unit> = PublishSubject.create()
+    val backgroundImageLongClicks: Subject<Unit> = PublishSubject.create()
     val markUnreadClicks: Subject<Unit> = PublishSubject.create()
     val archiveClicks: Subject<Unit> = PublishSubject.create()
     val blockClicks: Subject<Unit> = PublishSubject.create()
@@ -66,6 +68,11 @@ class ConversationInfoAdapter @Inject constructor(
                 QkViewHolder(binding.root).apply {
                     binding.groupName.clicks().subscribe(nameClicks)
                     binding.notifications.clicks().subscribe(notificationClicks)
+                    binding.background.clicks().subscribe(backgroundImageClicks)
+                    binding.background.setOnLongClickListener {
+                        backgroundImageLongClicks.onNext(Unit)
+                        true
+                    }
                     binding.markUnread.clicks().subscribe(markUnreadClicks)
                     binding.archive.clicks().subscribe(archiveClicks)
                     binding.block.clicks().subscribe(blockClicks)
@@ -120,6 +127,11 @@ class ConversationInfoAdapter @Inject constructor(
                 binding.block.title = context.getString(when (item.blocked) {
                     true -> R.string.info_unblock
                     false -> R.string.info_block
+                })
+
+                binding.background.summary = context.getString(when (item.backgroundUri.isNotEmpty()) {
+                    true -> R.string.info_background_set
+                    false -> R.string.info_background_not_set
                 })
             }
 

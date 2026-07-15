@@ -27,6 +27,19 @@
     android:orientation="vertical"
     tools:context="dev.octoshrimpy.quik.feature.compose.ComposeActivity">
 
+    <ImageView
+        android:id="@+id/backgroundImage"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        android:contentDescription="@null"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="gone" />
+
     <FrameLayout
         android:id="@+id/speechToTextFrame"
         android:layout_width="wrap_content"

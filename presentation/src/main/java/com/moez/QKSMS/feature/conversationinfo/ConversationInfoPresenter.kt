@@ -40,6 +40,7 @@ import dev.octoshrimpy.quik.manager.PermissionManager
 import dev.octoshrimpy.quik.model.Conversation
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
+import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.Observables
 import io.reactivex.rxkotlin.plusAssign
@@ -50,9 +51,10 @@ import javax.inject.Inject
 import javax.inject.Named
 
 class ConversationInfoPresenter @Inject constructor(
-    @Named("threadId") threadId: Long,
+    @Named("threadId") private val threadId: Long,
     messageRepo: MessageRepository,
     private val context: Context,
+    private val prefs: Preferences,
     private val conversationRepo: ConversationRepository,
     private val deleteConversations: DeleteConversations,
     private val markUnread: MarkUnread,
@@ -87,8 +89,9 @@ class ConversationInfoPresenter @Inject constructor(
         disposables += Observables
                 .combineLatest(
                         conversation,
-                        messageRepo.getPartsForConversation(threadId).asObservable()
-                ) { conversation, parts ->
+                        messageRepo.getPartsForConversation(threadId).asObservable(),
+                        prefs.backgroundUri(threadId).asObservable()
+                ) { conversation, parts, backgroundUri ->
                     val data = mutableListOf<ConversationInfoItem>()
 
                     // If some data was deleted, this isn't the place to handle it
@@ -101,7 +104,8 @@ class ConversationInfoPresenter @Inject constructor(
                             name = conversation.name,
                             recipients = conversation.recipients,
                             archived = conversation.archived,
-                            blocked = conversation.blocked)
+                            blocked = conversation.blocked,
+                            backgroundUri = backgroundUri)
                     data += parts.map(::ConversationInfoMedia)
 
                     newState { copy(data = data) }
@@ -161,6 +165,21 @@ class ConversationInfoPresenter @Inject constructor(
                 .withLatestFrom(conversation) { _, conversation -> conversation }
                 .autoDisposable(view.scope())
                 .subscribe { conversation -> externalNavigator.showNotificationSettings(conversation.id) }
+
+        // Open the background image picker
+        view.backgroundImageClicks()
+                .autoDisposable(view.scope())
+                .subscribe { view.showBackgroundImagePicker() }
+
+        // Save the selected background image
+        view.backgroundImageSelected()
+                .autoDisposable(view.scope())
+                .subscribe { uri -> prefs.backgroundUri(threadId).set(uri.toString()) }
+
+        // Clear the background image
+        view.backgroundImageLongClicks()
+                .autoDisposable(view.scope())
+                .subscribe { prefs.backgroundUri(threadId).delete() }
 
         view.markUnreadClicks()
                 .withLatestFrom(conversation) { _, conversation -> conversation }
