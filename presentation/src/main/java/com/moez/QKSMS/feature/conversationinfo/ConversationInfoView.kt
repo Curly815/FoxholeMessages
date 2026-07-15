@@ -18,6 +18,7 @@
  */
 package dev.octoshrimpy.quik.feature.conversationinfo
 
+import android.net.Uri
 import dev.octoshrimpy.quik.common.base.QkViewContract
 import io.reactivex.Observable
 
@@ -29,6 +30,9 @@ interface ConversationInfoView : QkViewContract<ConversationInfoState> {
     fun nameClicks(): Observable<*>
     fun nameChanges(): Observable<String>
     fun notificationClicks(): Observable<*>
+    fun backgroundImageClicks(): Observable<*>
+    fun backgroundImageLongClicks(): Observable<*>
+    fun backgroundImageSelected(): Observable<Uri>
     fun markUnreadClicks(): Observable<*>
     fun archiveClicks(): Observable<*>
     fun blockClicks(): Observable<*>
@@ -38,6 +42,7 @@ interface ConversationInfoView : QkViewContract<ConversationInfoState> {
 
     fun showNameDialog(name: String)
     fun showThemePicker(recipientId: Long)
+    fun showBackgroundImagePicker()
     fun showBlockingDialog(conversations: List<Long>, block: Boolean)
     fun requestDefaultSms()
     fun showDeleteDialog()

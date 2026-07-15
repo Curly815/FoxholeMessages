@@ -18,9 +18,13 @@
  */
 package dev.octoshrimpy.quik.feature.conversationinfo
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.GridLayoutManager
 import com.bluelinelabs.conductor.RouterTransaction
@@ -30,6 +34,7 @@ import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.ExternalNavigator
 import dev.octoshrimpy.quik.common.QkChangeHandler
 import dev.octoshrimpy.quik.common.base.QkController
+import dev.octoshrimpy.quik.common.util.QkActivityResultContracts
 import dev.octoshrimpy.quik.common.util.extensions.scrapViews
 import dev.octoshrimpy.quik.common.widget.TextInputDialog
 import dev.octoshrimpy.quik.databinding.ConversationInfoControllerBinding
@@ -60,6 +65,9 @@ class ConversationInfoController(
 
     private val nameChangeSubject: Subject<String> = PublishSubject.create()
     private val confirmDeleteSubject: Subject<Unit> = PublishSubject.create()
+    private val backgroundImageSelectedSubject: Subject<Uri> = PublishSubject.create()
+
+    private lateinit var openBackgroundImage: ActivityResultLauncher<QkActivityResultContracts.OpenDocumentParams>
 
     init {
         appComponent
@@ -67,6 +75,17 @@ class ConversationInfoController(
                 .conversationInfoModule(ConversationInfoModule(this))
                 .build()
                 .inject(this)
+    }
+
+    override fun onContextAvailable(context: Context) {
+        openBackgroundImage = themedActivity!!
+                .registerForActivityResult(QkActivityResultContracts.OpenDocument()) { uri ->
+                    if (uri != Uri.EMPTY) {
+                        context.contentResolver.takePersistableUriPermission(
+                                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        backgroundImageSelectedSubject.onNext(uri)
+                    }
+                }
     }
 
     override fun onViewCreated() {
@@ -105,6 +124,9 @@ class ConversationInfoController(
     override fun nameClicks(): Observable<*> = adapter.nameClicks
     override fun nameChanges(): Observable<String> = nameChangeSubject
     override fun notificationClicks(): Observable<*> = adapter.notificationClicks
+    override fun backgroundImageClicks(): Observable<*> = adapter.backgroundImageClicks
+    override fun backgroundImageLongClicks(): Observable<*> = adapter.backgroundImageLongClicks
+    override fun backgroundImageSelected(): Observable<Uri> = backgroundImageSelectedSubject
     override fun markUnreadClicks(): Observable<*> = adapter.markUnreadClicks
     override fun archiveClicks(): Observable<*> = adapter.archiveClicks
     override fun blockClicks(): Observable<*> = adapter.blockClicks
@@ -118,6 +140,10 @@ class ConversationInfoController(
         router.pushController(RouterTransaction.with(ThemePickerController(recipientId))
                 .pushChangeHandler(QkChangeHandler())
                 .popChangeHandler(QkChangeHandler()))
+    }
+
+    override fun showBackgroundImagePicker() {
+        openBackgroundImage.launch(QkActivityResultContracts.OpenDocumentParams(listOf("image/*")))
     }
 
     override fun showBlockingDialog(conversations: List<Long>, block: Boolean) {

@@ -80,6 +80,8 @@ import dev.octoshrimpy.quik.feature.compose.editing.ChipsAdapter
 import dev.octoshrimpy.quik.feature.contacts.ContactsActivity
 import dev.octoshrimpy.quik.model.Attachment
 import dev.octoshrimpy.quik.model.Recipient
+import dev.octoshrimpy.quik.util.GlideApp
+import dev.octoshrimpy.quik.util.tryOrNull
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
@@ -238,6 +240,14 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
                 }
                 .autoDisposable(scope())
                 .subscribe()
+
+            // Show the conversation's custom background image, if one has been set
+            threadId
+                .distinctUntilChanged()
+                .switchMap { threadId -> prefs.backgroundUri(threadId).asObservable() }
+                .observeOn(AndroidSchedulers.mainThread())
+                .autoDisposable(scope())
+                .subscribe { backgroundUri -> setBackgroundImage(backgroundUri) }
 
             // context menu registration for message parts
             messagePartContextMenuRegistrar
@@ -640,6 +650,22 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
 
     override fun themeChanged() {
         binding.messageList.scrapViews()
+    }
+
+    private fun setBackgroundImage(backgroundUri: String) {
+        if (backgroundUri.isEmpty()) {
+            binding.backgroundImage.isVisible = false
+            binding.backgroundImage.setImageDrawable(null)
+            return
+        }
+
+        tryOrNull(true) {
+            GlideApp.with(this)
+                .load(Uri.parse(backgroundUri))
+                .centerCrop()
+                .into(binding.backgroundImage)
+        }
+        binding.backgroundImage.isVisible = true
     }
 
     override fun showKeyboard() {

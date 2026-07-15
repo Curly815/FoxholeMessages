@@ -223,4 +223,13 @@ class Preferences @Inject constructor(
             else -> rxPrefs.getString("ringtone_$threadId", default.get())
         }
     }
+
+    fun backgroundUri(threadId: Long = 0): Preference<String> {
+        val default = rxPrefs.getString("backgroundUri", "")
+
+        return when (threadId) {
+            0L -> default
+            else -> rxPrefs.getString("backgroundUri_$threadId", default.get())
+        }
+    }
 }
