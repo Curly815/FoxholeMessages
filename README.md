@@ -35,7 +35,7 @@ A great bug report contains a description of the problem and steps to reproduce 
 
 When reporting a bug, please make sure to provide the following information:
 - Steps to reproduce the issue
-- QUIK version
+- Foxhole Messages version
 - Device / OS information
 
 ## Contributing
@@ -46,11 +46,11 @@ Contributions are very welcome! Please see the [contributing guidelines](/CONTRI
 
 A special thank you to QUIK creators that encouraged this app and allowed me to create a blend of my own creation! Jake ([@klinker41](https://github.com/klinker41)) and Luke Klinker ([@klinker24](https://github.com/klinker24)) for their work on [android-smsmms](https://github.com/klinker41/android-smsmms), which has been an unspeakably large help in implementing MMS into QUIK.
 
-A giant thank you to Moez [moezbhatti](https://github.com/moezbhatti) for creating and maintaining QKSMS, of which QUIK would not exist without.
+A giant thank you to Moez [moezbhatti](https://github.com/moezbhatti) for creating and maintaining QKSMS, of which QUIK would not exist without which in turn this app would not have been created!
 
 ## Contact
 
-QUIK is developed and maintained by Erik Castillo; erik.castillo0318@gmail.com 
+Foxhole Messages is developed and maintained by Erik Castillo; erik.castillo0318@gmail.com 
 
 ---
 
