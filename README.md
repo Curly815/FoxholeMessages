@@ -27,7 +27,7 @@ Foxhole Message is an open source Blend of QUIK SMS and other features i wanted 
 
 ## Download
 
--->
+--> https://github.com/Curly815/FoxholeMessages
 
 ## Reporting bugs
 
