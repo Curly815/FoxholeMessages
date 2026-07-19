@@ -53,7 +53,7 @@ interface BlockingClient {
     fun isAvailable(): Boolean
 
     /**
-     * Returns the level of access that the given blocking client provides to QKSMS
+     * Returns the level of access that the given blocking client provides to the app
      */
     fun getClientCapability(): Capability
 

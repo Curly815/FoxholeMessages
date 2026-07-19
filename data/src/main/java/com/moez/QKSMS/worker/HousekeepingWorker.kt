@@ -49,7 +49,7 @@ class HousekeepingWorker(appContext: Context, workerParams: WorkerParameters)
                 )
                     .setConstraints(
                         Constraints.Builder()
-                            // idle device constraint helps guarantees quik won't be in use
+                            // idle device constraint helps guarantees the app won't be in use
                             // as files are deleted (primarily for deleting audio recordings)
                             .setRequiresDeviceIdle(true)
                             // good citizens don't use up low batteries

@@ -8,5 +8,3 @@ Open-source-erstatning for den innebygde SMS-appen på Android. En gjenoppliving
 - Vedlegg av alle filtyper
 - Sortering av meldinger
 - Forsinket sending
-
-Du kan chatte med communityet under <a href="https://matrix.to/#/#quik-sms:matrix.org">#quik-sms:matrix.org</a>

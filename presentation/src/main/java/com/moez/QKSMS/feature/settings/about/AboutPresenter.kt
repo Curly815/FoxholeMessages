@@ -45,6 +45,8 @@ class AboutPresenter @Inject constructor(
                         R.id.contact -> externalNavigator.showSupport()
 
                         R.id.license -> externalNavigator.showLicense()
+
+                        R.id.attribution -> externalNavigator.showUpstreamRepo()
                     }
                 }
     }

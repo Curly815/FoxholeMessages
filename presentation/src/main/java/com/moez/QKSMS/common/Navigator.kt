@@ -44,7 +44,7 @@ class Navigator @Inject constructor(
     context: Context
 ) : QkNavigator(context) {
     /**
-     * @param source String to indicate where this QKSMS+ screen was launched from. This should be
+     * @param source String to indicate where this Plus screen was launched from. This should be
      * one of [main_menu, compose_schedule, settings_night, settings_theme]
      */
     fun showQksmsPlusActivity(source: String) {

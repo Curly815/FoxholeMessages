@@ -60,7 +60,7 @@
         app:layout_constraintEnd_toEndOf="@id/titleView"
         app:layout_constraintStart_toStartOf="@id/titleView"
         app:layout_constraintTop_toBottomOf="@id/titleView"
-        tools:text="QKSMS is your default SMS app" />
+        tools:text="Foxhole Messages is your default SMS app" />
 
     <FrameLayout
         android:id="@+id/widgetFrame"

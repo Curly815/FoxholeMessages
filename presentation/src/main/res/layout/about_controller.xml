@@ -82,6 +82,13 @@
             app:summary="@string/about_copyright"
             app:title="@string/about_copyright_title" />
 
+        <dev.octoshrimpy.quik.common.widget.PreferenceView
+            android:id="@+id/attribution"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:summary="@string/about_attribution"
+            app:title="@string/about_attribution_title" />
+
     </LinearLayout>
 
 </ScrollView>

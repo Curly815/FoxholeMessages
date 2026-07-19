@@ -201,7 +201,7 @@ open class MessageRepositoryImpl @Inject constructor(
         // fileDateAndTime is divided by 1000 in order to remove the extra 0's after date and time
         // This way the file name isn't so long.
         val fileDateAndTime = (part.messages?.first()?.date)?.div(1000)
-        val fileName = "QUIK_${part.type.split("/").last()}_$fileDateAndTime.$extension"
+        val fileName = "FoxholeMessages_${part.type.split("/").last()}_$fileDateAndTime.$extension"
 
         val values = contentValuesOf(
             MediaStore.MediaColumns.DISPLAY_NAME to fileName,
@@ -212,9 +212,9 @@ open class MessageRepositoryImpl @Inject constructor(
             values.put(MediaStore.MediaColumns.IS_PENDING, 1)
             values.put(
                 MediaStore.MediaColumns.RELATIVE_PATH, when {
-                    part.isImage() -> "${Environment.DIRECTORY_PICTURES}/QUIK"
-                    part.isVideo() -> "${Environment.DIRECTORY_MOVIES}/QUIK"
-                    else -> "${Environment.DIRECTORY_DOWNLOADS}/QUIK"
+                    part.isImage() -> "${Environment.DIRECTORY_PICTURES}/FoxholeMessages"
+                    part.isVideo() -> "${Environment.DIRECTORY_MOVIES}/FoxholeMessages"
+                    else -> "${Environment.DIRECTORY_DOWNLOADS}/FoxholeMessages"
                 }
             )
         }

@@ -1,4 +1,4 @@
-Open-Source-Ersatz für die Standard-SMS-App auf Android. Eine Neuauflage von QKSMS.
+Open-Source-Ersatz für die Standard-SMS-App auf Android. Eine modifizierte Version von QUIK, selbst eine Neuauflage von QKSMS.
 ## Funktionen
 - Geplante Nachrichten
 - Nachrichten-Backup
@@ -8,5 +8,3 @@ Open-Source-Ersatz für die Standard-SMS-App auf Android. Eine Neuauflage von QK
 - Anhänge aller Dateitypen
 - Nachrichten sortieren
 - Verzögertes Senden
-
-Du kannst mit der Community unter <a href="https://matrix.to/#/#quik-sms:matrix.org">#quik-sms:matrix.org</a> chatten.

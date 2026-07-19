@@ -8,5 +8,3 @@ Avatud lähtekoodil põhinev asendus Androidi standardsele lühisõnumirakenduse
 - Kõiki tüüpi failid manustena
 - Sõnumite järjestamine
 - Viivitusega saatmine
-
-Osale kogukonna suhtluses <a href="https://matrix.to/#/#quik-sms:matrix.org">#quik-sms:matrix.org</a> jututoas
