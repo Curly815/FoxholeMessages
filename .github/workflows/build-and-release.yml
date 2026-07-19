@@ -195,6 +195,8 @@ jobs:
   publish:
     needs: [build, generate_release_notes]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Sanitize release notes
@@ -226,7 +228,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.build.outputs.tag_name }}
-          name: QUIK v${{ needs.build.outputs.version_name }}
+          name: Foxhole Messages v${{ needs.build.outputs.version_name }}
           draft: ${{ inputs.publish_release != true }}
           prerelease: ${{ inputs.prerelease }}
           body: ${{ steps.clean_notes.outputs.clean_notes }}
@@ -267,4 +269,3 @@ jobs:
       - name: Cleanup signing key
         if: always()
         run: rm -f presentation/my-release-key.keystore
-
