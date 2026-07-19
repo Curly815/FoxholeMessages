@@ -7,7 +7,7 @@
 <img src="https://hosted.weblate.org/widget/quik/svg-badge.svg" alt="Translation status" />
 </a>
 
-Foxhole Message is an open source replacement to the [stock messaging app](https://github.com/android/platform_packages_apps_mms) on Android. It is a continuation of [QKSMS](https://github.com/moezbhatti/qksms). 
+Foxhole Message is an open source Blend of QUIK SMS and other features i wanted add. RIP Samsung Messages and the soon to be RIP of Microsoft SMS Organizer. 
 
 ## Features
 
