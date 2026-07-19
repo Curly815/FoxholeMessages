@@ -1,11 +1,6 @@
-
-
 # FOXHOLE MESSAGES
 
-[![Manual Release](https://github.com/octoshrimpy/quik/actions/workflows/manual-release.yml/badge.svg)](https://github.com/octoshrimpy/quik/actions/workflows/manual-release.yml)
-<a href="https://hosted.weblate.org/engage/quik/">
-<img src="https://hosted.weblate.org/widget/quik/svg-badge.svg" alt="Translation status" />
-</a>
+[![Manual Release](https://github.com/curly815/foxholemessages/actions/workflows/manual-release.yml/badge.svg)](https://github.com/curly815/foxholemessages/actions/workflows/manual-release.yml)
 
 Foxhole Message is an open source Blend of QUIK SMS and other features i wanted add. RIP Samsung Messages and the soon to be RIP of Microsoft SMS Organizer. 
 
@@ -27,7 +22,14 @@ Foxhole Message is an open source Blend of QUIK SMS and other features i wanted 
 
 ## Download
 
---> https://github.com/Curly815/FoxholeMessages
+Grab Foxhole Messages from the official [github releases page](https://github.com/curly815/foxholemessages/releases), or keep up with updates with the following:
+
+
+<a href="https://f-droid.org/repository/browse/?fdid=com.foxhole.messages.fdroid"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="100"></a>
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/{%22id%22:%22com.foxhole.messages%22,%22url%22:%22https://github.com/curly815/foxholemessages%22,%22author%22:%22curly815%22,%22name%22:%22Foxhole%20Messages%22,%22additionalSettings%22:%22{\%22apkFilterRegEx\%22:\%22release\%22,\%22invertAPKFilter\%22:false,\%22about\%22:\%22Foxhole%20Messages%20is%20an%20open%20source%20replacement%20for%20the%20stock%20messaging%20app%20on%20Android.%20It%20is%20a%20modified%20version%20of%20QUIK/QKSMS.\%22}%22}"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/b1c8ac6f2ab08497189721a788a5763e28ff64cd/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="100"></a>
+<a href="https://github.com/curly815/foxholemessages/releases">
+<img src="https://user-images.githubusercontent.com/69304392/148696068-0cfea65d-b18f-4685-82b5-329a330b1c0d.png"
+alt="Download from GitHub releases" height="100" /></a>
 
 ## Reporting bugs
 
@@ -56,4 +58,4 @@ Foxhole Messages is developed and maintained by Erik Castillo; erik.castillo0318
 
 ## License
 
-QUIK is released under the **The GNU General Public License v3.0 (GPLv3)**, which can be found in the [LICENSE](LICENSE) file in the root of this project.
+Foxhole Messages is released under the **The GNU General Public License v3.0 (GPLv3)**, which can be found in the [LICENSE](LICENSE) file in the root of this project.

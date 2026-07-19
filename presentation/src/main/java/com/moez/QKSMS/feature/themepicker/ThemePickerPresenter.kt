@@ -88,7 +88,7 @@ class ThemePickerPresenter @Inject constructor(
                 .autoDisposable(view.scope())
                 .subscribe()
 
-        // Show QKSMS+ activity
+        // Show Plus activity
         view.viewQksmsPlusClicks()
                 .autoDisposable(view.scope())
                 .subscribe { navigator.showQksmsPlusActivity("settings_theme") }

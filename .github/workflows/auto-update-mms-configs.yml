@@ -54,16 +54,16 @@ jobs:
           sudo apt-get install -y --no-install-recommends aapt apktool unzip
           
       - name: Download Messaging APK 
-        run: apkeep -a com.google.android.apps.messaging /home/runner/work/quik/quik
+        run: apkeep -a com.google.android.apps.messaging /home/runner/work/foxholemessages/foxholemessages
 
       - name: List files in directory
-        run: ls /home/runner/work/quik/quik
+        run: ls /home/runner/work/foxholemessages/foxholemessages
 
       - name: Unzip the Messaging APK from XAPK
         shell: bash
         run: |
-          if [ -f /home/runner/work/quik/quik/com.google.android.apps.messaging.xapk ]; then
-            unzip /home/runner/work/quik/quik/com.google.android.apps.messaging.xapk -d /home/runner/work/quik/quik
+          if [ -f /home/runner/work/foxholemessages/foxholemessages/com.google.android.apps.messaging.xapk ]; then
+            unzip /home/runner/work/foxholemessages/foxholemessages/com.google.android.apps.messaging.xapk -d /home/runner/work/foxholemessages/foxholemessages
           else
             echo "XAPK file not found, skipping unzip."
           fi

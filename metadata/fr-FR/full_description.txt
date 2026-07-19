@@ -1,4 +1,4 @@
-Remplacement open-source de l'application SMS de base sur Android. Une résurrection du projet QKSMS.
+Remplacement open-source de l'application SMS de base sur Android. Une version modifiée de QUIK, lui-même une résurrection du projet QKSMS.
 ## Fonctionnalités
 - Messages programmés dans le temps
 - Sauvegarde des messages
@@ -8,5 +8,3 @@ Remplacement open-source de l'application SMS de base sur Android. Une résurrec
 - Mettez n'importe quel fichier en pièce jointe
 - Triez vos messages
 - Envoi retardé de messages
-
-Vous pouvez clavarder avec la communauté en suivant ce lien : <a href="https://matrix.to/#/#quik-sms:matrix.org">#quik-sms:matrix.org</a>

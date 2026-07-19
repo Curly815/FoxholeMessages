@@ -140,7 +140,7 @@
       "Remove extraneous controls on compose (sim and mic) when no reply possible",
       "Copyright Date",
       "Backup and Restore being unable to read file",
-      "Replace QUIK hero image in README.md repo"
+      "Replace hero image in README.md repo"
     ]
   },
   {
@@ -208,7 +208,7 @@
     "removed": [
       "Analytics trackers",
       "android.INTERNET permission",
-      "Mentions of QKSMS user-side."
+      "Mentions of QKSMS/QUIK user-side."
     ]
   },
   {
@@ -233,7 +233,7 @@
       "Crash when searching for only spaces"
     ],
     "removed": [
-      "Most QKSMS branding",
+      "Most QKSMS/QUIK branding",
       "Donation on sidebar",
       "Help on sidebar"
     ]

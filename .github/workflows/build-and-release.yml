@@ -147,7 +147,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          files=(presentation/build/outputs/apk/release/QUIK-v*-release.apk)
+          files=(presentation/build/outputs/apk/release/FoxholeMessages-v*-release.apk)
           if [[ "${#files[@]}" -ne 1 ]]; then
             echo "::error title=APK lookup failed::Expected 1 APK, found ${#files[@]} (${files[*]:-none})."
             exit 1
@@ -160,7 +160,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          files=(presentation/build/outputs/apk/fdroid/QUIK-v*-fdroid.apk)
+          files=(presentation/build/outputs/apk/fdroid/FoxholeMessages-v*-fdroid.apk)
           if [[ "${#files[@]}" -ne 1 ]]; then
             echo "::error title=APK lookup failed::Expected 1 APK, found ${#files[@]} (${files[*]:-none})."
             exit 1
@@ -252,7 +252,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p repo
-          target_apk="repo/dev.octoshrimpy.quik_${VERSION_CODE}.apk"
+          target_apk="repo/com.foxhole.messages_${VERSION_CODE}.apk"
           cp "$APK_PATH" "$target_apk"
           fdroid update --config config.yml --pretty
 
