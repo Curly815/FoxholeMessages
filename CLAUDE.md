@@ -7,13 +7,29 @@ changing the AGP `namespace` would require rewriting imports across
 ~400 source files, so only `applicationId`/branding was changed, not
 the source package.
 
-## Upcoming plans
+## v1.0 work in progress
 
-- Erik plans to make more changes/updates to the app and label the
-  next release as **Version 1** (`versionCode`/`versionName` bump in
-  `presentation/build.gradle`).
-- When that happens, a GitHub Release will need to be cut the same way
-  as the `v4.3.6` release (see below).
+Finalizing v1.0 (`versionCode 2239`, `versionName '1.0'`, bumped in
+`presentation/build.gradle`). Planned changes, in order:
+1. Version bump + changelog (`data/src/main/assets/changelog.json`,
+   F-Droid metadata) — done.
+2. Venmo donation option alongside the existing PayPal button on the
+   Plus/About screen.
+3. Link thumbnail previews in message bubbles (Open Graph/Twitter Card
+   metadata via `me.saket:unfurl`, fetched off the main thread, cached
+   in-memory since this app uses Realm rather than Room).
+
+Verification workflow: this sandbox has no Android SDK and no device
+attached, and Google/JitPack Maven access is blocked by network
+policy, so builds can't happen here. Each step gets pushed and built
+via the `.github/workflows/build-on-pull.yml` workflow
+(`workflow_dispatch`), which produces a debug APK (`.debug` suffix,
+installs alongside the release build) as a downloadable Actions
+artifact for Erik to sideload and confirm before moving to the next
+step.
+
+Once all of the above is verified, cut the v1.0 GitHub Release the
+same way as `v4.3.6` (see below).
 
 ## Cutting a release
 

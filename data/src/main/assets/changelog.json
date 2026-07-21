@@ -1,5 +1,15 @@
 [
   {
+    "versionCode": 2239,
+    "versionName": "1.0",
+    "added": [
+      "First stable Foxhole Messages release"
+    ],
+    "improved": [
+      "Rebranded from QUIK/QKSMS to Foxhole Messages"
+    ]
+  },
+  {
     "versionCode": 2238,
     "versionName": "4.3.6",
     "fixed": [
