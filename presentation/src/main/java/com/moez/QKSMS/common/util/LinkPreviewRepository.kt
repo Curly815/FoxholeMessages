@@ -48,8 +48,8 @@ class LinkPreviewRepository @Inject constructor() {
 
     private val unfurler = Unfurler(logger = UnfurlLogger.NoOp)
 
-    fun unfurl(url: String): Maybe<LinkPreview> = Maybe.fromCallable {
-        unfurler.unfurl(url)?.let { result ->
+    fun unfurl(url: String): Maybe<LinkPreview> = Maybe.defer {
+        val preview = unfurler.unfurl(url)?.let { result ->
             LinkPreview(
                 url = result.url.toString(),
                 title = result.title?.takeIf { it.isNotBlank() },
@@ -58,6 +58,8 @@ class LinkPreviewRepository @Inject constructor() {
                 faviconUrl = result.favicon?.toString()
             )
         }?.takeIf { it.title != null || it.thumbnailUrl != null }
+
+        if (preview != null) Maybe.just(preview) else Maybe.empty()
     }.subscribeOn(Schedulers.io())
 
 }
