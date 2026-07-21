@@ -265,7 +265,9 @@ class MainActivity : QkThemedActivity(), MainView {
         binding.tabStrip.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 binding.tabStrip.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                val uniformSize = tabStripViews.minOf { it.label.textSize }
+                // Nudge up slightly from the tightest fit for legibility; ellipsize (already set)
+                // is the safety net if this pushes the longest label just past fitting.
+                val uniformSize = tabStripViews.minOf { it.label.textSize } * 1.15f
                 tabStripViews.forEach { tabView ->
                     TextViewCompat.setAutoSizeTextTypeWithDefaults(tabView.label, TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE)
                     tabView.label.setTextSize(TypedValue.COMPLEX_UNIT_PX, uniformSize)
