@@ -206,7 +206,10 @@ dependencies {
     implementation "com.jakewharton.timber:timber:$timber_version"
 
     // link previews (thumbnail/title/description unfurling for URLs in messages)
-    implementation "me.saket.unfurl:unfurl:2.3.0"
+    // Pinned to 1.7.0: newer releases are built with Kotlin 2.2, whose class metadata
+    // this project's Kotlin 1.7.21 compiler can't read. 1.7.0 was built with Kotlin 1.7.10
+    // (matches this project) and has the same simple Unfurler/UnfurlResult API.
+    implementation "me.saket.unfurl:unfurl:1.7.0"
     implementation "com.squareup.moshi:moshi-kotlin:$moshi_version"
     implementation "me.leolin:ShortcutBadger:1.1.22"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"

@@ -19,9 +19,9 @@
 package dev.octoshrimpy.quik.common.util
 
 import io.reactivex.Maybe
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.rx2.rxMaybe
+import io.reactivex.schedulers.Schedulers
 import me.saket.unfurl.Unfurler
+import me.saket.unfurl.UnfurlLogger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,14 +40,15 @@ data class LinkPreview(
  *
  * Any failure (timeout, no connection, blocked host, unparsable page) or a page with no usable
  * metadata surfaces as an empty [Maybe] rather than throwing, so callers can fall back to
- * rendering the message as a plain link.
+ * rendering the message as a plain link. [Unfurler.unfurl] is blocking, so callers must not
+ * subscribe on the main thread; this wraps it in [Schedulers.io].
  */
 @Singleton
 class LinkPreviewRepository @Inject constructor() {
 
-    private val unfurler = Unfurler()
+    private val unfurler = Unfurler(logger = UnfurlLogger.NoOp)
 
-    fun unfurl(url: String): Maybe<LinkPreview> = rxMaybe(Dispatchers.IO) {
+    fun unfurl(url: String): Maybe<LinkPreview> = Maybe.fromCallable {
         unfurler.unfurl(url)?.let { result ->
             LinkPreview(
                 url = result.url.toString(),
@@ -57,6 +58,6 @@ class LinkPreviewRepository @Inject constructor() {
                 faviconUrl = result.favicon?.toString()
             )
         }?.takeIf { it.title != null || it.thumbnailUrl != null }
-    }
+    }.subscribeOn(Schedulers.io())
 
 }
