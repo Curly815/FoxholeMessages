@@ -27,8 +27,10 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
+import android.text.TextUtils
 import android.util.TypedValue
 import android.view.View
+import android.view.ViewTreeObserver
 import android.widget.LinearLayout
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
@@ -242,6 +244,7 @@ class MainActivity : QkThemedActivity(), MainView {
                 weight = 1f
             }
             tabView.label.maxLines = 1
+            tabView.label.ellipsize = TextUtils.TruncateAt.END
             // Shrink to fit instead of wrapping, but never grow past the themed size
             val maxSp = (tabView.label.textSize / resources.displayMetrics.scaledDensity).toInt().coerceAtLeast(8)
             TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
@@ -253,6 +256,22 @@ class MainActivity : QkThemedActivity(), MainView {
         updateTabStripActivation(binding.tabPager.currentItem)
         binding.tabPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) = updateTabStripActivation(position)
+        })
+
+        // Auto-size shrinks each label independently to fit its own text, which leaves them at
+        // different sizes. Wait for that first layout pass, then re-apply the Personal tab's
+        // resolved size to all of them so every tab matches it (longer labels ellipsize instead
+        // of wrapping if they don't fit at that size).
+        binding.tabStrip.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                binding.tabStrip.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                val personalIndex = tabPages.indexOfFirst { it.tab == Tab.PERSONAL }.coerceAtLeast(0)
+                val uniformSize = tabStripViews[personalIndex].label.textSize
+                tabStripViews.forEach { tabView ->
+                    TextViewCompat.setAutoSizeTextTypeWithDefaults(tabView.label, TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE)
+                    tabView.label.setTextSize(TypedValue.COMPLEX_UNIT_PX, uniformSize)
+                }
+            }
         })
     }
 
