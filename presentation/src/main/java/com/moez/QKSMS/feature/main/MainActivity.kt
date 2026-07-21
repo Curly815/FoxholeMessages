@@ -27,23 +27,18 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
-import android.text.TextUtils
-import android.util.TypedValue
 import android.view.View
-import android.view.ViewTreeObserver
-import android.widget.LinearLayout
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
-import androidx.core.widget.TextViewCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.tabs.TabLayoutMediator
 import com.jakewharton.rxbinding2.view.clicks
 import com.jakewharton.rxbinding2.widget.textChanges
 import com.uber.autodispose.android.lifecycle.scope
@@ -66,7 +61,6 @@ import dev.octoshrimpy.quik.feature.blocking.BlockingDialog
 import dev.octoshrimpy.quik.databinding.MainActivityBinding
 import dev.octoshrimpy.quik.databinding.MainPermissionHintBinding
 import dev.octoshrimpy.quik.databinding.MainSyncingBinding
-import dev.octoshrimpy.quik.databinding.TabViewBinding
 import dev.octoshrimpy.quik.feature.changelog.ChangelogDialog
 import dev.octoshrimpy.quik.feature.conversations.ConversationItemTouchCallback
 import dev.octoshrimpy.quik.feature.conversations.ConversationsAdapter
@@ -148,7 +142,6 @@ class MainActivity : QkThemedActivity(), MainView {
     }
     private val conversationsPagerAdapter by lazy { ConversationsPagerAdapter(tabPages) }
     private val allConversationsAdapters by lazy { listOf(conversationsAdapter) + tabPages.map { it.adapter } }
-    private val tabStripViews by lazy { tabPages.map { TabViewBinding.inflate(layoutInflater, binding.tabStrip, false) } }
 
     private val viewModel by lazy {
         ViewModelProviders.of(this, viewModelFactory)[MainViewModel::class.java]
@@ -230,6 +223,10 @@ class MainActivity : QkThemedActivity(), MainView {
                     binding.drawer.plusIcon.setTint(theme.theme)
                     binding.drawer.rateIcon.setTint(theme.theme)
                     binding.compose.setBackgroundTint(theme.theme)
+                    binding.tabStrip.setSelectedTabIndicatorColor(theme.theme)
+                    binding.tabStrip.setTabTextColors(
+                        resolveThemeColor(android.R.attr.textColorSecondary), theme.theme
+                    )
 
                     // Set the FAB compose icon color
                     binding.compose.setTint(theme.textPrimary)
@@ -237,54 +234,16 @@ class MainActivity : QkThemedActivity(), MainView {
     }
 
     private fun buildTabStrip() {
-        binding.tabStrip.removeAllViews()
-        tabStripViews.forEachIndexed { index, tabView ->
-            tabView.root.layoutParams = (tabView.root.layoutParams as LinearLayout.LayoutParams).apply {
-                width = 0
-                weight = 1f
-            }
-            tabView.label.maxLines = 1
-            tabView.label.ellipsize = TextUtils.TruncateAt.END
-            // Shrink to fit instead of wrapping, but never grow past the themed size
-            val maxSp = (tabView.label.textSize / resources.displayMetrics.scaledDensity).toInt().coerceAtLeast(8)
-            TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
-                tabView.label, 8, maxSp, 1, TypedValue.COMPLEX_UNIT_SP
-            )
-            tabView.root.setOnClickListener { binding.tabPager.currentItem = index }
-            binding.tabStrip.addView(tabView.root)
-        }
-        updateTabStripActivation(binding.tabPager.currentItem)
-        binding.tabPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) = updateTabStripActivation(position)
-        })
-
-        // Auto-size shrinks each label independently to fit its own text, which leaves them at
-        // different sizes. Wait for that first layout pass, then re-apply the smallest resolved
-        // size (i.e. whatever the longest label like "Transactions" needed to fit) to all four,
-        // so every tab is legible and none of them wrap or truncate.
-        binding.tabStrip.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                binding.tabStrip.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                // Nudge up slightly from the tightest fit for legibility; ellipsize (already set)
-                // is the safety net if this pushes the longest label just past fitting.
-                val uniformSize = tabStripViews.minOf { it.label.textSize } * 1.15f
-                tabStripViews.forEach { tabView ->
-                    TextViewCompat.setAutoSizeTextTypeWithDefaults(tabView.label, TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE)
-                    tabView.label.setTextSize(TypedValue.COMPLEX_UNIT_PX, uniformSize)
-                }
-            }
-        })
-    }
-
-    private fun updateTabStripActivation(position: Int) {
-        tabStripViews.forEachIndexed { index, tabView -> tabView.root.isActivated = index == position }
+        TabLayoutMediator(binding.tabStrip, binding.tabPager) { tab, position ->
+            tab.text = getString(tabPages[position].tab.titleRes)
+        }.attach()
     }
 
     private fun updateTabBadges(unreadCounts: Map<Tab, Long>) {
         tabPages.forEachIndexed { index, page ->
             val count = unreadCounts[page.tab] ?: 0
             val label = getString(page.tab.titleRes)
-            tabStripViews[index].label.text = if (count > 0) "$label ($count)" else label
+            binding.tabStrip.getTabAt(index)?.text = if (count > 0) "$label ($count)" else label
         }
     }
 

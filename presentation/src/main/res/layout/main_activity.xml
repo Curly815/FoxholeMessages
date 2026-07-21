@@ -92,12 +92,14 @@
 
         <!-- Message sorting: Inbox shows these tab pages (Personal/Transactions/Promotions/
              Starred) instead of the flat recyclerView above, which remains for Archived/Search -->
-        <LinearLayout
+        <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabStrip"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:orientation="horizontal"
+            android:layout_height="wrap_content"
             android:visibility="gone"
+            app:tabMode="scrollable"
+            app:tabGravity="start"
+            app:tabTextColor="?android:attr/textColorSecondary"
             app:layout_constraintTop_toBottomOf="@id/toolbar"
             tools:visibility="visible" />
 
