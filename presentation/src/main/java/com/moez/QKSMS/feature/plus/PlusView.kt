@@ -27,6 +27,7 @@ interface PlusView : QkView<PlusState> {
     val upgradeIntent: Observable<Unit>
     val upgradeDonateIntent: Observable<Unit>
     val donateIntent: Observable<*>
+    val donateVenmoIntent: Observable<*>
     val themeClicks: Observable<*>
     val scheduleClicks: Observable<*>
     val backupClicks: Observable<*>

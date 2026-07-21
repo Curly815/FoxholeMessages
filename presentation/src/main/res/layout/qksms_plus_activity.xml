@@ -155,6 +155,15 @@
                     app:textColor="primaryOnTheme"
                     tools:backgroundTint="@color/tools_theme" />
 
+                <dev.octoshrimpy.quik.common.widget.QkTextView
+                    android:id="@+id/donateVenmo"
+                    style="@style/TextButton"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/rounded_rectangle_2dp"
+                    android:text="@string/qksms_plus_donate_venmo"
+                    app:textColor="primaryOnTheme"
+                    tools:backgroundTint="@color/tools_theme" />
+
             </LinearLayout>
 
             <View

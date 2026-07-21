@@ -20,6 +20,7 @@ package dev.octoshrimpy.quik.feature.plus
 
 import com.uber.autodispose.android.lifecycle.scope
 import com.uber.autodispose.autoDisposable
+import dev.octoshrimpy.quik.common.ExternalNavigator
 import dev.octoshrimpy.quik.common.Navigator
 import dev.octoshrimpy.quik.common.base.QkViewModel
 import dev.octoshrimpy.quik.manager.BillingManager
@@ -29,7 +30,8 @@ import javax.inject.Inject
 
 class PlusViewModel @Inject constructor(
     private val billingManager: BillingManager,
-    private val navigator: Navigator
+    private val navigator: Navigator,
+    private val externalNavigator: ExternalNavigator
 ) : QkViewModel<PlusView, PlusState>(PlusState()) {
 
     init {
@@ -56,9 +58,13 @@ class PlusViewModel @Inject constructor(
                 .autoDisposable(view.scope())
                 .subscribe { sku -> view.initiatePurchaseFlow(billingManager, sku) }
 
-//        view.donateIntent
-//                .autoDisposable(view.scope())
-//                .subscribe { navigator.showDonation() }
+        view.donateIntent
+                .autoDisposable(view.scope())
+                .subscribe { externalNavigator.showDonation() }
+
+        view.donateVenmoIntent
+                .autoDisposable(view.scope())
+                .subscribe { externalNavigator.showVenmoDonation() }
 
         view.themeClicks
                 .autoDisposable(view.scope())

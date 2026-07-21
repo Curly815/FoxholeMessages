@@ -426,6 +426,7 @@
     <string name="qksms_plus_error">An error has occurred, please try again</string>
     <string name="qksms_plus_free_title">Foxhole Messages+ is free for F-Droid users! If you\'d like to support development, a donation would be highly appreciated.</string>
     <string name="qksms_plus_donate">Donate via PayPal</string>
+    <string name="qksms_plus_donate_venmo">Support via Venmo</string>
     <string name="qksms_plus_coming_soon">Coming soon</string>
     <string name="qksms_plus_themes_title">Premium themes</string>
     <string name="qksms_plus_themes_summary">Unlock beautiful theme colors not available on the Material Design palette</string>
