@@ -1,0 +1,17 @@
+# Config for the self-hosted F-Droid repo published to GitHub Pages by
+# .github/workflows/build-and-release.yml.
+#
+# NOTE: `fdroid update` (fdroidserver 2.2.1, matching what CI installs)
+# hard-requires a repo signing keystore — verified locally, there's no
+# supported flag/config combination that produces a fully unsigned index.
+# This file has no keystore configured yet, so the "Update F-Droid repo
+# contents" step will still fail until one is added (repo_keyalias,
+# keystore, keystorepass, keypass — the keystore should be referenced by
+# path with the password pulled from a GitHub secret via `{env: VAR}`,
+# the same pattern used for the app's own release signing).
+repo_url: https://curly815.github.io/FoxholeMessages/fdroid/repo
+repo_name: Foxhole Messages
+repo_description: >-
+  Self-hosted F-Droid repository for Foxhole Messages, built and published
+  automatically from GitHub Actions on every tagged release.
+archive_older: 3

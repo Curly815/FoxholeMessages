@@ -36,7 +36,6 @@ jobs:
       version_name: ${{ steps.version.outputs.version_name }}
       version_code: ${{ steps.version.outputs.version_code }}
       tag_name: ${{ steps.version.outputs.tag_name }}
-      apk_release_path: ${{ steps.release_artifact.outputs.apk_release_path }}
       apk_fdroid_path: ${{ steps.fdroid_artifact.outputs.apk_fdroid_path }}
       checksums_path: ${{ steps.checksums.outputs.checksums_path }}
 
@@ -55,26 +54,6 @@ jobs:
           if ! git merge-base --is-ancestor HEAD origin/master; then
             echo "::error title=Release blocked::${RELEASE_REF} is not merged into master. Merge the release PR first."
             exit 1
-          fi
-
-      - name: Checkout published F-Droid repo (if available)
-        id: checkout_pages
-        continue-on-error: true
-        uses: actions/checkout@v6
-        with:
-          ref: gh-pages
-          path: gh-pages
-
-      - name: Restore previous F-Droid artifacts
-        if: steps.checkout_pages.outcome == 'success'
-        run: |
-          set -euo pipefail
-          if [[ -d gh-pages/fdroid ]]; then
-            rm -rf repo
-            mkdir -p repo
-            cp -a gh-pages/fdroid/. repo/
-          else
-            mkdir -p repo
           fi
 
       - name: Set up JDK 17
@@ -199,6 +178,28 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_ref || 'master' }}
+
+      - name: Checkout published F-Droid repo (if available)
+        id: checkout_pages
+        continue-on-error: true
+        uses: actions/checkout@v6
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Restore previous F-Droid artifacts
+        if: steps.checkout_pages.outcome == 'success'
+        run: |
+          set -euo pipefail
+          if [[ -d gh-pages/fdroid/repo ]]; then
+            mkdir -p fdroid/repo
+            cp -a gh-pages/fdroid/repo/. fdroid/repo/
+          fi
+
       - name: Sanitize release notes
         id: clean_notes
         env:
@@ -245,15 +246,21 @@ jobs:
           sudo apt-get install -y fdroidserver aapt apksigner
 
       - name: Update F-Droid repo contents
+        working-directory: fdroid
         env:
-          APK_PATH: ${{ needs.build.outputs.apk_release_path }}
-          VERSION_NAME: ${{ needs.build.outputs.version_name }}
           VERSION_CODE: ${{ needs.build.outputs.version_code }}
         run: |
           set -euo pipefail
           mkdir -p repo
-          target_apk="repo/com.foxhole.messages_${VERSION_CODE}.apk"
-          cp "$APK_PATH" "$target_apk"
+          # The release APK lives in this job's downloaded/ artifact dir, not
+          # the build job's local presentation/build/... path (separate
+          # runners don't share a filesystem) — locate it here instead.
+          apk_path=$(find ../downloaded -type f -name 'FoxholeMessages-v*-release.apk' -print -quit)
+          if [[ -z "$apk_path" ]]; then
+            echo "::error title=APK lookup failed::Could not find the downloaded release APK under downloaded/."
+            exit 1
+          fi
+          cp "$apk_path" "repo/com.foxhole.messages_${VERSION_CODE}.apk"
           fdroid update --config config.yml --pretty
 
       - name: Publish F-Droid repo to GitHub Pages
@@ -261,8 +268,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: repo
-          destination_dir: fdroid
+          publish_dir: fdroid/repo
+          destination_dir: fdroid/repo
           user_name: github-actions[bot]
           user_email: github-actions[bot]@users.noreply.github.com
 

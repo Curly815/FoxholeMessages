@@ -56,6 +56,11 @@ my-release-key.keystore.base64
 .secrets
 android-keystore/keystore.b64
 keystore.p12
-config.yml
 *.jks
+
+# fdroidserver's own config.yml historically held a repo-signing keystore
+# password inline, so it stayed out of git wholesale. fdroid/config.yml is
+# secret-free (env-var indirection for any future keystore password) and is
+# intentionally tracked — only ignore a top-level config.yml here.
+/config.yml
 
