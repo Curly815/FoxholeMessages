@@ -24,22 +24,32 @@ Finalizing v1.0 (`versionCode 2239`, `versionName '1.0'`, bumped in
    developer" row. Other already-inert `!upgraded` dead code (drawer
    badges, Backup/Scheduled FAB fallbacks, Settings gates) was left
    untouched since it was already invisible to users.
-3. Link thumbnail previews in message bubbles — implemented, pending
-   device verification. Uses `me.saket.unfurl:unfurl:2.3.0` (Maven
-   Central, Apache 2.0), whose `Unfurler` is a suspend-based, coroutine
-   API with its own built-in in-memory LRU cache (size 100, 24h expiry)
+3. Link thumbnail previews in message bubbles — done, verified on
+   device. Uses `me.saket.unfurl:unfurl:1.7.0` (Maven Central, Apache
+   2.0) — pinned to 1.7.0 specifically because newer releases (2.x)
+   are built with Kotlin 2.2, whose class metadata this project's
+   Kotlin 1.7.21 compiler can't read (it broke compilation
+   project-wide, not just the new file, when first tried at 2.3.0).
+   1.7.0's `Unfurler.unfurl()` is a **blocking** call (no coroutines
+   dependency), with its own built-in in-memory LRU cache (size 100)
    keyed by URL — no separate Realm/Room cache layer was needed.
    `LinkPreviewRepository` (`common/util/LinkPreviewRepository.kt`)
    wraps it as `Maybe<LinkPreview>` (empty = no preview, never throws)
-   via `rxMaybe(Dispatchers.IO)`. `MessagesAdapter` extracts the first
-   URL per message with `Linkify`, fetches/binds/cancels per-ViewHolder
-   (tag-based staleness guard + `onViewRecycled` disposal), and renders
-   a card (thumbnail/title/description/host) below the message body in
-   both `message_list_item_in.xml`/`_out.xml`. Previews are only
-   fetched when the existing Settings "link handling" preference is
-   not set to Block — fetching a preview means silently contacting
-   whatever server is in the URL, which the Block setting exists to
-   prevent, so it was tied to that instead of adding a new toggle.
+   via `Maybe.defer { ... }.subscribeOn(Schedulers.io())` (plain
+   RxJava2, not coroutines — `Maybe.fromCallable` doesn't work here
+   since Kotlin infers a nullable type argument from a nullable
+   lambda body, which doesn't unify with `Maybe`'s invariant generics).
+   `MessagesAdapter` extracts the first URL per message with
+   `Linkify`, fetches/binds/cancels per-ViewHolder (tag-based
+   staleness guard + `onViewRecycled` disposal), and renders a card
+   (thumbnail/title/description/host) below the message body in both
+   `message_list_item_in.xml`/`_out.xml`. Previews are only fetched
+   when the existing Settings "link handling" preference is not set
+   to Block — fetching a preview means silently contacting whatever
+   server is in the URL, which the Block setting exists to prevent,
+   so it was tied to that instead of adding a new toggle.
+
+All four v1.0 items above are now done and device-verified.
 
 Verification workflow: this sandbox has no Android SDK and no device
 attached, and Google/JitPack Maven access is blocked by network
