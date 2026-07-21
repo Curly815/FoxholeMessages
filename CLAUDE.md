@@ -7,7 +7,7 @@ changing the AGP `namespace` would require rewriting imports across
 ~400 source files, so only `applicationId`/branding was changed, not
 the source package.
 
-## v1.0 work in progress
+## v1.0.0 (released)
 
 Finalizing v1.0 (`versionCode 2239`, `versionName '1.0.0'`, bumped in
 `presentation/build.gradle`). Planned changes, in order:
@@ -62,6 +62,100 @@ step.
 
 Once all of the above is verified, cut the v1.0 GitHub Release the
 same way as `v4.3.6` (see below).
+
+## v1.1.0 — Message Sorting feature recovery
+
+v1.0.0 shipped without a "Message Sorting" feature (auto-categorizing
+messages as Personal/Transactional/Promotional, a tabbed inbox, etc.)
+that had actually already been built once, in a *prior* ephemeral
+Claude Code session — but that session's container was reclaimed
+before its commits were ever pushed to git, so the work was
+completely lost from the repo (confirmed via exhaustive git history/
+branch search — zero trace anywhere). The only surviving artifact was
+a `FoxholeMessages-v4.4.0.apk` the user had sideloaded from that lost
+session. It was recovered by decompiling that APK (`androguard`,
+isolated venv due to a system `cryptography` conflict —
+`python3 -m venv /tmp/androguard_venv && pip install androguard`;
+`AnalyzeAPK` + `DecompilerDAD` for pseudo-Java; R8 had obfuscated
+resource *file* names but not resource/class *identifiers*, so string
+tables, `strings -e s classes.dex`, and `ARSCParser.get_res_id_by_key`
+were enough to recover exact regex patterns, Realm schemas, and
+layout/resource contents) and faithfully reimplementing it as new
+Kotlin source — not just approximating behavior, but matching the
+decompiled logic line-for-line where feasible, then translating
+Java-interop-shaped decompiled bytecode back into idiomatic Kotlin
+(e.g. `RxView.clicks(x).map(VoidToUnit.INSTANCE)` → `x.clicks()`) to
+match this codebase's actual conventions. This shipped in two passes:
+
+**Pass 1 — classification engine + settings UI:**
+- `classifier/` (domain module): `Category` enum, `OtpDetector`,
+  `MessageClassifier` (18 transactional + 15 promotional regexes,
+  recovered verbatim from decompiled bytecode), `MessageCategorizer`
+  (trusted-sender/rule/classifier precedence), `MessageCategoryBackfill`
+  (chunked batch classification for existing messages).
+- New Realm models `TrustedSender`, `SenderCategoryRule` + repos.
+- `Message` gained `category: String?` and `isOtp: Boolean`.
+- `Preferences` gained `autoSortEnabled` and per-category
+  notification prefs (`categoryNotifications`/`categoryPreviews`/
+  `categoryVibration`/`categoryRingtone`) — **stored but not yet wired
+  into actual notification delivery** in `NotificationManagerImpl`;
+  flagged as a known follow-up if ever wanted, deliberately skipped to
+  avoid a risky untested change to that method.
+- `ReceiveSmsWorker`/`ReceiveMmsWorker` classify+OTP-tag every message
+  as it arrives; `ClassifyExistingMessagesWorker` backfills on demand.
+- Settings UI under `feature/settings/messagesorting/`: main screen,
+  sender rules list, trusted senders list, per-category notification
+  activity — all wired into `SettingsController`/`AppComponent`.
+- Realm `SCHEMA_VERSION` 15 → 16.
+
+**Pass 2 — tabbed inbox, starring, category override:** the first
+pass only covered the *settings* screens; a second decompile pass
+(triggered by the user noticing "the tabs are missing" on-device)
+found the actual auto-sort *result* — a tabbed Inbox — hadn't been
+rebuilt yet. Added:
+- `feature/conversations/Tab.kt` enum (PERSONAL/TRANSACTIONS/
+  PROMOTIONS/STARRED) + `ConversationsPagerAdapter` (ViewPager2-backed,
+  one `ConversationsAdapter`/`ConversationItemTouchCallback` instance
+  per tab so selection/swipe state stay independent). Inbox page shows
+  this instead of the flat conversation list; Archived/Search are
+  unchanged. `MainActivity`'s `conversationsSelectedIntent`/
+  `swipeConversationIntent`/`clearSelection`/`toggleSelectAll` all
+  merge across the main adapter + all 4 tab adapters now.
+- `ConversationRepository.getConversationsByCategory`/
+  `getUnreadCountByCategory`/`getStarredConversations`/
+  `getUnreadStarredCount` — category tabs fall back to PERSONAL for
+  anything not TRANSACTIONAL/PROMOTIONAL (i.e. unclassified mail
+  defaults into Personal, there's no separate "Unclassified" tab).
+- `Message.isStarred: Boolean` (new "Star" action in the compose
+  toolbar menu, one message selected at a time) and
+  `Conversation.categoryOverride: String?` (new "Move to..." action on
+  selected conversations in the main toolbar menu — sets the override
+  *and* persists a `SenderCategoryRule` for each recipient, so future
+  messages from them sort the same way).
+- Realm `SCHEMA_VERSION` 16 → 17.
+- Tab strip UI went through several iterations before landing on
+  `com.google.android.material.tabs.TabLayout` + `TabLayoutMediator`
+  (scrollable, auto-width tabs with an underline indicator) to match
+  a reference screenshot of the original 4.4.0 build the user
+  provided — a hand-rolled equal-width `LinearLayout` strip was tried
+  first and didn't match. This required bumping
+  `ext.material_version` in the root `build.gradle` from `1.0.0` to
+  `1.6.1` (**`TabLayoutMediator` and `tabGravity="start"` don't exist
+  before Material 1.1.0** — this project had never needed anything
+  past basic `Snackbar` before, so it was still pinned to 1.0.0).
+- New app launcher icon recovered from the same APK: adaptive icon,
+  solid `#2F4A3D` (dark green) background, `#F5F1E6` (cream) chat
+  bubble with three dots foreground (`presentation/src/main/res/
+  drawable/ic_launcher_{background,foreground,monochrome}.xml`).
+  Notification icons (`ic_notification`/`_worker`/`_failed`) came back
+  **pixel-identical** to what was already in the repo (verified via
+  `PIL.ImageChops.difference`), so those were left untouched despite
+  initially expecting them to also need updating.
+
+Shipped as `versionCode 2240` / `versionName '1.1.0'` (semver minor
+bump — new backward-compatible feature, not a fix). Changelog and
+F-Droid metadata updated alongside the version bump per the process
+below.
 
 ## Cutting a release
 

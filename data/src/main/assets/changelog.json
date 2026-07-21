@@ -1,5 +1,18 @@
 [
   {
+    "versionCode": 2240,
+    "versionName": "1.1.0",
+    "added": [
+      "Message Sorting: incoming messages are automatically classified as Personal, Transactional, or Promotional",
+      "Tabbed inbox: swipe between Personal, Transactions, Promotions, and Starred",
+      "Star individual messages and find them all in the Starred tab",
+      "\"Move to...\" a conversation to a different category, which also remembers the choice for that sender",
+      "Sender rules and trusted senders let you fine-tune how specific numbers get sorted",
+      "Per-category notification settings (sound, vibration, previews)",
+      "New app icon"
+    ]
+  },
+  {
     "versionCode": 2239,
     "versionName": "1.0.0",
     "added": [
