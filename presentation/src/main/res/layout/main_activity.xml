@@ -98,6 +98,7 @@
             android:layout_height="wrap_content"
             android:visibility="gone"
             app:tabMode="scrollable"
+            app:tabGravity="start"
             app:tabTextColor="?android:attr/textColorSecondary"
             app:layout_constraintTop_toBottomOf="@id/toolbar"
             tools:visibility="visible" />
