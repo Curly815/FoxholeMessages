@@ -24,6 +24,12 @@ jobs:
         java-version: '17'
         cache: gradle
 
+    - name: Cache debug keystore
+      uses: actions/cache@v4
+      with:
+        path: ~/.android/debug.keystore
+        key: android-debug-keystore-v1
+
     - name: Build with Gradle
       run: ./gradlew assembleDebug
 
