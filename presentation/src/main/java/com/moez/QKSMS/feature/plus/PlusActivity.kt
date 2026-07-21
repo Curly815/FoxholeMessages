@@ -54,7 +54,6 @@ class PlusActivity : QkThemedActivity(), PlusView {
 
     override val upgradeIntent get() = binding.upgrade.clicks()
     override val upgradeDonateIntent get() = binding.upgradeDonate.clicks()
-    override val donateIntent get() = binding.donate.clicks()
     override val donateVenmoIntent get() = binding.donateVenmo.clicks()
     override val themeClicks get() = binding.themes.clicks()
     override val scheduleClicks get() = binding.schedule.clicks()
@@ -92,7 +91,6 @@ class PlusActivity : QkThemedActivity(), PlusView {
         binding.toolbarLayout.collapsingToolbar.setExpandedTitleColor(textPrimary)
 
         val theme = colors.theme().theme
-        binding.donate.setBackgroundTint(theme)
         binding.donateVenmo.setBackgroundTint(theme)
         binding.upgrade.setBackgroundTint(theme)
         binding.thanksIcon.setTint(theme)

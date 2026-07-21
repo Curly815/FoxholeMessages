@@ -63,8 +63,6 @@ class ExternalNavigator @Inject constructor(
         startActivityExternal(intent)
     }
 
-    fun showDonation() = openExternalActivity("https://github.com/curly815/foxholemessages")
-
     fun showVenmoDonation() {
         val deepLink = Intent(Intent.ACTION_VIEW, "venmo://users/curly815".toUri())
         if (deepLink.resolveActivity(context.packageManager) != null) {
