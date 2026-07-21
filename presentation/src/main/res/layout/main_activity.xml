@@ -90,6 +90,26 @@
             app:layout_constraintTop_toBottomOf="@id/toolbar"
             tools:listitem="@layout/conversation_list_item" />
 
+        <!-- Message sorting: Inbox shows these tab pages (Personal/Transactions/Promotions/
+             Starred) instead of the flat recyclerView above, which remains for Archived/Search -->
+        <LinearLayout
+            android:id="@+id/tabStrip"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/toolbar"
+            tools:visibility="visible" />
+
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/tabPager"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/bottom"
+            app:layout_constraintTop_toBottomOf="@id/tabStrip"
+            tools:visibility="visible" />
+
         <ImageView
             android:id="@+id/compose"
             android:layout_width="56dp"

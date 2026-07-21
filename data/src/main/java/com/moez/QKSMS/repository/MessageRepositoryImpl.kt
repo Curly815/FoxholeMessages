@@ -1123,4 +1123,15 @@ open class MessageRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    override fun setStarred(messageId: Long, starred: Boolean) {
+        Realm.getDefaultInstance().use { realm ->
+            realm.executeTransaction {
+                realm.where(Message::class.java)
+                    .equalTo("id", messageId)
+                    .findFirst()
+                    ?.isStarred = starred
+            }
+        }
+    }
 }

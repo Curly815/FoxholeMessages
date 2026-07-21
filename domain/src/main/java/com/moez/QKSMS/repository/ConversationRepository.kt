@@ -95,4 +95,14 @@ interface ConversationRepository {
 
     fun deleteConversations(vararg threadIds: Long)
 
+    fun getConversationsByCategory(unreadAtTop: Boolean, category: String): RealmResults<Conversation>
+
+    fun getUnreadCountByCategory(category: String): Long
+
+    fun getStarredConversations(unreadAtTop: Boolean): RealmResults<Conversation>
+
+    fun getUnreadStarredCount(): Long
+
+    fun updateCategoryOverride(threadIds: Collection<Long>, category: String?)
+
 }

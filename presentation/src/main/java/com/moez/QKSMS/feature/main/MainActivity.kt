@@ -28,6 +28,7 @@ import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.LinearLayout
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
@@ -37,6 +38,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.snackbar.Snackbar
 import com.jakewharton.rxbinding2.view.clicks
 import com.jakewharton.rxbinding2.widget.textChanges
@@ -55,13 +57,17 @@ import dev.octoshrimpy.quik.common.util.extensions.setBackgroundTint
 import dev.octoshrimpy.quik.common.util.extensions.setTint
 import dev.octoshrimpy.quik.common.util.extensions.setVisible
 import dev.octoshrimpy.quik.common.widget.TextInputDialog
+import dev.octoshrimpy.quik.classifier.Category
 import dev.octoshrimpy.quik.feature.blocking.BlockingDialog
 import dev.octoshrimpy.quik.databinding.MainActivityBinding
 import dev.octoshrimpy.quik.databinding.MainPermissionHintBinding
 import dev.octoshrimpy.quik.databinding.MainSyncingBinding
+import dev.octoshrimpy.quik.databinding.TabViewBinding
 import dev.octoshrimpy.quik.feature.changelog.ChangelogDialog
 import dev.octoshrimpy.quik.feature.conversations.ConversationItemTouchCallback
 import dev.octoshrimpy.quik.feature.conversations.ConversationsAdapter
+import dev.octoshrimpy.quik.feature.conversations.ConversationsPagerAdapter
+import dev.octoshrimpy.quik.feature.conversations.Tab
 import dev.octoshrimpy.quik.manager.ChangelogManager
 import dev.octoshrimpy.quik.repository.SyncRepository
 import io.reactivex.Observable
@@ -69,6 +75,7 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import javax.inject.Inject
+import javax.inject.Provider
 
 class MainActivity : QkThemedActivity(), MainView {
 
@@ -79,6 +86,8 @@ class MainActivity : QkThemedActivity(), MainView {
     @Inject lateinit var drawerBadgesExperiment: DrawerBadgesExperiment
     @Inject lateinit var searchAdapter: SearchAdapter
     @Inject lateinit var itemTouchCallback: ConversationItemTouchCallback
+    @Inject lateinit var conversationsAdapterProvider: Provider<ConversationsAdapter>
+    @Inject lateinit var itemTouchCallbackProvider: Provider<ConversationItemTouchCallback>
     @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
 
     private lateinit var binding: MainActivityBinding
@@ -112,13 +121,30 @@ class MainActivity : QkThemedActivity(), MainView {
 //    override val plusBannerIntent by lazy { plusBanner.clicks() }
     override val dismissRatingIntent by lazy { binding.drawer.rateDismiss.clicks() }
     override val rateIntent by lazy { binding.drawer.rateOkay.clicks() }
-    override val conversationsSelectedIntent by lazy { conversationsAdapter.selectionChanges }
+    override val conversationsSelectedIntent by lazy {
+        Observable.merge(allConversationsAdapters.map { it.selectionChanges })
+    }
     override val confirmDeleteIntent: Subject<List<Long>> = PublishSubject.create()
     override val renameConversationIntent: Subject<String> = PublishSubject.create()
-    override val swipeConversationIntent by lazy { itemTouchCallback.swipes }
+    override val moveToIntent: Subject<String> = PublishSubject.create()
+    override val swipeConversationIntent by lazy {
+        Observable.merge(listOf(itemTouchCallback.swipes) + tabPages.map { it.touchCallback.swipes })
+    }
     override val changelogMoreIntent by lazy { changelogDialog.moreClicks }
     override val undoArchiveIntent: Subject<Unit> = PublishSubject.create()
     override val snackbarButtonIntent: Subject<Unit> = PublishSubject.create()
+
+    // Message sorting: the Inbox page shows a ViewPager2 of category tabs instead of the flat
+    // recyclerView above, which remains in use for Archived/Search. Each tab gets its own
+    // adapter/touch callback so selection and swipe state stay independent per tab.
+    private val tabPages by lazy {
+        Tab.values().map { tab ->
+            ConversationsPagerAdapter.TabPage(tab, conversationsAdapterProvider.get(), itemTouchCallbackProvider.get())
+        }
+    }
+    private val conversationsPagerAdapter by lazy { ConversationsPagerAdapter(tabPages) }
+    private val allConversationsAdapters by lazy { listOf(conversationsAdapter) + tabPages.map { it.adapter } }
+    private val tabStripViews by lazy { tabPages.map { TabViewBinding.inflate(layoutInflater, binding.tabStrip, false) } }
 
     private val viewModel by lazy {
         ViewModelProviders.of(this, viewModelFactory)[MainViewModel::class.java]
@@ -167,6 +193,9 @@ class MainActivity : QkThemedActivity(), MainView {
         itemTouchCallback.adapter = conversationsAdapter
         conversationsAdapter.autoScrollToStart(binding.recyclerView)
 
+        binding.tabPager.adapter = conversationsPagerAdapter
+        buildTabStrip()
+
         // Don't allow clicks to pass through the drawer layout
         binding.drawer.root.clicks().autoDisposable(scope()).subscribe()
 
@@ -203,6 +232,34 @@ class MainActivity : QkThemedActivity(), MainView {
                 }
     }
 
+    private fun buildTabStrip() {
+        binding.tabStrip.removeAllViews()
+        tabStripViews.forEachIndexed { index, tabView ->
+            tabView.root.layoutParams = (tabView.root.layoutParams as LinearLayout.LayoutParams).apply {
+                width = 0
+                weight = 1f
+            }
+            tabView.root.setOnClickListener { binding.tabPager.currentItem = index }
+            binding.tabStrip.addView(tabView.root)
+        }
+        updateTabStripActivation(binding.tabPager.currentItem)
+        binding.tabPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) = updateTabStripActivation(position)
+        })
+    }
+
+    private fun updateTabStripActivation(position: Int) {
+        tabStripViews.forEachIndexed { index, tabView -> tabView.root.isActivated = index == position }
+    }
+
+    private fun updateTabBadges(unreadCounts: Map<Tab, Long>) {
+        tabPages.forEachIndexed { index, page ->
+            val count = unreadCounts[page.tab] ?: 0
+            val label = getString(page.tab.titleRes)
+            tabStripViews[index].label.text = if (count > 0) "$label ($count)" else label
+        }
+    }
+
     override fun onNewIntent(intent: Intent?) =
         intent?.let {
             super.onNewIntent(intent)
@@ -215,7 +272,7 @@ class MainActivity : QkThemedActivity(), MainView {
             return
         }
 
-        conversationsAdapter.hasScheduledConversation = state.scheduledConversationIds
+        allConversationsAdapters.forEach { it.hasScheduledConversation = state.scheduledConversationIds }
 
         val addContact = when (state.page) {
             is Inbox -> state.page.addContact
@@ -247,9 +304,16 @@ class MainActivity : QkThemedActivity(), MainView {
         )
         binding.toolbarTitle.setVisible(binding.toolbarSearch.visibility != View.VISIBLE)
 
+        val activeItemCount = when (state.page) {
+            is Inbox -> tabPages.getOrNull(binding.tabPager.currentItem)?.adapter?.itemCount ?: 0
+            is Archived -> conversationsAdapter.itemCount
+            is Searching -> searchAdapter.itemCount
+            else -> 0
+        }
+
         binding.toolbar.menu.apply {
             findItem(R.id.select_all)?.isVisible =
-                (conversationsAdapter.itemCount > 1) && selectedConversations != 0
+                (activeItemCount > 1) && selectedConversations != 0
             findItem(R.id.archive)?.isVisible =
                 state.page is Inbox && selectedConversations != 0
             findItem(R.id.unarchive)?.isVisible =
@@ -264,6 +328,7 @@ class MainActivity : QkThemedActivity(), MainView {
                     selectedConversations > 1
             findItem(R.id.block)?.isVisible = selectedConversations != 0
             findItem(R.id.rename)?.isVisible = selectedConversations == 1
+            findItem(R.id.move_to)?.isVisible = state.page is Inbox && selectedConversations != 0
         }
 
         listOf(binding.drawer.plusBadge1, binding.drawer.plusBadge2).forEach { badge ->
@@ -274,24 +339,27 @@ class MainActivity : QkThemedActivity(), MainView {
         binding.drawer.rateLayout.setVisible(state.showRating)
 
         binding.compose.setVisible(state.page is Inbox || state.page is Archived)
-        conversationsAdapter.emptyView = binding.empty.takeIf {
-            state.page is Inbox || state.page is Archived
-        }
+        conversationsAdapter.emptyView = binding.empty.takeIf { state.page is Archived }
         searchAdapter.emptyView = binding.empty.takeIf { state.page is Searching }
 
         when (state.page) {
             is Inbox -> {
                 showBackButton(state.page.selected > 0)
                 title = getString(R.string.main_title_selected, state.page.selected)
-                if (binding.recyclerView.adapter !== conversationsAdapter)
-                    binding.recyclerView.adapter = conversationsAdapter
-                conversationsAdapter.updateData(state.page.data)
-                itemTouchHelper.attachToRecyclerView(binding.recyclerView)
-                binding.empty.setText(R.string.inbox_empty_text)
+                binding.tabStrip.isVisible = true
+                binding.tabPager.isVisible = true
+                binding.recyclerView.isVisible = false
+                binding.empty.isVisible = false
+                itemTouchHelper.attachToRecyclerView(null)
+                tabPages.forEach { page -> page.adapter.updateData(state.tabData[page.tab]) }
+                updateTabBadges(state.tabUnreadCounts)
             }
 
             is Searching -> {
                 showBackButton(true)
+                binding.tabStrip.isVisible = false
+                binding.tabPager.isVisible = false
+                binding.recyclerView.isVisible = true
                 if (binding.recyclerView.adapter !== searchAdapter) binding.recyclerView.adapter = searchAdapter
                 searchAdapter.data = state.page.data ?: listOf()
                 itemTouchHelper.attachToRecyclerView(null)
@@ -304,6 +372,9 @@ class MainActivity : QkThemedActivity(), MainView {
                     true -> getString(R.string.main_title_selected, state.page.selected)
                     false -> getString(R.string.title_archived)
                 }
+                binding.tabStrip.isVisible = false
+                binding.tabPager.isVisible = false
+                binding.recyclerView.isVisible = true
                 if (binding.recyclerView.adapter !== conversationsAdapter)
                     binding.recyclerView.adapter = conversationsAdapter
                 conversationsAdapter.updateData(state.page.data)
@@ -419,9 +490,13 @@ class MainActivity : QkThemedActivity(), MainView {
         binding.toolbarSearch.text = null
     }
 
-    override fun clearSelection() = conversationsAdapter.clearSelection()
+    override fun clearSelection() = allConversationsAdapters.forEach { it.clearSelection() }
 
-    override fun toggleSelectAll() = conversationsAdapter.toggleSelectAll()
+    override fun toggleSelectAll() {
+        val active = tabPages.getOrNull(binding.tabPager.currentItem)?.adapter?.takeIf { binding.tabPager.isVisible }
+            ?: conversationsAdapter
+        active.toggleSelectAll()
+    }
 
     override fun themeChanged() = binding.recyclerView.scrapViews()
 
@@ -440,6 +515,21 @@ class MainActivity : QkThemedActivity(), MainView {
                 )
             )
             .setPositiveButton(R.string.button_delete) { _, _ -> confirmDeleteIntent.onNext(conversations) }
+            .setNegativeButton(R.string.button_cancel, null)
+            .show()
+    }
+
+    override fun showMoveToDialog(conversations: List<Long>) {
+        val categories = listOf(Category.PERSONAL, Category.TRANSACTIONAL, Category.PROMOTIONAL)
+        val labels: Array<CharSequence> = arrayOf(
+            getString(R.string.message_sorting_category_personal),
+            getString(R.string.message_sorting_category_transactional),
+            getString(R.string.message_sorting_category_promotional)
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.main_menu_move_to)
+            .setItems(labels) { _, which -> moveToIntent.onNext(categories[which].name) }
             .setNegativeButton(R.string.button_cancel, null)
             .show()
     }

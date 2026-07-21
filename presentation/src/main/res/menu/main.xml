@@ -91,6 +91,13 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/move_to"
+        android:icon="@drawable/ic_baseline_folder_24"
+        android:title="@string/main_menu_move_to"
+        android:visible="false"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/rename"
         android:icon="@drawable/ic_people_black_24dp"
         android:title="@string/main_menu_rename_conversation"

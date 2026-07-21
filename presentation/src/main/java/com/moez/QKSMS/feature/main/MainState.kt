@@ -18,6 +18,7 @@
  */
 package dev.octoshrimpy.quik.feature.main
 
+import dev.octoshrimpy.quik.feature.conversations.Tab
 import dev.octoshrimpy.quik.model.Conversation
 import dev.octoshrimpy.quik.model.SearchResult
 import dev.octoshrimpy.quik.repository.SyncRepository
@@ -34,7 +35,9 @@ data class MainState(
     val smsPermission: Boolean = true,
     val contactPermission: Boolean = true,
     val notificationPermission: Boolean = true,
-    val scheduledConversationIds: Set<Long> = emptySet()
+    val scheduledConversationIds: Set<Long> = emptySet(),
+    val tabData: Map<Tab, RealmResults<Conversation>?> = emptyMap(),
+    val tabUnreadCounts: Map<Tab, Long> = emptyMap()
 )
 
 sealed class MainPage

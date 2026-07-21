@@ -496,6 +496,17 @@ class ComposeViewModel @Inject constructor(
                 .autoDisposable(view.scope())
                 .subscribe { view.showDetails(it) }
 
+        // Toggle the starred state of the selected message
+        view.optionsItemIntent
+            .filter { it == R.id.star }
+            .withLatestFrom(view.messagesSelectedIntent) { _, messages -> messages }
+            .mapNotNull { messages -> messages.firstOrNull().also { view.clearSelection() } }
+            .mapNotNull(messageRepo::getMessage)
+            .map { message -> message.id to message.isStarred }
+            .observeOn(Schedulers.io())
+            .autoDisposable(view.scope())
+            .subscribe { (id, starred) -> messageRepo.setStarred(id, !starred) }
+
         // Show the delete message dialog if one or more messages selected
         view.optionsItemIntent
             .filter { it == R.id.delete }

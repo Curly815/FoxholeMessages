@@ -26,6 +26,7 @@ import dev.octoshrimpy.quik.common.ExternalNavigator
 import dev.octoshrimpy.quik.common.Navigator
 import dev.octoshrimpy.quik.common.base.QkViewModel
 import dev.octoshrimpy.quik.extensions.mapNotNull
+import dev.octoshrimpy.quik.feature.conversations.Tab
 import dev.octoshrimpy.quik.interactor.DeleteConversations
 import dev.octoshrimpy.quik.interactor.MarkAllSeen
 import dev.octoshrimpy.quik.interactor.MarkArchived
@@ -43,18 +44,21 @@ import dev.octoshrimpy.quik.manager.BillingManager
 import dev.octoshrimpy.quik.manager.ChangelogManager
 import dev.octoshrimpy.quik.manager.PermissionManager
 import dev.octoshrimpy.quik.manager.RatingManager
+import dev.octoshrimpy.quik.model.Conversation
 import dev.octoshrimpy.quik.model.EmojiSyncNeeded
 import dev.octoshrimpy.quik.model.SyncLog
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.EmojiReactionRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
 import dev.octoshrimpy.quik.repository.ScheduledMessageRepository
+import dev.octoshrimpy.quik.repository.SenderCategoryRuleRepository
 import dev.octoshrimpy.quik.repository.SyncRepository
 import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.plusAssign
 import io.reactivex.schedulers.Schedulers
 import io.realm.Realm
+import io.realm.RealmResults
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -79,6 +83,7 @@ class MainViewModel @Inject constructor(
     private val markUnpinned: MarkUnpinned,
     private val markUnread: MarkUnread,
     private val scheduledMessageRepo: ScheduledMessageRepository,
+    private val senderCategoryRuleRepo: SenderCategoryRuleRepository,
     private val speakThreads: SpeakThreads,
     private val navigator: Navigator,
     private val externalNavigator: ExternalNavigator,
@@ -89,7 +94,11 @@ class MainViewModel @Inject constructor(
     private val syncContacts: SyncContacts,
     private val syncMessages: SyncMessages
 ) : QkViewModel<MainView, MainState>(
-    MainState(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get())))
+    MainState(
+        page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get())),
+        tabData = buildTabData(conversationRepo, prefs.unreadAtTop.get()),
+        tabUnreadCounts = buildTabUnreadCounts(conversationRepo)
+    )
 ) {
     private var lastArchivedThreadIds = listOf<Long>(0)
 
@@ -175,7 +184,11 @@ class MainViewModel @Inject constructor(
             .withLatestFrom(state) { _, state ->
                 if (state.page is Inbox)
                     newState {
-                        copy(page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get())))
+                        copy(
+                            page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get())),
+                            tabData = buildTabData(conversationRepo, prefs.unreadAtTop.get()),
+                            tabUnreadCounts = buildTabUnreadCounts(conversationRepo)
+                        )
                     }
                 else if (state.page is Archived)
                     newState {
@@ -461,6 +474,14 @@ class MainViewModel @Inject constructor(
                 .subscribe()
 
         view.optionsItemIntent
+                .filter { itemId -> itemId == R.id.move_to }
+                .withLatestFrom(view.conversationsSelectedIntent) { _, conversations ->
+                    view.showMoveToDialog(conversations.toList())
+                }
+                .autoDisposable(view.scope())
+                .subscribe()
+
+        view.optionsItemIntent
             .filter { itemId -> itemId == R.id.rename }
             .withLatestFrom(view.conversationsSelectedIntent) { _, conversationIds -> conversationIds.first() }
             .mapNotNull { conversationId -> conversationRepo.getConversation(conversationId) }
@@ -544,6 +565,24 @@ class MainViewModel @Inject constructor(
             .autoDisposable(view.scope())
             .subscribe()
 
+        // Move the selected conversations to a category, and remember the choice as a sender rule
+        // for each of their recipients so future messages from them sort the same way
+        view.moveToIntent
+            .withLatestFrom(view.conversationsSelectedIntent) { category, conversationIds ->
+                category to conversationIds.toList()
+            }
+            .doOnNext { view.clearSelection() }
+            .observeOn(Schedulers.io())
+            .autoDisposable(view.scope())
+            .subscribe { (category, conversationIds) ->
+                conversationRepo.updateCategoryOverride(conversationIds, category)
+                conversationIds.forEach { conversationId ->
+                    conversationRepo.getConversation(conversationId)?.recipients?.forEach { recipient ->
+                        senderCategoryRuleRepo.setRule(recipient.address, category)
+                    }
+                }
+            }
+
         view.swipeConversationIntent
                 .autoDisposable(view.scope())
                 .subscribe { (threadId, direction) ->
@@ -599,6 +638,35 @@ class MainViewModel @Inject constructor(
                 }
                 .autoDisposable(view.scope())
                 .subscribe()
+
+        // Refresh tab contents/unread counts on resume, since the unread counts aren't backed by
+        // a live Realm query
+        view.activityResumedIntent
+            .filter { resumed -> resumed }
+            .observeOn(Schedulers.io())
+            .autoDisposable(view.scope())
+            .subscribe {
+                newState {
+                    copy(
+                        tabData = buildTabData(conversationRepo, prefs.unreadAtTop.get()),
+                        tabUnreadCounts = buildTabUnreadCounts(conversationRepo)
+                    )
+                }
+            }
     }
 
 }
+
+// Message sorting: conversations are bucketed into tabs by category (or starred state), rather
+// than through the MainPage sealed class, since tabs coexist with whichever page is showing.
+private fun buildTabData(conversationRepo: ConversationRepository, unreadAtTop: Boolean): Map<Tab, RealmResults<Conversation>?> =
+    Tab.values().associateWith { tab ->
+        if (tab == Tab.STARRED) conversationRepo.getStarredConversations(unreadAtTop)
+        else conversationRepo.getConversationsByCategory(unreadAtTop, requireNotNull(tab.category))
+    }
+
+private fun buildTabUnreadCounts(conversationRepo: ConversationRepository): Map<Tab, Long> =
+    Tab.values().associateWith { tab ->
+        if (tab == Tab.STARRED) conversationRepo.getUnreadStarredCount()
+        else conversationRepo.getUnreadCountByCategory(requireNotNull(tab.category))
+    }

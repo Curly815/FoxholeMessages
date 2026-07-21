@@ -39,6 +39,9 @@ open class Conversation(
     var name: String = "", // custom title
 
     var sendAsGroup: Boolean = true,
+
+    // Message sorting: manual override of the classifier-derived category (see classifier/)
+    var categoryOverride: String? = null,
 ) : RealmObject() {
 
     val date: Long get() = lastMessage?.date ?: if (draft.isNotEmpty()) draftDate else 0

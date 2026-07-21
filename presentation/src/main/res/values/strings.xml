@@ -58,6 +58,7 @@
     <string name="main_menu_read">Mark read</string>
     <string name="main_menu_unread">Mark unread</string>
     <string name="main_menu_block">Block</string>
+    <string name="main_menu_move_to">Move to…</string>
     <string name="main_menu_send_now">Send now</string>
     <string name="main_menu_edit_message">Edit message</string>
     <string name="main_menu_rename_conversation">Rename conversation</string>
@@ -151,6 +152,7 @@
     <string name="compose_menu_forward">Forward</string>
     <string name="compose_menu_show_status">Show status</string>
     <string name="compose_menu_delete">Delete</string>
+    <string name="compose_menu_star">Star</string>
     <string name="compose_menu_previous">Previous</string>
     <string name="compose_menu_next">Next</string>
     <string name="compose_menu_clear">Clear</string>
@@ -328,6 +330,11 @@
     <string name="message_sorting_classifying">Sorting messages…</string>
     <string name="message_sorting_category_notifications_enabled">Notifications</string>
     <string name="message_sorting_category_notification_previews">Show previews</string>
+
+    <string name="tab_personal">Personal</string>
+    <string name="tab_transactions">Transactions</string>
+    <string name="tab_promotions">Promotions</string>
+    <string name="tab_starred">Starred</string>
     <string name="settings_swipe_actions_right">Right swipe</string>
     <string name="settings_swipe_actions_left">Left swipe</string>
     <string name="settings_swipe_actions_change">CHANGE</string>

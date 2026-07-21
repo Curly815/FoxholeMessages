@@ -86,6 +86,7 @@ open class Message : RealmObject() {
     // Message sorting: null until classified by MessageCategorizer (see classifier/)
     var category: String? = null
     var isOtp: Boolean = false
+    var isStarred: Boolean = false
 
     fun getUri(): Uri {
         if (contentId == 0L)

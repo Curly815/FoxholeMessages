@@ -114,4 +114,6 @@ interface MessageRepository {
     fun updateMessageCategories(categories: Map<Long, String>)
 
     fun updateMessageOtp(messageId: Long, isOtp: Boolean)
+
+    fun setStarred(messageId: Long, starred: Boolean)
 }

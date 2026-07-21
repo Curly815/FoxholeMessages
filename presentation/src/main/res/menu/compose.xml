@@ -55,6 +55,12 @@
         android:visible="false"
         app:showAsAction="always" />
     <item
+        android:id="@+id/star"
+        android:icon="@drawable/ic_star_black_24dp"
+        android:title="@string/compose_menu_star"
+        android:visible="false"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/delete"
         android:icon="@drawable/ic_delete_white_24dp"
         android:title="@string/compose_menu_delete"

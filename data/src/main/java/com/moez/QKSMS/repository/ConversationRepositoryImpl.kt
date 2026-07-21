@@ -481,6 +481,87 @@ class ConversationRepositoryImpl @Inject constructor(
         }
     }
 
+    // Message sorting: conversations bucket into a Tab by their (possibly overridden) category.
+    // A conversation with no override falls back to its last message's category, and PERSONAL
+    // is the catch-all for anything that isn't TRANSACTIONAL or PROMOTIONAL (including
+    // unclassified messages).
+    private fun getConversationsByCategoryBase(
+        realm: Realm,
+        unreadAtTop: Boolean,
+        category: String
+    ): RealmQuery<Conversation> {
+        val query = getConversationsBase(realm, unreadAtTop, false)
+            .beginGroup()
+            .beginGroup()
+            .equalTo("categoryOverride", category)
+            .or()
+            .isNull("categoryOverride").equalTo("lastMessage.category", category)
+            .endGroup()
+
+        if (category == "PERSONAL") {
+            query.or().beginGroup()
+                .isNull("categoryOverride")
+                .beginGroup()
+                .isNull("lastMessage")
+                .or()
+                .not().`in`("lastMessage.category", arrayOf("TRANSACTIONAL", "PROMOTIONAL"))
+                .endGroup()
+                .endGroup()
+        }
+
+        return query.endGroup()
+    }
+
+    override fun getConversationsByCategory(unreadAtTop: Boolean, category: String): RealmResults<Conversation> =
+        getConversationsByCategoryBase(Realm.getDefaultInstance(), unreadAtTop, category).findAllAsync()
+
+    override fun getUnreadCountByCategory(category: String): Long =
+        Realm.getDefaultInstance().use { realm ->
+            getConversationsByCategoryBase(realm, false, category)
+                .equalTo("lastMessage.read", false)
+                .count()
+        }
+
+    override fun getStarredConversations(unreadAtTop: Boolean): RealmResults<Conversation> {
+        val realm = Realm.getDefaultInstance()
+        val threadIds = realm.where(Message::class.java)
+            .equalTo("isStarred", true)
+            .distinct("threadId")
+            .findAll()
+            .map { it.threadId }
+            .toLongArray()
+
+        return getConversationsBase(realm, unreadAtTop, false)
+            .anyOf("id", threadIds)
+            .findAllAsync()
+    }
+
+    override fun getUnreadStarredCount(): Long =
+        Realm.getDefaultInstance().use { realm ->
+            val threadIds = realm.where(Message::class.java)
+                .equalTo("isStarred", true)
+                .distinct("threadId")
+                .findAll()
+                .map { it.threadId }
+                .toLongArray()
+
+            getConversationsBase(realm, false, false)
+                .anyOf("id", threadIds)
+                .equalTo("lastMessage.read", false)
+                .count()
+        }
+
+    override fun updateCategoryOverride(threadIds: Collection<Long>, category: String?) =
+        Realm.getDefaultInstance().use { realm ->
+            val conversations = realm.where(Conversation::class.java)
+                .anyOf("id", threadIds.toLongArray())
+                .findAll()
+
+            realm.executeTransaction {
+                conversations.forEach { conversation -> conversation.categoryOverride = category }
+            }
+        }
+
     /**
      * Returns a [Conversation] from the system SMS ContentProvider, based on the [threadId]
      *
