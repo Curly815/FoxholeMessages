@@ -259,14 +259,13 @@ class MainActivity : QkThemedActivity(), MainView {
         })
 
         // Auto-size shrinks each label independently to fit its own text, which leaves them at
-        // different sizes. Wait for that first layout pass, then re-apply the Personal tab's
-        // resolved size to all of them so every tab matches it (longer labels ellipsize instead
-        // of wrapping if they don't fit at that size).
+        // different sizes. Wait for that first layout pass, then re-apply the smallest resolved
+        // size (i.e. whatever the longest label like "Transactions" needed to fit) to all four,
+        // so every tab is legible and none of them wrap or truncate.
         binding.tabStrip.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 binding.tabStrip.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                val personalIndex = tabPages.indexOfFirst { it.tab == Tab.PERSONAL }.coerceAtLeast(0)
-                val uniformSize = tabStripViews[personalIndex].label.textSize
+                val uniformSize = tabStripViews.minOf { it.label.textSize }
                 tabStripViews.forEach { tabView ->
                     TextViewCompat.setAutoSizeTextTypeWithDefaults(tabView.label, TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE)
                     tabView.label.setTextSize(TypedValue.COMPLEX_UNIT_PX, uniformSize)
