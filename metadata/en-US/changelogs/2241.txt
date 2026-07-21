@@ -1,0 +1,5 @@
+What's new in 1.2.0:
+- Added OTP message retention: auto-delete verification code messages after a set number of days
+- Auto-compress MMS attachments now defaults to a larger 1000KB threshold
+- Removed the Disable Screenshots, Strip Accents, and Mobile Numbers Only settings
+- Removed the Developers link from the About screen

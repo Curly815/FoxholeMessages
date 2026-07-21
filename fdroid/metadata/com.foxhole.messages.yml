@@ -15,5 +15,6 @@ Description: |
   Foxhole Messages is an open source replacement for the stock messaging app on Android.
   It displays SMS/MMS conversations, supports scheduled sends, backups, voice
   messages, speech-to-text and text-to-speech, and more.
-  Foxhole Messages connects to public APIs (e.g. Space Devs) for news and may fetch
-  thumbnails from third-party hosts, so it’s marked as NonFreeNet.
+  Foxhole Messages fetches link previews (thumbnail, title, description) for URLs
+  found in messages, contacting whatever third-party host the link points to, so
+  it's marked as NonFreeNet.

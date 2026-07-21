@@ -1,10 +1,17 @@
-Open source replacement to the stock SMS app on Android. A modified version of QUIK, itself a revival of QKSMS.
-## Features
-- Scheduled Messages
-- Message Backup
-- Speech to Text and Text to Speech integrated within the app
-- Message Blocking and Archiving
-- Voice Messages
-- Attachments of any type of file
-- Message Sorting
-- Delayed Sending
+Foxhole Messages is an open source replacement for the stock SMS/MMS app on Android — a modified version of QUIK, itself a revival of QKSMS. No ads, no trackers.
+
+Features:
+
+- Message Sorting: incoming messages are automatically categorized as Personal, Transactional, or Promotional, with a tabbed inbox to browse each category and a starred tab for messages you flag yourself
+- Link previews: messages containing a URL show a thumbnail, title, and description
+- Scheduled messages: write now, send later
+- Message backup and restore
+- Speech to text and text to speech, built in
+- Message blocking and archiving
+- Voice messages
+- Attachments of any file type
+- Delayed sending
+- OTP message retention: choose how long verification code messages are kept before they're deleted automatically
+- Custom themes, dark mode, and per-conversation notification settings
+
+Foxhole Messages needs SMS, MMS, and Contacts permissions to work as your default messaging app. It does not collect or share your messages, contacts, or usage data.

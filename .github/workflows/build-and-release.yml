@@ -37,6 +37,7 @@ jobs:
       version_code: ${{ steps.version.outputs.version_code }}
       tag_name: ${{ steps.version.outputs.tag_name }}
       apk_fdroid_path: ${{ steps.fdroid_artifact.outputs.apk_fdroid_path }}
+      aab_release_path: ${{ steps.bundle_artifact.outputs.aab_release_path }}
       checksums_path: ${{ steps.checksums.outputs.checksums_path }}
 
     steps:
@@ -117,8 +118,8 @@ jobs:
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v3
 
-      - name: Build signed release APK
-        run: ./gradlew clean assembleRelease assembleFdroid
+      - name: Build signed release APK and app bundle
+        run: ./gradlew clean assembleRelease assembleFdroid bundleRelease
 
       - name: Locate release artifact
         id: release_artifact
@@ -146,11 +147,24 @@ jobs:
           fi
           echo "apk_fdroid_path=${files[0]}" >> "$GITHUB_OUTPUT"
 
+      - name: Locate app bundle (for Play Store upload)
+        id: bundle_artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(presentation/build/outputs/bundle/release/FoxholeMessages-v*-release.aab)
+          if [[ "${#files[@]}" -ne 1 ]]; then
+            echo "::error title=AAB lookup failed::Expected 1 AAB, found ${#files[@]} (${files[*]:-none})."
+            exit 1
+          fi
+          echo "aab_release_path=${files[0]}" >> "$GITHUB_OUTPUT"
+
       - name: Generate checksum
         id: checksums
         shell: bash
         run: |
-          find . -name '*.apk' -type f -exec sha256sum {} \; > checksums.txt
+          find . \( -name '*.apk' -o -name '*.aab' \) -type f -exec sha256sum {} \; > checksums.txt
           echo "checksums_path=checksums.txt" >> "$GITHUB_OUTPUT"
 
       - name: Upload all build outputs
@@ -160,6 +174,7 @@ jobs:
           path: |
             ${{ steps.release_artifact.outputs.apk_release_path }}
             ${{ steps.fdroid_artifact.outputs.apk_fdroid_path }}
+            ${{ steps.bundle_artifact.outputs.aab_release_path }}
             ${{ steps.checksums.outputs.checksums_path }}
 
   generate_release_notes:

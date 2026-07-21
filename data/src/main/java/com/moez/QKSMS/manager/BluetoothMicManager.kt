@@ -25,6 +25,7 @@ import android.content.IntentFilter
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.AudioManager.GET_DEVICES_INPUTS
+import android.os.Build
 
 
 // this class is, by design, as simplistic it can be to support easy and fast connection
@@ -45,9 +46,14 @@ class BluetoothMicManager(
 
     init {
         // register for bluetooth sco broadcast intents
-        context.registerReceiver(this, IntentFilter().apply {
-            addAction(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED)
-        })
+        val filter = IntentFilter().apply { addAction(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Required since Android 13 for apps targeting API 33+: registerReceiver()
+            // for a system (non-app-internal) broadcast must declare exported/not-exported.
+            context.registerReceiver(this, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            context.registerReceiver(this, filter)
+        }
     }
 
     var device: AudioDeviceInfo? = null

@@ -250,3 +250,98 @@ neither set) that would submit a metadata MR to the official
 `fdroid/fdroiddata` repo, the actual path to being listed in the real
 F-Droid app. Not touched — out of scope here, noted for if it's ever
 picked up.
+
+## Preparing for Google Play
+
+Erik has initiated a Play Console account and is waiting on Google's
+verification. Did what's possible from the repo side ahead of that;
+everything past this point needs Play Console access (his Google
+account), which this sandbox can't touch.
+
+**Done:**
+- Bumped `targetSdkVersion` 33 → 34 in all modules (was already on
+  `compileSdk 34`; Play requires targeting a recent API level). Verified
+  this is safe rather than assumed: Android 14 (API 34) newly enforces
+  a declared `foregroundServiceType` for any `startForeground()` call —
+  `RestoreBackupService` was missing one and would have crashed at
+  runtime on the backup/restore flow. Fixed (`dataSync` type +
+  `FOREGROUND_SERVICE_DATA_SYNC` permission).
+- Also fixed `BluetoothMicManager`'s `registerReceiver()` call, which
+  listens for a system broadcast (`ACTION_SCO_AUDIO_STATE_UPDATED`)
+  without specifying exported/not-exported — required since Android 13
+  (API 33) for apps targeting 33+, so this was already a live crash on
+  Android 13/14 devices before today's targetSdk bump, not something
+  the bump introduced. Fixed via `ContextCompat.registerReceiver(...,
+  RECEIVER_EXPORTED)`.
+- **Known follow-up, not fixed**: the vendored `android-smsmms/`
+  library (`RateController`, `DownloadManager`, `TransactionService`,
+  `MmsConfigManager`, `Transaction`) has five more `registerReceiver()`
+  calls with the same missing-exported-flag issue, pre-existing at the
+  already-shipped targetSdk 33 (not newly introduced). Didn't fix
+  these: correctly classifying each as system vs. app-internal (which
+  determines exported vs. not) needs tracing every sender, and getting
+  it wrong risks breaking MMS send/receive — which can't be verified
+  here (no Android SDK/emulator in this sandbox, matching the
+  project's existing verification-workflow constraint). Needs a real
+  device test pass.
+- Removed the unused Firebase Crashlytics classpath (`build.gradle`) —
+  never applied, no `google-services.json`, dead since the QUIK fork.
+  Left as-is it would've been confusing noise when filling out Play's
+  Data Safety form (looks like analytics collection; isn't).
+- Added `bundleRelease` to `build-and-release.yml`'s build job — Play
+  requires an Android App Bundle (`.aab`) for new app submissions, not
+  a bare APK. The `.aab` is uploaded to the `build-artifacts` CI
+  artifact (downloadable from the Actions run) alongside the APKs, but
+  deliberately *not* attached to the public GitHub Release — an `.aab`
+  isn't directly installable, and the public release page is for
+  regular users sideloading `-release.apk`/`-fdroid.apk`.
+- Fixed `metadata/en-US/short_description.txt` (was 91 chars, Play's
+  limit is 80) and rewrote `full_description.txt` (was Markdown, which
+  Play renders as literal text, not formatting; also stale — predated
+  Message Sorting, link previews, OTP retention). Added
+  `metadata/en-US/changelogs/2241.txt` matching the current release,
+  fastlane-format, ready to paste into Play Console's release notes
+  (500-char limit) if not automated. This is the same directory
+  structure Google Play's `gradle-play-publisher`/fastlane tooling
+  reads, so it's reusable once/if that gets wired up.
+
+**Still needed, requires Erik's Google account (once verification
+completes):**
+- Store listing assets Play requires that can't be produced here: a
+  1024×500 feature graphic, phone screenshots (min 2) — needs a real
+  device or emulator, neither available in this sandbox. The existing
+  `metadata/en-US/images/icon.png` (512×512) already meets Play's app
+  icon spec.
+- A **content rating questionnaire** and a **Data Safety form** are
+  mandatory in Play Console. Based on an actual code read (not
+  guessing): the app has no analytics/ads/crash-reporting SDK, no
+  developer-run backend or account system, and no data leaves the
+  device except (a) SMS/MMS send/receive over the carrier network
+  (the app's core function) and (b) link-preview fetches, which
+  contact whatever third-party host a URL in a message points to
+  (same behavior already disclosed in the F-Droid metadata's
+  `NonFreeNet` antifeature). Backups use Storage Access Framework to a
+  user-chosen location — could be a cloud-backed provider, but only if
+  the user themselves picks one via the system file picker; the app
+  has no direct cloud integration. The existing root `PRIVACY` file's
+  "I do not collect data" claim holds up against this reading.
+- **SMS/Call Log permissions declaration**: the app requests
+  `READ_SMS`/`RECEIVE_SMS`/`SEND_SMS`/`RECEIVE_MMS` (plus
+  `READ_CONTACTS`), which puts it under Play's restricted "SMS or Call
+  Log" permissions policy. This requires a separate in-console
+  declaration justifying the core use case (replacing the default SMS
+  app) — most rejections for messaging apps happen here. Distribution
+  is also limited to users who can set the app as their default SMS
+  handler. Budget real time for this before expecting a quick approval.
+- **App signing**: Play App Signing is the standard modern setup —
+  upload builds signed with an "upload key" (the existing
+  `my-release-key.keystore`/`ANDROID_KEYSTORE_BASE64` can be reused for
+  this, no new keystore required) and Google re-signs for distribution
+  with a key it manages. Decide this in Play Console during the first
+  release creation.
+- Once there's a Play Console service account (Google Cloud → enable
+  Play Developer API → create a service account → link it in Play
+  Console → download the JSON key), automated publishing via
+  `bundleRelease` + a plugin like Triple-T's `gradle-play-publisher`
+  is realistic to wire into `build-and-release.yml` — deliberately not
+  set up yet since it needs a secret that doesn't exist.
