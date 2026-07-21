@@ -18,6 +18,8 @@
  */
 package dev.octoshrimpy.quik.feature.settings.messagesorting.senders
 
+import android.content.Context
+import android.content.DialogInterface
 import android.view.View
 import android.view.ViewGroup
 import android.view.LayoutInflater
@@ -38,6 +40,7 @@ class SenderRulesController :
     SenderRulesView {
 
     @Inject override lateinit var presenter: SenderRulesPresenter
+    @Inject lateinit var context: Context
 
     private val adapter = SenderRulesAdapter()
     private val categorySelectedSubject: Subject<String> = PublishSubject.create()
@@ -81,14 +84,14 @@ class SenderRulesController :
 
     override fun showEditDialog(rule: SenderCategoryRule) {
         val checkedIndex = categories.indexOfFirst { it.name == rule.category }.coerceAtLeast(0)
-        val labels = categoryLabels.map { context!!.getString(it) }.toTypedArray()
+        val labels: Array<CharSequence> = categoryLabels.map { context.getString(it) as CharSequence }.toTypedArray()
 
         AlertDialog.Builder(activity!!)
             .setTitle(rule.address)
-            .setSingleChoiceItems(labels, checkedIndex) { dialog, which ->
+            .setSingleChoiceItems(labels, checkedIndex, DialogInterface.OnClickListener { dialog, which ->
                 categorySelectedSubject.onNext(categories[which].name)
                 dialog.dismiss()
-            }
+            })
             .setNegativeButton(R.string.button_cancel) { _, _ -> }
             .show()
     }

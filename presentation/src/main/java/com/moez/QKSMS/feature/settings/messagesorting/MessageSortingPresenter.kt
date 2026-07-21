@@ -27,6 +27,7 @@ import dev.octoshrimpy.quik.common.Navigator
 import dev.octoshrimpy.quik.common.base.QkPresenter
 import dev.octoshrimpy.quik.util.Preferences
 import dev.octoshrimpy.quik.worker.ClassifyExistingMessagesWorker
+import io.reactivex.rxkotlin.plusAssign
 import javax.inject.Inject
 
 class MessageSortingPresenter @Inject constructor(

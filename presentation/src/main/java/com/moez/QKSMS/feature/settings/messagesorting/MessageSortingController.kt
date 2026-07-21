@@ -23,8 +23,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import com.bluelinelabs.conductor.RouterTransaction
-import com.jakewharton.rxbinding2.internal.VoidToUnit
-import com.jakewharton.rxbinding2.view.RxView
+import com.jakewharton.rxbinding2.view.clicks
 import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.QkChangeHandler
 import dev.octoshrimpy.quik.common.base.QkController
@@ -69,7 +68,7 @@ class MessageSortingController :
         (0 until binding.preferences.childCount)
             .map { index -> binding.preferences.getChildAt(index) }
             .mapNotNull { child -> child as? PreferenceView }
-            .map { preference -> RxView.clicks(preference).map(VoidToUnit.INSTANCE).map { preference } }
+            .map { preference -> preference.clicks().map { preference } }
             .let { Observable.merge(it) }
 
     override fun confirmSortExistingIntent(): Observable<*> = confirmSortExistingSubject
