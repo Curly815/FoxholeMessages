@@ -409,6 +409,7 @@
     <string name="about_source_title">Source code</string>
     <string name="about_changelog_title">Changelog</string>
     <string name="about_contact_title">Contact</string>
+    <string name="about_support_title">Support the developer</string>
     <string name="about_license_title">License</string>
     <string name="about_copyright_title">Copyright</string>
 
@@ -469,6 +470,7 @@
     <string name="about_source" translatable="false">https://github.com/curly815/foxholemessages</string>
     <string name="about_changelog" translatable="false">https://github.com/curly815/foxholemessages/releases</string>
     <string name="about_contact" translatable="false">https://github.com/curly815/foxholemessages/issues</string>
+    <string name="about_support" translatable="false">All features are free — donate via Venmo if you\'d like to support development</string>
     <string name="about_license" translatable="false">GNU General Public License v3.0</string>
     <string name="about_copyright" translatable="false">© 2014–2026</string>
 
