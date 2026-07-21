@@ -1,5 +1,17 @@
 [
   {
+    "versionCode": 2242,
+    "versionName": "1.2.1",
+    "fixed": [
+      "Fixed a crash on Android 14 in the backup/restore flow (missing foreground service type)",
+      "Fixed a crash on Android 13/14 when connecting a Bluetooth microphone (missing broadcast receiver export flag)"
+    ],
+    "improved": [
+      "Target SDK bumped to Android 14 (API 34), preparing for Google Play submission",
+      "Added Android App Bundle (.aab) builds for Google Play"
+    ]
+  },
+  {
     "versionCode": 2241,
     "versionName": "1.2.0",
     "added": [
