@@ -26,6 +26,7 @@ import com.bluelinelabs.conductor.RouterTransaction
 import com.jakewharton.rxbinding2.view.clicks
 import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.QkChangeHandler
+import dev.octoshrimpy.quik.common.QkDialog
 import dev.octoshrimpy.quik.common.base.QkController
 import dev.octoshrimpy.quik.common.widget.PreferenceView
 import dev.octoshrimpy.quik.databinding.MessageSortingControllerBinding
@@ -42,6 +43,7 @@ class MessageSortingController :
     MessageSortingView {
 
     @Inject override lateinit var presenter: MessageSortingPresenter
+    @Inject lateinit var otpRetentionDialog: QkDialog
 
     private val confirmSortExistingSubject: Subject<Unit> = PublishSubject.create()
 
@@ -53,6 +55,10 @@ class MessageSortingController :
     override fun inflateBinding(inflater: LayoutInflater, container: ViewGroup): MessageSortingControllerBinding =
         MessageSortingControllerBinding.inflate(inflater, container, false)
 
+    override fun onViewCreated() {
+        otpRetentionDialog.adapter.setData(R.array.otp_retention_labels, R.array.otp_retention_ids)
+    }
+
     override fun onAttach(view: View) {
         super.onAttach(view)
         presenter.bindIntents(this)
@@ -62,6 +68,8 @@ class MessageSortingController :
 
     override fun render(state: MessageSortingState) {
         binding.autoSort.checkbox?.isChecked = state.autoSortEnabled
+        binding.otpRetention.summary = state.otpRetentionSummary
+        otpRetentionDialog.adapter.selectedItem = state.otpRetentionId
     }
 
     override fun preferenceClicks(): Observable<PreferenceView> =
@@ -72,6 +80,10 @@ class MessageSortingController :
             .let { Observable.merge(it) }
 
     override fun confirmSortExistingIntent(): Observable<*> = confirmSortExistingSubject
+
+    override fun otpRetentionSelected(): Observable<Int> = otpRetentionDialog.adapter.menuItemClicks
+
+    override fun showOtpRetentionPicker() = otpRetentionDialog.show(activity!!)
 
     override fun showSenderRules() {
         router.pushController(RouterTransaction.with(SenderRulesController())

@@ -23,13 +23,11 @@ import android.net.Uri
 import android.provider.BaseColumns
 import android.provider.ContactsContract
 import android.provider.ContactsContract.CommonDataKinds.Email
-import android.provider.ContactsContract.CommonDataKinds.Phone
 import dev.octoshrimpy.quik.extensions.asFlowable
 import dev.octoshrimpy.quik.extensions.asObservable
 import dev.octoshrimpy.quik.extensions.mapNotNull
 import dev.octoshrimpy.quik.model.Contact
 import dev.octoshrimpy.quik.model.ContactGroup
-import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -42,8 +40,7 @@ import javax.inject.Singleton
 
 @Singleton
 class ContactRepositoryImpl @Inject constructor(
-    private val context: Context,
-    private val prefs: Preferences
+    private val context: Context
 ) : ContactRepository {
 
     override fun findContactUri(address: String): Single<Uri> {
@@ -94,14 +91,7 @@ class ContactRepositoryImpl @Inject constructor(
     override fun getUnmanagedContacts(starred: Boolean): Observable<List<Contact>> {
         val realm = Realm.getDefaultInstance()
 
-        val mobileOnly = prefs.mobileOnly.get()
-        val mobileLabel by lazy { Phone.getTypeLabel(context.resources, Phone.TYPE_MOBILE, "Mobile").toString() }
-
         var query = realm.where(Contact::class.java)
-
-        if (mobileOnly) {
-            query = query.contains("numbers.type", mobileLabel)
-        }
 
         if (starred) {
             query = query.equalTo("starred", true)
@@ -113,18 +103,6 @@ class ContactRepositoryImpl @Inject constructor(
                 .filter { it.isLoaded }
                 .filter { it.isValid }
                 .map { realm.copyFromRealm(it) }
-                .map { contacts ->
-                    if (mobileOnly) {
-                        contacts.map { contact ->
-                            val filteredNumbers = contact.numbers.filter { number -> number.type == mobileLabel }
-                            contact.numbers.clear()
-                            contact.numbers.addAll(filteredNumbers)
-                            contact
-                        }
-                    } else {
-                        contacts
-                    }
-                }
                 .map { contacts ->
                     contacts.sortedWith { c1, c2 ->
                         val initial = c1.name.firstOrNull()

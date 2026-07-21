@@ -598,7 +598,7 @@ open class MessageRepositoryImpl @Inject constructor(
         val messageUri = QkTransaction.createMessage(
             context, subId, body, prefs.signature.get(),
             toAddresses.map(phoneNumberUtils::normalizeNumber).toTypedArray(),
-            parts, group, prefs.longAsMms.get(), prefs.unicode.get()
+            parts, group, prefs.longAsMms.get()
         )
 
         if (messageUri == Uri.EMPTY) {
@@ -1012,6 +1012,38 @@ open class MessageRepositoryImpl @Inject constructor(
     override fun deleteOldMessages(maxAgeDays: Int) =
         Realm.getDefaultInstance().use { realm ->
             val messages = realm.where(Message::class.java)
+                .lessThan(
+                    "date",
+                    now() - TimeUnit.DAYS.toMillis(maxAgeDays.toLong())
+                )
+                .findAll()
+
+            val uris = messages.map { it.getUri() }
+
+            realm.executeTransaction { messages.deleteAllFromRealm() }
+
+            uris.forEach {
+                uri -> context.contentResolver.delete(uri, null, null)
+            }
+        }
+
+    override fun getOldOtpCounts(maxAgeDays: Int) =
+        Realm.getDefaultInstance().use { realm ->
+            realm.where(Message::class.java)
+                .equalTo("isOtp", true)
+                .lessThan(
+                    "date",
+                    now() - TimeUnit.DAYS.toMillis(maxAgeDays.toLong())
+                )
+                .findAll()
+                .groupingBy { message -> message.threadId }
+                .eachCount()
+        }
+
+    override fun deleteOldOtps(maxAgeDays: Int) =
+        Realm.getDefaultInstance().use { realm ->
+            val messages = realm.where(Message::class.java)
+                .equalTo("isOtp", true)
                 .lessThan(
                     "date",
                     now() - TimeUnit.DAYS.toMillis(maxAgeDays.toLong())

@@ -67,7 +67,6 @@ import com.google.android.mms.smil.SmilHelper
 import com.google.android.mms.util_alt.SqliteWrapper
 import com.klinker.android.send_message.MmsSentReceiver
 import com.klinker.android.send_message.SmsManagerFactory
-import com.klinker.android.send_message.StripAccents
 import com.klinker.android.send_message.Utils
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
@@ -81,23 +80,17 @@ object QkTransaction {
     private const val DEFAULT_EXPIRY_TIME: Long = (7 * 24 * 60 * 60).toLong()
     private const val DEFAULT_PRIORITY: Int = PduHeaders.PRIORITY_NORMAL
 
-    private fun getNumSmsPages(stripUnicode: Boolean, body: String?): Int {
-        var text = body
-        if (stripUnicode) {
-            text = StripAccents.stripAccents(text)
-        }
-
-        val data = SmsMessage.calculateLength(text, false)
+    private fun getNumSmsPages(body: String?): Int {
+        val data = SmsMessage.calculateLength(body, false)
         return data[0]
     }
 
     private fun checkMMS(
-        body: String?, numToAddresses: Int, numParts: Int, asGroup: Boolean, longAsMms: Boolean,
-        stripUnicode: Boolean
+        body: String?, numToAddresses: Int, numParts: Int, asGroup: Boolean, longAsMms: Boolean
     ): Boolean {
         return (numParts > 0) ||
                 ((numToAddresses > 1) && asGroup) ||
-                (longAsMms && getNumSmsPages(stripUnicode, body) > 3)
+                (longAsMms && getNumSmsPages(body) > 3)
     }
 
     fun createMessage(
@@ -108,8 +101,7 @@ object QkTransaction {
         toAddresses: Array<String>,
         parts: MutableCollection<MMSPart>,
         asGroup: Boolean,
-        longAsMms: Boolean,
-        stripUnicode: Boolean
+        longAsMms: Boolean
     ): Uri {
         Timber.v("creating message")
 
@@ -118,11 +110,7 @@ object QkTransaction {
         if (signature.isNotEmpty())
             text += "\n$signature"
 
-        // strip unicode if flagged to do so
-        if (stripUnicode)
-            text = StripAccents.stripAccents(text)
-
-        if (checkMMS(text, toAddresses.size, parts.size, asGroup, longAsMms, stripUnicode)) {
+        if (checkMMS(text, toAddresses.size, parts.size, asGroup, longAsMms)) {
             RateController.init(context)
             DownloadManager.init(context)
 

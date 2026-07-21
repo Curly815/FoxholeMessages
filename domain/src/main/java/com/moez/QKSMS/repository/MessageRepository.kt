@@ -103,6 +103,10 @@ interface MessageRepository {
 
     fun deleteOldMessages(maxAgeDays: Int)
 
+    fun getOldOtpCounts(maxAgeDays: Int): Map<Long, Int>
+
+    fun deleteOldOtps(maxAgeDays: Int)
+
     fun deduplicateMessages(): Flowable<DeduplicationResult>
 
     fun markAsSendingNow(messageId: Long)

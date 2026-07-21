@@ -310,6 +310,8 @@
     <string name="message_sorting_category_promotional">Promotional</string>
     <string name="message_sorting_category_transactional">Transactional</string>
     <string name="message_sorting_category_unclassified">Unclassified</string>
+    <string name="message_sorting_otp_retention_title">OTP message retention</string>
+    <string name="message_sorting_otp_retention_summary">How long to keep OTP/verification code messages before deleting them automatically</string>
     <string name="message_sorting_category_manage_header">Manage</string>
     <string name="message_sorting_sender_rules_title">Sender rules</string>
     <string name="message_sorting_sender_rules_summary">Manually set a category for specific senders</string>
@@ -354,10 +356,6 @@
     <string name="settings_unread_at_top_summary">Show unread conversations at the top</string>
     <string name="settings_signature_title">Signature</string>
     <string name="settings_signature_summary">Add a signature to the end of your messages</string>
-    <string name="settings_unicode_title">Strip accents</string>
-    <string name="settings_unicode_summary">Remove accents from characters in outgoing SMS messages</string>
-    <string name="settings_mobile_title">Mobile numbers only</string>
-    <string name="settings_mobile_summary">When composing a message, only show mobile numbers</string>
     <string name="settings_auto_delete">Delete old messages automatically</string>
     <string name="settings_auto_delete_dialog_message">Messages will be deleted after the specified number of days</string>
     <string name="settings_auto_delete_dialog_hint">Number of days</string>
@@ -373,8 +371,6 @@
     <string name="settings_long_as_mms_summary">If your longer text messages are failing to send, or sending in the wrong order, you can send them as MMS messages instead. Additional charges may apply</string>
     <string name="settings_mms_size_title">Auto-compress MMS image attachments</string>
     <string name="settings_mms_weblink_title">Link handling in messages</string>
-    <string name="settings_disable_screenshots_title">Disable Screenshots</string>
-    <string name="settings_diable_screenshots_summary">Prevent your OS and other apps from taking screenshots of the app.</string>
     <string name="settings_sync_title">Sync messages</string>
     <string name="settings_sync_summary">Re-sync your messages with the native Android SMS database</string>
     <string name="settings_about_title">About Foxhole Messages</string>
@@ -443,7 +439,6 @@
 
     <string name="about_title">About</string>
     <string name="about_version_title">Version</string>
-    <string name="about_developer_title">Developers</string>
     <string name="about_source_title">Source code</string>
     <string name="about_changelog_title">Changelog</string>
     <string name="about_contact_title">Contact</string>
@@ -504,7 +499,6 @@
     <string name="theme_hex">HEX</string>
     <string name="theme_apply">Apply</string>
 
-    <string name="about_developer">A team of wonderful people from around the world!</string>
     <string name="about_source" translatable="false">https://github.com/curly815/foxholemessages</string>
     <string name="about_changelog" translatable="false">https://github.com/curly815/foxholemessages/releases</string>
     <string name="about_contact" translatable="false">https://github.com/curly815/foxholemessages/issues</string>
@@ -629,6 +623,20 @@
         <item>0</item>
         <item>1</item>
         <item>2</item>
+    </integer-array>
+
+    <string-array name="otp_retention_labels">
+        <item>Never</item>
+        <item>1 day</item>
+        <item>7 days</item>
+        <item>30 days</item>
+    </string-array>
+
+    <integer-array name="otp_retention_ids">
+        <item>0</item>
+        <item>1</item>
+        <item>7</item>
+        <item>30</item>
     </integer-array>
 
     <string-array name="qk_responses">

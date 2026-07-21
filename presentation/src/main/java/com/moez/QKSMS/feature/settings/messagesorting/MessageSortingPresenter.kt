@@ -25,6 +25,8 @@ import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.classifier.Category
 import dev.octoshrimpy.quik.common.Navigator
 import dev.octoshrimpy.quik.common.base.QkPresenter
+import dev.octoshrimpy.quik.interactor.DeleteOldOtps
+import dev.octoshrimpy.quik.service.OtpRetentionService
 import dev.octoshrimpy.quik.util.Preferences
 import dev.octoshrimpy.quik.worker.ClassifyExistingMessagesWorker
 import io.reactivex.rxkotlin.plusAssign
@@ -33,7 +35,8 @@ import javax.inject.Inject
 class MessageSortingPresenter @Inject constructor(
     private val context: Context,
     private val navigator: Navigator,
-    private val prefs: Preferences
+    private val prefs: Preferences,
+    private val deleteOldOtps: DeleteOldOtps
 ) : QkPresenter<MessageSortingView, MessageSortingState>(
     MessageSortingState(prefs.autoSortEnabled.get())
 ) {
@@ -41,6 +44,14 @@ class MessageSortingPresenter @Inject constructor(
     init {
         disposables += prefs.autoSortEnabled.asObservable()
             .subscribe { enabled -> newState { copy(autoSortEnabled = enabled) } }
+
+        val otpRetentionLabels = context.resources.getStringArray(R.array.otp_retention_labels)
+        val otpRetentionIds = context.resources.getIntArray(R.array.otp_retention_ids)
+        disposables += prefs.otpRetentionDays.asObservable()
+            .subscribe { days ->
+                val index = otpRetentionIds.indexOf(days)
+                newState { copy(otpRetentionSummary = otpRetentionLabels[index], otpRetentionId = days) }
+            }
     }
 
     override fun bindIntents(view: MessageSortingView) {
@@ -54,6 +65,7 @@ class MessageSortingPresenter @Inject constructor(
                     R.id.notificationsPersonal -> navigator.showCategoryNotificationSettings(Category.PERSONAL.name)
                     R.id.notificationsPromotional -> navigator.showCategoryNotificationSettings(Category.PROMOTIONAL.name)
                     R.id.notificationsTransactional -> navigator.showCategoryNotificationSettings(Category.TRANSACTIONAL.name)
+                    R.id.otpRetention -> view.showOtpRetentionPicker()
                     R.id.senderRules -> view.showSenderRules()
                     R.id.sortExisting -> view.showSortExistingConfirmDialog()
                     R.id.trustedSenders -> view.showTrustedSenders()
@@ -63,6 +75,19 @@ class MessageSortingPresenter @Inject constructor(
         view.confirmSortExistingIntent()
             .autoDisposable(view.scope())
             .subscribe { ClassifyExistingMessagesWorker.trigger(context) }
+
+        view.otpRetentionSelected()
+            .autoDisposable(view.scope())
+            .subscribe { days ->
+                prefs.otpRetentionDays.set(days)
+                when (days) {
+                    0 -> OtpRetentionService.cancelJob(context)
+                    else -> {
+                        OtpRetentionService.scheduleJob(context)
+                        deleteOldOtps.execute(Unit)
+                    }
+                }
+            }
     }
 
 }

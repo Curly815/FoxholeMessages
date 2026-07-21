@@ -185,24 +185,6 @@
             app:title="@string/settings_signature_title" />
 
         <dev.octoshrimpy.quik.common.widget.PreferenceView
-            android:id="@+id/unicode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:icon="@drawable/ic_translate_black_24dp"
-            app:summary="@string/settings_unicode_summary"
-            app:title="@string/settings_unicode_title"
-            app:widget="@layout/settings_switch_widget" />
-
-        <dev.octoshrimpy.quik.common.widget.PreferenceView
-            android:id="@+id/mobileOnly"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:icon="@drawable/ic_smartphone_black_24dp"
-            app:summary="@string/settings_mobile_summary"
-            app:title="@string/settings_mobile_title"
-            app:widget="@layout/settings_switch_widget" />
-
-        <dev.octoshrimpy.quik.common.widget.PreferenceView
             android:id="@+id/longAsMms"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -218,7 +200,7 @@
             android:visibility="visible"
             app:icon="@drawable/ic_photo_size_select_actual_black_24dp"
             app:title="@string/settings_mms_size_title"
-            tools:summary="100KB" />
+            tools:summary="1000KB" />
 
         <dev.octoshrimpy.quik.common.widget.PreferenceView
             android:id="@+id/messsageLinkHandling"
@@ -228,15 +210,6 @@
             app:icon="@android:drawable/stat_sys_warning"
             app:title="@string/settings_mms_weblink_title"
             tools:summary="100KB" />
-
-        <dev.octoshrimpy.quik.common.widget.PreferenceView
-            android:id="@+id/disableScreenshots"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:icon="@drawable/ic_screenshot"
-            app:summary="@string/settings_diable_screenshots_summary"
-            app:title="@string/settings_disable_screenshots_title"
-            app:widget="@layout/settings_switch_widget" />
 
         <View
             android:layout_width="match_parent"

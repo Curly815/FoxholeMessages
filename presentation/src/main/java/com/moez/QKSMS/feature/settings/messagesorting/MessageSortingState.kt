@@ -19,5 +19,7 @@
 package dev.octoshrimpy.quik.feature.settings.messagesorting
 
 data class MessageSortingState(
-    val autoSortEnabled: Boolean = true
+    val autoSortEnabled: Boolean = true,
+    val otpRetentionSummary: String = "Never",
+    val otpRetentionId: Int = 0
 )

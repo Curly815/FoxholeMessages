@@ -176,9 +176,6 @@ class SettingsController : QkController<SettingsControllerBinding, SettingsView,
 
         binding.showStt.checkbox?.isChecked = state.showStt
 
-        binding.unicode.checkbox?.isChecked = state.stripUnicodeEnabled
-        binding.mobileOnly.checkbox?.isChecked = state.mobileOnly
-
         binding.longAsMms.checkbox?.isChecked = state.longAsMms
 
         binding.mmsSize.summary = state.maxMmsSizeSummary
@@ -186,8 +183,6 @@ class SettingsController : QkController<SettingsControllerBinding, SettingsView,
 
         binding.messsageLinkHandling.summary = state.messageLinkHandlingSummary
         messageLinkHandlingDialog.adapter.selectedItem = state.messageLinkHandlingId
-
-        binding.disableScreenshots.checkbox?.isChecked = state.disableScreenshotsEnabled
 
         when (state.syncProgress) {
             is SyncRepository.SyncProgress.Idle -> binding.syncingProgress.isVisible = false

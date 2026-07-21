@@ -41,13 +41,6 @@
             tools:summary="3.0.8" />
 
         <dev.octoshrimpy.quik.common.widget.PreferenceView
-            android:id="@+id/developer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:summary="@string/about_developer"
-            app:title="@string/about_developer_title" />
-
-        <dev.octoshrimpy.quik.common.widget.PreferenceView
             android:id="@+id/source"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

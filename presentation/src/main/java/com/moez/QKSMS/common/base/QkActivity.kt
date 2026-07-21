@@ -23,7 +23,6 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.view.WindowManager
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -45,12 +44,6 @@ abstract class QkActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         onNewIntent(intent)
-        disableScreenshots(prefs.disableScreenshots.get())
-    }
-
-    override fun onResume() {
-        super.onResume()
-        disableScreenshots(prefs.disableScreenshots.get())
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -94,14 +87,6 @@ abstract class QkActivity : AppCompatActivity() {
 
     protected open fun showBackButton(show: Boolean) {
         supportActionBar?.setDisplayHomeAsUpEnabled(show)
-    }
-
-    private fun disableScreenshots(disableScreenshots: Boolean) {
-        if (disableScreenshots) {
-            window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
-        } else {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        }
     }
 
 }

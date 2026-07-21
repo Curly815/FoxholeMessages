@@ -26,9 +26,11 @@ interface MessageSortingView : QkViewContract<MessageSortingState> {
 
     fun preferenceClicks(): Observable<PreferenceView>
     fun confirmSortExistingIntent(): Observable<*>
+    fun otpRetentionSelected(): Observable<Int>
 
     fun showSenderRules()
     fun showTrustedSenders()
     fun showSortExistingConfirmDialog()
+    fun showOtpRetentionPicker()
 
 }

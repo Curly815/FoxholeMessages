@@ -66,9 +66,6 @@ class MigratePreferences @Inject constructor(
 
                     // Font size
                     prefs.textSize.set(rxPrefs.getString("pref_key_font_size", "${prefs.textSize.get()}").get().toInt())
-
-                    // Unicode
-                    prefs.unicode.set(rxPrefs.getBoolean("pref_key_strip_unicode", prefs.unicode.get()).get())
                 }
                 .doOnNext { seen -> seen.delete() } // Clear this value so that we don't need to migrate again
     }

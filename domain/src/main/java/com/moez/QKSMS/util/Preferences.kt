@@ -84,6 +84,11 @@ class Preferences @Inject constructor(
         const val MESSAGE_LINK_HANDLING_BLOCK = 0
         const val MESSAGE_LINK_HANDLING_ALLOW = 1
         const val MESSAGE_LINK_HANDLING_ASK = 2
+
+        const val OTP_RETENTION_NEVER = 0
+        const val OTP_RETENTION_1_DAY = 1
+        const val OTP_RETENTION_7_DAYS = 7
+        const val OTP_RETENTION_30_DAYS = 30
     }
 
     // Internal
@@ -126,13 +131,10 @@ class Preferences @Inject constructor(
     val autoEmoji = rxPrefs.getBoolean("autoEmoji", true)
     val delivery = rxPrefs.getBoolean("delivery", false)
     val signature = rxPrefs.getString("signature", "")
-    val unicode = rxPrefs.getBoolean("unicode", false)
-    val mobileOnly = rxPrefs.getBoolean("mobileOnly", false)
     val autoDelete = rxPrefs.getInteger("autoDelete", 0)
     val longAsMms = rxPrefs.getBoolean("longAsMms", false)
-    val mmsSize = rxPrefs.getInteger("mmsSize", 300)
+    val mmsSize = rxPrefs.getInteger("mmsSize", 1000)
     val messageLinkHandling = rxPrefs.getInteger("messageLinkHandling", MESSAGE_LINK_HANDLING_ASK)
-    val disableScreenshots = rxPrefs.getBoolean("disableScreenshots", false)
     val logging = rxPrefs.getBoolean("logging", false)
     val unreadAtTop = rxPrefs.getBoolean("unreadAtTop", false)
 
@@ -140,6 +142,7 @@ class Preferences @Inject constructor(
 
     val autoSortEnabled = rxPrefs.getBoolean("fh_autoSortEnabled", true)
     val initialClassificationDone = rxPrefs.getBoolean("fh_initialClassificationDone", false)
+    val otpRetentionDays = rxPrefs.getInteger("fh_otpRetentionDays", OTP_RETENTION_NEVER)
 
     fun categoryNotifications(category: String): Preference<Boolean> =
         rxPrefs.getBoolean("fh_notifications_$category", true)

@@ -113,12 +113,6 @@ class SettingsPresenter @Inject constructor(
         disposables += prefs.showStt.asObservable()
             .subscribe { enabled -> newState { copy(showStt = enabled) } }
 
-        disposables += prefs.unicode.asObservable()
-                .subscribe { enabled -> newState { copy(stripUnicodeEnabled = enabled) } }
-
-        disposables += prefs.mobileOnly.asObservable()
-                .subscribe { enabled -> newState { copy(mobileOnly = enabled) } }
-
         disposables += prefs.longAsMms.asObservable()
                 .subscribe { enabled -> newState { copy(longAsMms = enabled) } }
 
@@ -142,8 +136,6 @@ class SettingsPresenter @Inject constructor(
                     )
                 }
             }
-        disposables += prefs.disableScreenshots.asObservable()
-            .subscribe { enabled -> newState { copy(disableScreenshotsEnabled = enabled) } }
 
         disposables += syncRepo.syncProgress
                 .sample(16, TimeUnit.MILLISECONDS)
@@ -208,17 +200,11 @@ class SettingsPresenter @Inject constructor(
                             prefs.showSttOffsetY.set(Float.MIN_VALUE)
                         }
 
-                        R.id.unicode -> prefs.unicode.set(!prefs.unicode.get())
-
-                        R.id.mobileOnly -> prefs.mobileOnly.set(!prefs.mobileOnly.get())
-
                         R.id.longAsMms -> prefs.longAsMms.set(!prefs.longAsMms.get())
 
                         R.id.mmsSize -> view.showMmsSizePicker()
 
                         R.id.messsageLinkHandling -> view.showMessageLinkHandlingDialogPicker()
-
-                        R.id.disableScreenshots -> prefs.disableScreenshots.set(!prefs.disableScreenshots.get())
 
                         R.id.sync -> syncMessages.execute(Unit)
 

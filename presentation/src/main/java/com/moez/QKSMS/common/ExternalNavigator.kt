@@ -45,9 +45,6 @@ class ExternalNavigator @Inject constructor(
     private val permissions: PermissionManager,
     private val notificationManager: NotificationManager
 ) : QkNavigator(context) {
-    fun showDeveloper() =
-        openExternalActivity("https://github.com/curly815/foxholemessages/graphs/contributors")
-
     fun showSourceCode() = openExternalActivity("https://github.com/curly815/foxholemessages")
 
     fun showChangelog() = openExternalActivity("https://github.com/curly815/foxholemessages/releases")
