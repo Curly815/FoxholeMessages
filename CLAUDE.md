@@ -218,51 +218,35 @@ update. Erik has a copy of `my-release-key.keystore`; if it's ever lost,
 a new one will break update compatibility for anyone who installed a
 prior release.
 
-## Self-hosted F-Droid repo
+## Self-hosted F-Droid repo — dropped
 
-The app was never submitted to the official F-Droid store — `fdroid/`
-in this repo is a self-hosted repo (published to GitHub Pages) that
-someone would add manually as a custom repo source in the F-Droid app.
-It's separate from the GitHub Releases, which have always worked fine.
+`fdroid/` used to also drive a self-hosted F-Droid repo published to
+GitHub Pages (a custom repo source someone would add manually in the
+F-Droid app — separate from, and never required for, the GitHub
+Releases, which have always worked fine).
 
-Investigated why it never actually populated anything on GitHub Pages
-(user asked "why won't the app show up on F-Droid"). Turned out to be
-five stacked bugs, not just the one originally suspected — verified
-each by installing fdroidserver 2.2.1 locally (matching what CI
-installs) and running `fdroid update` against this repo's actual
-config/metadata:
-1. The `publish` job's "Update F-Droid repo contents" step referenced
-   `presentation/build/outputs/apk/release/...`, a path that only
-   exists on the `build` job's runner — `publish` runs on a separate
-   runner with just the `downloaded/` artifact. Fixed by locating the
-   APK under `downloaded/` instead.
-2. The `publish` job had no source checkout at all, so `config.yml`
-   and `fdroid/metadata/` never existed there either.
-3. The "restore previous gh-pages content" step ran in the `build`
-   job, whose filesystem `publish` never sees — dead code. Moved it
-   into `publish`.
-4. `fdroid update --config config.yml` isn't a real flag — fdroidserver
-   auto-discovers `config.yml` from the working directory. Fixed by
-   running from `fdroid/` (which is also where `fdroid/metadata/`
-   already lived, so that mismatch is now resolved too).
-5. `fdroid/metadata/com.foxhole.messages.yml` had a `PackageName`
-   field left over from an older metadata format — current fdroidserver
-   gets the package id from the filename and treats `PackageName` as
-   an unrecognized field, aborting `fdroid update` before it writes
-   anything. Removed.
+Investigated why it never populated anything (user asked "why won't
+the app show up on F-Droid") and found five stacked bugs verified by
+installing fdroidserver 2.2.1 locally (matching what CI installs): a
+publish-job/build-job path mismatch, a missing source checkout, dead
+restore-from-gh-pages code in the wrong job, an invalid `fdroid update
+--config` flag, and an unrecognized `PackageName` field in the app
+metadata. Fixed all five, but hit a real wall: `fdroid update`
+hard-requires a repo signing keystore to produce an index at all — no
+flag/config combination produces a fully unsigned repo, contrary to
+what the tool's own example docs suggest. That needs a new keystore
+(separate from `ANDROID_KEYSTORE_BASE64`, which only signs the APK)
+and new GitHub secrets to hold it.
 
-Fixed 1-5 above (commit on `master`, doesn't touch app releases at
-all — separate job, separate signing key, no version bump). **Still
-not fully working**: `fdroid update` hard-requires a repo signing
-keystore to produce an index at all — confirmed locally, there's no
-flag/config combination that produces a fully unsigned repo despite
-older fdroidserver docs suggesting otherwise. `fdroid/config.yml`
-documents what's needed (`repo_keyalias`/`keystore`/`keystorepass`/
-`keypass`, keystore path + password via `{env: VAR}` indirection so no
-secret lives in the committed file). This needs a new keystore
-generated for the repo's signing identity (separate from
-`ANDROID_KEYSTORE_BASE64`, which only signs the APK) and new GitHub
-secrets for it — both require the repo owner, follow-up work.
-
-None of this blocks the GitHub Release itself, which publishes fine
-before this step runs.
+Decision: dropped rather than finishing the keystore setup — priority
+moved to a Google Play Store submission instead. Reverted the
+`build-and-release.yml` publish job back to just the GitHub Release
+(no F-Droid steps) and removed `fdroid/config.yml`. Left
+`fdroid/metadata/com.foxhole.messages.yml` in place (including the
+`PackageName` fix) since it's independently used by the *other*,
+unrelated `fdroid-mr` job in `release-after-merge.yml` — a dormant,
+unconfigured job (needs `FDROID_GITLAB_FORK`/`FDROID_GITLAB_TOKEN`,
+neither set) that would submit a metadata MR to the official
+`fdroid/fdroiddata` repo, the actual path to being listed in the real
+F-Droid app. Not touched — out of scope here, noted for if it's ever
+picked up.
