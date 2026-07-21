@@ -19,20 +19,15 @@
 package dev.octoshrimpy.quik.feature.plus
 
 import dev.octoshrimpy.quik.common.base.QkView
-import dev.octoshrimpy.quik.manager.BillingManager
 import io.reactivex.Observable
 
 interface PlusView : QkView<PlusState> {
 
-    val upgradeIntent: Observable<Unit>
-    val upgradeDonateIntent: Observable<Unit>
     val donateVenmoIntent: Observable<*>
     val themeClicks: Observable<*>
     val scheduleClicks: Observable<*>
     val backupClicks: Observable<*>
     val delayedClicks: Observable<*>
     val nightClicks: Observable<*>
-
-    fun initiatePurchaseFlow(billingManager: BillingManager, sku: String)
 
 }

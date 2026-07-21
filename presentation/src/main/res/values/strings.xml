@@ -31,6 +31,7 @@
     <string name="title_conversations">Search inbox…</string>
     <string name="title_compose">Type a name or number</string>
     <string name="title_qksms_plus" translatable="false">If you see this, send in an issue please!</string>
+    <string name="plus_activity_title">Support Foxhole Messages</string>
 
     <string name="setup_skip">Skip</string>
     <string name="setup_next">Continue</string>
@@ -425,7 +426,7 @@
     <string name="qksms_plus_thanks_title">Thank you for supporting Foxhole Messages!</string>
     <string name="qksms_plus_thanks_summary">You now have access to all Foxhole Messages+ features</string>
     <string name="qksms_plus_error">An error has occurred, please try again</string>
-    <string name="qksms_plus_free_title">Foxhole Messages+ is free for F-Droid users! If you\'d like to support development, a donation would be highly appreciated.</string>
+    <string name="qksms_plus_free_title">All features are free, no upgrades or subscriptions required. If you\'d like to support development, a donation would be highly appreciated.</string>
     <string name="qksms_plus_donate">Donate via PayPal</string>
     <string name="qksms_plus_donate_venmo">Support via Venmo</string>
     <string name="qksms_plus_coming_soon">Coming soon</string>

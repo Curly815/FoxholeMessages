@@ -28,32 +28,20 @@ import dagger.android.AndroidInjection
 import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.base.QkThemedActivity
 import dev.octoshrimpy.quik.common.util.FontProvider
-import dev.octoshrimpy.quik.common.util.extensions.makeToast
 import dev.octoshrimpy.quik.common.util.extensions.resolveThemeColor
 import dev.octoshrimpy.quik.common.util.extensions.setBackgroundTint
-import dev.octoshrimpy.quik.common.util.extensions.setTint
-import dev.octoshrimpy.quik.common.util.extensions.setVisible
 import dev.octoshrimpy.quik.common.widget.PreferenceView
-import dev.octoshrimpy.quik.feature.plus.experiment.UpgradeButtonExperiment
-import dev.octoshrimpy.quik.manager.BillingManager
 import dev.octoshrimpy.quik.databinding.QksmsPlusActivityBinding
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import timber.log.Timber
 import javax.inject.Inject
 
 class PlusActivity : QkThemedActivity(), PlusView {
 
     @Inject lateinit var fontProvider: FontProvider
-    @Inject lateinit var upgradeButtonExperiment: UpgradeButtonExperiment
     @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
 
     private val viewModel by lazy { ViewModelProviders.of(this, viewModelFactory)[PlusViewModel::class.java] }
     private lateinit var binding: QksmsPlusActivityBinding
 
-    override val upgradeIntent get() = binding.upgrade.clicks()
-    override val upgradeDonateIntent get() = binding.upgradeDonate.clicks()
     override val donateVenmoIntent get() = binding.donateVenmo.clicks()
     override val themeClicks get() = binding.themes.clicks()
     override val scheduleClicks get() = binding.schedule.clicks()
@@ -66,11 +54,9 @@ class PlusActivity : QkThemedActivity(), PlusView {
         super.onCreate(savedInstanceState)
         binding = QksmsPlusActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        setTitle(R.string.title_qksms_plus)
+        setTitle(R.string.plus_activity_title)
         showBackButton(true)
         viewModel.bindView(this)
-
-        binding.free.setVisible(false)
 
         if (!prefs.systemFont.get()) {
             fontProvider.getLato { lato ->
@@ -92,37 +78,10 @@ class PlusActivity : QkThemedActivity(), PlusView {
 
         val theme = colors.theme().theme
         binding.donateVenmo.setBackgroundTint(theme)
-        binding.upgrade.setBackgroundTint(theme)
-        binding.thanksIcon.setTint(theme)
     }
 
     override fun render(state: PlusState) {
-        binding.description.text = getString(R.string.qksms_plus_description_summary, state.upgradePrice)
-        binding.upgrade.text = getString(upgradeButtonExperiment.variant, state.upgradePrice, state.currency)
-        binding.upgradeDonate.text = getString(R.string.qksms_plus_upgrade_donate, state.upgradeDonatePrice, state.currency)
-
-        val fdroid = true
-
-        binding.free.setVisible(fdroid)
-        binding.toUpgrade.setVisible(!fdroid && !state.upgraded)
-        binding.upgraded.setVisible(!fdroid && state.upgraded)
-
-        binding.themes.isEnabled = state.upgraded
-        binding.schedule.isEnabled = state.upgraded
-        binding.backup.isEnabled = state.upgraded
-        binding.delayed.isEnabled = state.upgraded
-        binding.night.isEnabled = state.upgraded
-    }
-
-    override fun initiatePurchaseFlow(billingManager: BillingManager, sku: String) {
-        GlobalScope.launch(Dispatchers.Main) {
-            try {
-                billingManager.initiatePurchaseFlow(this@PlusActivity, sku)
-            } catch (e: Exception) {
-                Timber.w(e)
-                makeToast(R.string.qksms_plus_error)
-            }
-        }
+        // Every feature listed here is already unlocked; nothing to render conditionally.
     }
 
 }

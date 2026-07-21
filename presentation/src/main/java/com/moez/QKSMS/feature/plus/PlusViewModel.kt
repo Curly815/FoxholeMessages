@@ -23,40 +23,15 @@ import com.uber.autodispose.autoDisposable
 import dev.octoshrimpy.quik.common.ExternalNavigator
 import dev.octoshrimpy.quik.common.Navigator
 import dev.octoshrimpy.quik.common.base.QkViewModel
-import dev.octoshrimpy.quik.manager.BillingManager
-import io.reactivex.Observable
-import io.reactivex.rxkotlin.plusAssign
 import javax.inject.Inject
 
 class PlusViewModel @Inject constructor(
-    private val billingManager: BillingManager,
     private val navigator: Navigator,
     private val externalNavigator: ExternalNavigator
 ) : QkViewModel<PlusView, PlusState>(PlusState()) {
 
-    init {
-        disposables += billingManager.upgradeStatus
-                .subscribe { upgraded -> newState { copy(upgraded = upgraded) } }
-
-        disposables += billingManager.products
-                .subscribe { products ->
-                    newState {
-                        val upgrade = products.firstOrNull { it.sku == BillingManager.SKU_PLUS }
-                        val upgradeDonate = products.firstOrNull { it.sku == BillingManager.SKU_PLUS_DONATE }
-                        copy(upgradePrice = upgrade?.price ?: "", upgradeDonatePrice = upgradeDonate?.price ?: "",
-                                currency = upgrade?.priceCurrencyCode ?: upgradeDonate?.priceCurrencyCode ?: "")
-                    }
-                }
-    }
-
     override fun bindView(view: PlusView) {
         super.bindView(view)
-
-        Observable.merge(
-                view.upgradeIntent.map { BillingManager.SKU_PLUS },
-                view.upgradeDonateIntent.map { BillingManager.SKU_PLUS_DONATE })
-                .autoDisposable(view.scope())
-                .subscribe { sku -> view.initiatePurchaseFlow(billingManager, sku) }
 
         view.donateVenmoIntent
                 .autoDisposable(view.scope())
