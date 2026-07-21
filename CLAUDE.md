@@ -13,8 +13,17 @@ Finalizing v1.0 (`versionCode 2239`, `versionName '1.0'`, bumped in
 `presentation/build.gradle`). Planned changes, in order:
 1. Version bump + changelog (`data/src/main/assets/changelog.json`,
    F-Droid metadata) — done.
-2. Venmo donation option alongside the existing PayPal button on the
-   Plus/About screen.
+2. Venmo donation option on the Plus/About screen — done. The old
+   PayPal button and the entire non-functional "upgrade"/paywall UI
+   were removed (`BillingManagerImpl` was already a no-op stub that
+   always reports everyone as upgraded, so there was no real paywall
+   to begin with — see `feature/plus/`). `PlusActivity` now just shows
+   a "Support the developer" Venmo button plus the always-unlocked
+   feature list; the About screen also links to
+   `ExternalNavigator.showVenmoDonation()` under a "Support the
+   developer" row. Other already-inert `!upgraded` dead code (drawer
+   badges, Backup/Scheduled FAB fallbacks, Settings gates) was left
+   untouched since it was already invisible to users.
 3. Link thumbnail previews in message bubbles (Open Graph/Twitter Card
    metadata via `me.saket:unfurl`, fetched off the main thread, cached
    in-memory since this app uses Realm rather than Room).
