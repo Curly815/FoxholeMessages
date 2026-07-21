@@ -1083,4 +1083,44 @@ open class MessageRepositoryImpl @Inject constructor(
         }
         return sha256(signatureString)
     }
+
+    override fun getUnclassifiedMessages(): RealmResults<Message> =
+        Realm.getDefaultInstance().where(Message::class.java)
+            .isNull("category")
+            .findAll()
+
+    override fun updateMessageCategory(messageId: Long, category: String) {
+        Realm.getDefaultInstance().use { realm ->
+            realm.executeTransaction {
+                realm.where(Message::class.java)
+                    .equalTo("id", messageId)
+                    .findFirst()
+                    ?.category = category
+            }
+        }
+    }
+
+    override fun updateMessageCategories(categories: Map<Long, String>) {
+        Realm.getDefaultInstance().use { realm ->
+            realm.executeTransaction {
+                categories.forEach { (messageId, category) ->
+                    realm.where(Message::class.java)
+                        .equalTo("id", messageId)
+                        .findFirst()
+                        ?.category = category
+                }
+            }
+        }
+    }
+
+    override fun updateMessageOtp(messageId: Long, isOtp: Boolean) {
+        Realm.getDefaultInstance().use { realm ->
+            realm.executeTransaction {
+                realm.where(Message::class.java)
+                    .equalTo("id", messageId)
+                    .findFirst()
+                    ?.isOtp = isOtp
+            }
+        }
+    }
 }

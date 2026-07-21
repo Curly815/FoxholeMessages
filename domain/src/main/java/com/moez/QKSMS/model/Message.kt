@@ -83,6 +83,10 @@ open class Message : RealmObject() {
 
     var sendAsGroup: Boolean = false
 
+    // Message sorting: null until classified by MessageCategorizer (see classifier/)
+    var category: String? = null
+    var isOtp: Boolean = false
+
     fun getUri(): Uri {
         if (contentId == 0L)
             return Uri.EMPTY

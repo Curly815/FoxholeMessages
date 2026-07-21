@@ -152,6 +152,14 @@
             app:title="@string/settings_swipe_actions" />
 
         <dev.octoshrimpy.quik.common.widget.PreferenceView
+            android:id="@+id/messageSorting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/ic_sync_black_24dp"
+            app:summary="@string/message_sorting_settings_summary"
+            app:title="@string/message_sorting_title" />
+
+        <dev.octoshrimpy.quik.common.widget.PreferenceView
             android:id="@+id/delivery"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

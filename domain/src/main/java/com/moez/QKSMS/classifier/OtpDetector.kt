@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Moez Bhatti <moez.bhatti@gmail.com>
+ * Copyright (C) 2026 Foxhole Messages contributors
  *
  * This file is part of QKSMS.
  *
@@ -16,27 +16,21 @@
  * You should have received a copy of the GNU General Public License
  * along with QKSMS.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dev.octoshrimpy.quik.manager
+package dev.octoshrimpy.quik.classifier
 
-import android.app.Notification
-import androidx.core.app.NotificationCompat
+import javax.inject.Inject
 
-interface NotificationManager {
+class OtpDetector @Inject constructor() {
 
-    fun getForegroundNotificationForWorkersOnOlderAndroids(): Notification
+    private val codePattern = Regex("\\b\\d{4,8}\\b")
+    private val keywordPattern = Regex(
+        "\\b(code|otp|verification|pin|passcode|one[- ]time)\\b",
+        RegexOption.IGNORE_CASE
+    )
 
-    fun update(threadId: Long)
+    fun isOtp(body: String): Boolean =
+        keywordPattern.containsMatchIn(body) && codePattern.containsMatchIn(body)
 
-    fun notifyFailed(threadId: Long)
-
-    fun createNotificationChannel(threadId: Long = 0L)
-
-    fun buildNotificationChannelId(threadId: Long): String
-
-    fun getNotificationForBackup(): NotificationCompat.Builder
-
-    fun getNotificationForClassification(): NotificationCompat.Builder
-
-    fun cancel(i: Int)
+    fun extractCode(body: String): String? = codePattern.find(body)?.value
 
 }

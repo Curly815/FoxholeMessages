@@ -23,6 +23,9 @@ import androidx.work.ForegroundInfo
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import dev.octoshrimpy.quik.blocking.BlockingClient
+import dev.octoshrimpy.quik.classifier.Category
+import dev.octoshrimpy.quik.classifier.MessageCategorizer
+import dev.octoshrimpy.quik.classifier.OtpDetector
 import dev.octoshrimpy.quik.interactor.UpdateBadge
 import dev.octoshrimpy.quik.manager.NotificationManager
 import dev.octoshrimpy.quik.manager.ShortcutManager
@@ -49,6 +52,8 @@ class ReceiveSmsWorker(appContext: Context, workerParams: WorkerParameters)
     @Inject lateinit var shortcutManager: ShortcutManager
     @Inject lateinit var filterRepo: MessageContentFilterRepository
     @Inject lateinit var contactsRepo: ContactRepository
+    @Inject lateinit var messageCategorizer: MessageCategorizer
+    @Inject lateinit var otpDetector: OtpDetector
 
     override fun doWork(): Result {
         Timber.v("started")
@@ -60,6 +65,19 @@ class ReceiveSmsWorker(appContext: Context, workerParams: WorkerParameters)
         }
 
         val message = messageRepo.getMessage(messageId) ?: return Result.failure(inputData)
+
+        val category = try {
+            messageCategorizer.categorize(message.address, message.getText())
+        } catch (e: Exception) {
+            Timber.e(e, "classification failed for messageId=${message.id}, falling back to UNCLASSIFIED")
+            Category.UNCLASSIFIED
+        }
+        Timber.v("classified. messageId=${message.id} category=$category")
+        messageRepo.updateMessageCategory(message.id, category.name)
+
+        if (otpDetector.isOtp(message.getText())) {
+            messageRepo.updateMessageOtp(message.id, true)
+        }
 
         val action = blockingClient.shouldBlock(message.address).blockingGet()
 

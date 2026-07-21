@@ -138,6 +138,21 @@ class Preferences @Inject constructor(
 
     val autoDeduplicate = rxPrefs.getBoolean("autoDeduplicateMessages", false)
 
+    val autoSortEnabled = rxPrefs.getBoolean("fh_autoSortEnabled", true)
+    val initialClassificationDone = rxPrefs.getBoolean("fh_initialClassificationDone", false)
+
+    fun categoryNotifications(category: String): Preference<Boolean> =
+        rxPrefs.getBoolean("fh_notifications_$category", true)
+
+    fun categoryPreviews(category: String): Preference<Boolean> =
+        rxPrefs.getBoolean("fh_previews_$category", true)
+
+    fun categoryVibration(category: String): Preference<Boolean> =
+        rxPrefs.getBoolean("fh_vibration_$category", false)
+
+    fun categoryRingtone(category: String): Preference<String> =
+        rxPrefs.getString("fh_ringtone_$category", Settings.System.DEFAULT_NOTIFICATION_URI.toString())
+
     init {
         // Migrate from old night mode preference to new one, now that we support android Q night mode
         val nightModeSummary = rxPrefs.getInteger("nightModeSummary")

@@ -89,8 +89,12 @@ import dev.octoshrimpy.quik.repository.MessageRepository
 import dev.octoshrimpy.quik.repository.MessageRepositoryImpl
 import dev.octoshrimpy.quik.repository.ScheduledMessageRepository
 import dev.octoshrimpy.quik.repository.ScheduledMessageRepositoryImpl
+import dev.octoshrimpy.quik.repository.SenderCategoryRuleRepository
+import dev.octoshrimpy.quik.repository.SenderCategoryRuleRepositoryImpl
 import dev.octoshrimpy.quik.repository.SyncRepository
 import dev.octoshrimpy.quik.repository.SyncRepositoryImpl
+import dev.octoshrimpy.quik.repository.TrustedSenderRepository
+import dev.octoshrimpy.quik.repository.TrustedSenderRepositoryImpl
 import dev.octoshrimpy.quik.worker.InjectionWorkerFactory
 import javax.inject.Singleton
 
@@ -205,6 +209,12 @@ class AppModule(private var application: Application) {
 
     @Provides
     fun provideMessageContentFilterRepository(repository: MessageContentFilterRepositoryImpl): MessageContentFilterRepository = repository
+
+    @Provides
+    fun provideTrustedSenderRepository(repository: TrustedSenderRepositoryImpl): TrustedSenderRepository = repository
+
+    @Provides
+    fun provideSenderCategoryRuleRepository(repository: SenderCategoryRuleRepositoryImpl): SenderCategoryRuleRepository = repository
 
     @Provides
     fun provideContactRepository(repository: ContactRepositoryImpl): ContactRepository = repository

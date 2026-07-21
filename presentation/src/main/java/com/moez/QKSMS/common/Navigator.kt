@@ -33,6 +33,7 @@ import dev.octoshrimpy.quik.feature.gallery.GalleryActivity
 import dev.octoshrimpy.quik.feature.main.MainActivity
 import dev.octoshrimpy.quik.feature.messageutils.MessageUtilsActivity
 import dev.octoshrimpy.quik.feature.plus.PlusActivity
+import dev.octoshrimpy.quik.feature.settings.messagesorting.notifications.CategoryNotificationActivity
 import dev.octoshrimpy.quik.feature.scheduled.ScheduledActivity
 import dev.octoshrimpy.quik.feature.settings.SettingsActivity
 import dev.octoshrimpy.quik.model.ScheduledMessage
@@ -143,6 +144,12 @@ class Navigator @Inject constructor(
 
     fun showBlockedConversations() {
         startActivity(Intent(context, BlockingActivity::class.java))
+    }
+
+    fun showCategoryNotificationSettings(category: String) {
+        val intent = Intent(context, CategoryNotificationActivity::class.java)
+        intent.putExtra(CategoryNotificationActivity.EXTRA_CATEGORY, category)
+        startActivity(intent)
     }
 
     fun viewFile(uri: Uri, mimeType: String) {

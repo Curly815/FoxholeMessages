@@ -44,6 +44,9 @@ import com.klinker.android.send_message.MmsSentReceiver
 import com.klinker.android.send_message.SmsManagerFactory
 import com.klinker.android.send_message.Utils
 import dev.octoshrimpy.quik.blocking.BlockingClient
+import dev.octoshrimpy.quik.classifier.Category
+import dev.octoshrimpy.quik.classifier.MessageCategorizer
+import dev.octoshrimpy.quik.classifier.OtpDetector
 import dev.octoshrimpy.quik.interactor.UpdateBadge
 import dev.octoshrimpy.quik.manager.ActiveConversationManager
 import dev.octoshrimpy.quik.manager.NotificationManager
@@ -88,6 +91,8 @@ class ReceiveMmsWorker(appContext: Context, workerParams: WorkerParameters)
     @Inject lateinit var shortcutManager: ShortcutManager
     @Inject lateinit var filterRepo: MessageContentFilterRepository
     @Inject lateinit var contactsRepo: ContactRepository
+    @Inject lateinit var messageCategorizer: MessageCategorizer
+    @Inject lateinit var otpDetector: OtpDetector
 
     override fun doWork(): Result {
         Timber.v("started")
@@ -153,6 +158,19 @@ class ReceiveMmsWorker(appContext: Context, workerParams: WorkerParameters)
                     // Sync the message
                     val message = syncRepo.syncMessage(messageUri)
                         ?: return Result.failure(inputData)
+
+                    val category = try {
+                        messageCategorizer.categorize(message.address, message.getText())
+                    } catch (e: Exception) {
+                        Timber.e(e, "classification failed for messageId=${message.id}, falling back to UNCLASSIFIED")
+                        Category.UNCLASSIFIED
+                    }
+                    Timber.v("classified. messageId=${message.id} category=$category")
+                    messageRepo.updateMessageCategory(message.id, category.name)
+
+                    if (otpDetector.isOtp(message.getText())) {
+                        messageRepo.updateMessageOtp(message.id, true)
+                    }
 
                     // TODO: Ideally this is done when we're saving the MMS to ContentResolver
                     // This change can be made once we move the MMS storing code to the Data module

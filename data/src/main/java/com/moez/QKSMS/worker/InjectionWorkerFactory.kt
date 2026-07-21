@@ -24,6 +24,9 @@ import androidx.work.Worker
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
 import dev.octoshrimpy.quik.blocking.BlockingClient
+import dev.octoshrimpy.quik.classifier.MessageCategoryBackfill
+import dev.octoshrimpy.quik.classifier.MessageCategorizer
+import dev.octoshrimpy.quik.classifier.OtpDetector
 import dev.octoshrimpy.quik.interactor.UpdateBadge
 import dev.octoshrimpy.quik.manager.ActiveConversationManager
 import dev.octoshrimpy.quik.manager.NotificationManager
@@ -50,6 +53,9 @@ class InjectionWorkerFactory @Inject constructor(
     private val syncRepo: SyncRepository,
     private val filterRepo: MessageContentFilterRepository,
     private val contactRepo: ContactRepository,
+    private val messageCategorizer: MessageCategorizer,
+    private val otpDetector: OtpDetector,
+    private val messageCategoryBackfill: MessageCategoryBackfill,
 
 ) : WorkerFactory() {
     override fun createWorker(
@@ -76,6 +82,8 @@ class InjectionWorkerFactory @Inject constructor(
                 instance.updateBadge =  updateBadge
                 instance.filterRepo = filterRepo
                 instance.contactsRepo = contactRepo
+                instance.messageCategorizer = messageCategorizer
+                instance.otpDetector = otpDetector
             }
             is ReceiveMmsWorker -> {
                 instance.syncRepo = syncRepo
@@ -89,6 +97,13 @@ class InjectionWorkerFactory @Inject constructor(
                 instance.updateBadge = updateBadge
                 instance.filterRepo = filterRepo
                 instance.contactsRepo = contactRepo
+                instance.messageCategorizer = messageCategorizer
+                instance.otpDetector = otpDetector
+            }
+            is ClassifyExistingMessagesWorker -> {
+                instance.backfill = messageCategoryBackfill
+                instance.notificationManager = notificationManager
+                instance.prefs = prefs
             }
         }
 

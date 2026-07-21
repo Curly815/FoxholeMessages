@@ -81,6 +81,7 @@ class NotificationManagerImpl @Inject constructor(
         const val DEFAULT_CHANNEL_ID = "notifications_default"
         const val BACKUP_RESTORE_CHANNEL_ID = "notifications_backup_restore"
         const val RECEIVING_WORKER_CHANNEL_ID = "notifications_receiving_worker"
+        const val CLASSIFICATION_CHANNEL_ID = "notifications_classification"
 
         val MARK_TYPE_COUNT = MessageMarkReceiver.MarkType.values().size
 
@@ -578,6 +579,27 @@ class NotificationManagerImpl @Inject constructor(
                 .setShowWhen(false)
                 .setWhen(System.currentTimeMillis()) // Set this anyway in case it's shown
                 .setSmallIcon(R.drawable.ic_file_download_black_24dp)
+                .setColor(colors.theme().theme)
+                .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setProgress(0, 0, true)
+                .setOngoing(true)
+    }
+
+    override fun getNotificationForClassification(): NotificationCompat.Builder {
+        if (Build.VERSION.SDK_INT >= 26) {
+            val name = context.getString(R.string.message_sorting_notification_channel_name)
+            val importance = NotificationManager.IMPORTANCE_LOW
+            val channel = NotificationChannel(CLASSIFICATION_CHANNEL_ID, name, importance)
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        return NotificationCompat.Builder(context, CLASSIFICATION_CHANNEL_ID)
+                .setContentTitle(context.getString(R.string.message_sorting_classifying))
+                .setShowWhen(false)
+                .setWhen(System.currentTimeMillis())
+                .setSmallIcon(R.drawable.ic_sync_black_24dp)
                 .setColor(colors.theme().theme)
                 .setCategory(NotificationCompat.CATEGORY_PROGRESS)
                 .setPriority(NotificationCompat.PRIORITY_MIN)

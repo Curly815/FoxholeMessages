@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Moez Bhatti <moez.bhatti@gmail.com>
+ * Copyright (C) 2026 Foxhole Messages contributors
  *
  * This file is part of QKSMS.
  *
@@ -16,27 +16,20 @@
  * You should have received a copy of the GNU General Public License
  * along with QKSMS.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dev.octoshrimpy.quik.manager
+package dev.octoshrimpy.quik.feature.settings.messagesorting.senders
 
-import android.app.Notification
-import androidx.core.app.NotificationCompat
+import dev.octoshrimpy.quik.common.base.QkViewContract
+import dev.octoshrimpy.quik.model.TrustedSender
+import io.reactivex.Observable
 
-interface NotificationManager {
+interface TrustedSendersView : QkViewContract<TrustedSendersState> {
 
-    fun getForegroundNotificationForWorkersOnOlderAndroids(): Notification
+    fun removeSender(): Observable<TrustedSender>
+    fun confirmRemoveLocked(): Observable<TrustedSender>
+    fun addAddress(): Observable<*>
+    fun saveAddress(): Observable<String>
 
-    fun update(threadId: Long)
-
-    fun notifyFailed(threadId: Long)
-
-    fun createNotificationChannel(threadId: Long = 0L)
-
-    fun buildNotificationChannelId(threadId: Long): String
-
-    fun getNotificationForBackup(): NotificationCompat.Builder
-
-    fun getNotificationForClassification(): NotificationCompat.Builder
-
-    fun cancel(i: Int)
+    fun showAddDialog()
+    fun showRemoveLockedConfirmDialog(sender: TrustedSender)
 
 }

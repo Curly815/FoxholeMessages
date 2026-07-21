@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Moez Bhatti <moez.bhatti@gmail.com>
+ * Copyright (C) 2026 Foxhole Messages contributors
  *
  * This file is part of QKSMS.
  *
@@ -16,27 +16,19 @@
  * You should have received a copy of the GNU General Public License
  * along with QKSMS.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dev.octoshrimpy.quik.manager
+package dev.octoshrimpy.quik.feature.settings.messagesorting.notifications
 
-import android.app.Notification
-import androidx.core.app.NotificationCompat
+import android.net.Uri
+import dev.octoshrimpy.quik.common.base.QkView
+import dev.octoshrimpy.quik.common.widget.PreferenceView
+import io.reactivex.Observable
+import io.reactivex.subjects.Subject
 
-interface NotificationManager {
+interface CategoryNotificationView : QkView<CategoryNotificationState> {
 
-    fun getForegroundNotificationForWorkersOnOlderAndroids(): Notification
+    val preferenceClickIntent: Subject<PreferenceView>
+    val ringtoneSelectedIntent: Observable<String>
 
-    fun update(threadId: Long)
-
-    fun notifyFailed(threadId: Long)
-
-    fun createNotificationChannel(threadId: Long = 0L)
-
-    fun buildNotificationChannelId(threadId: Long): String
-
-    fun getNotificationForBackup(): NotificationCompat.Builder
-
-    fun getNotificationForClassification(): NotificationCompat.Builder
-
-    fun cancel(i: Int)
+    fun showRingtonePicker(default: Uri?)
 
 }

@@ -47,6 +47,7 @@ import dev.octoshrimpy.quik.common.widget.PreferenceView
 import dev.octoshrimpy.quik.common.widget.TextInputDialog
 import dev.octoshrimpy.quik.databinding.SettingsControllerBinding
 import dev.octoshrimpy.quik.feature.settings.about.AboutController
+import dev.octoshrimpy.quik.feature.settings.messagesorting.MessageSortingController
 import dev.octoshrimpy.quik.feature.settings.swipe.SwipeActionsController
 import dev.octoshrimpy.quik.feature.themepicker.ThemePickerController
 import dev.octoshrimpy.quik.injection.appComponent
@@ -256,6 +257,12 @@ class SettingsController : QkController<SettingsControllerBinding, SettingsView,
 
     override fun showAbout() {
         router.pushController(RouterTransaction.with(AboutController())
+                .pushChangeHandler(QkChangeHandler())
+                .popChangeHandler(QkChangeHandler()))
+    }
+
+    override fun showMessageSorting() {
+        router.pushController(RouterTransaction.with(MessageSortingController())
                 .pushChangeHandler(QkChangeHandler())
                 .popChangeHandler(QkChangeHandler()))
     }

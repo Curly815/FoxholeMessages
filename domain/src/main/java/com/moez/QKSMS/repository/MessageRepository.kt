@@ -106,4 +106,12 @@ interface MessageRepository {
     fun deduplicateMessages(): Flowable<DeduplicationResult>
 
     fun markAsSendingNow(messageId: Long)
+
+    fun getUnclassifiedMessages(): RealmResults<Message>
+
+    fun updateMessageCategory(messageId: Long, category: String)
+
+    fun updateMessageCategories(categories: Map<Long, String>)
+
+    fun updateMessageOtp(messageId: Long, isOtp: Boolean)
 }

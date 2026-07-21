@@ -184,6 +184,8 @@ class SettingsPresenter @Inject constructor(
 
                         R.id.swipeActions -> view.showSwipeActions()
 
+                        R.id.messageSorting -> view.showMessageSorting()
+
                         R.id.delayed -> view.showDelayDurationDialog()
 
                         R.id.delivery -> prefs.delivery.set(!prefs.delivery.get())

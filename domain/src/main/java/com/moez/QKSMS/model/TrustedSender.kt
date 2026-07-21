@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Moez Bhatti <moez.bhatti@gmail.com>
+ * Copyright (C) 2026 Foxhole Messages contributors
  *
  * This file is part of QKSMS.
  *
@@ -16,27 +16,18 @@
  * You should have received a copy of the GNU General Public License
  * along with QKSMS.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dev.octoshrimpy.quik.manager
+package dev.octoshrimpy.quik.model
 
-import android.app.Notification
-import androidx.core.app.NotificationCompat
+import io.realm.RealmObject
+import io.realm.annotations.PrimaryKey
 
-interface NotificationManager {
-
-    fun getForegroundNotificationForWorkersOnOlderAndroids(): Notification
-
-    fun update(threadId: Long)
-
-    fun notifyFailed(threadId: Long)
-
-    fun createNotificationChannel(threadId: Long = 0L)
-
-    fun buildNotificationChannelId(threadId: Long): String
-
-    fun getNotificationForBackup(): NotificationCompat.Builder
-
-    fun getNotificationForClassification(): NotificationCompat.Builder
-
-    fun cancel(i: Int)
-
-}
+/**
+ * A sender that always gets classified as [dev.octoshrimpy.quik.classifier.Category.PERSONAL],
+ * regardless of message content. [locked] entries (e.g. the user's own number) require a forced
+ * removal to delete.
+ */
+open class TrustedSender(
+    @PrimaryKey var id: Long = 0,
+    var address: String = "",
+    var locked: Boolean = false
+) : RealmObject()
