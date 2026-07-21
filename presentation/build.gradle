@@ -29,7 +29,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 33
         versionCode 2239
-        versionName '1.0'
+        versionName '1.0.0'
         setProperty("archivesBaseName", "FoxholeMessages-v${versionName}")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

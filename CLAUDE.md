@@ -9,7 +9,7 @@ the source package.
 
 ## v1.0 work in progress
 
-Finalizing v1.0 (`versionCode 2239`, `versionName '1.0'`, bumped in
+Finalizing v1.0 (`versionCode 2239`, `versionName '1.0.0'`, bumped in
 `presentation/build.gradle`). Planned changes, in order:
 1. Version bump + changelog (`data/src/main/assets/changelog.json`,
    F-Droid metadata) — done.
@@ -67,7 +67,14 @@ same way as `v4.3.6` (see below).
 
 1. Merge changes into `master`.
 2. Bump `versionCode`/`versionName` in `presentation/build.gradle` if
-   this should be a new version/tag.
+   this should be a new version/tag. **`versionName` must be strict
+   3-part semver (`X.Y.Z`, e.g. `1.0.0`)** — `generate-release-notes.yml`
+   runs it through `semver.parse()`/`semver.lt()` to find the previous
+   release for the changelog diff, and a 2-part version like `1.0`
+   fails to parse (silently returns `null`), which throws
+   `TypeError: Invalid version. Must be a string. Got type "object"`
+   deep in the `generate_release_notes` job — hit this exactly once,
+   with `versionName '1.0'`, fixed by using `1.0.0` instead.
 3. Trigger the **Build and Release** workflow
    (`.github/workflows/build-and-release.yml`) via `workflow_dispatch`
    on `master` — it builds, signs, and publishes the GitHub Release

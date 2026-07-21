@@ -1,7 +1,7 @@
 [
   {
     "versionCode": 2239,
-    "versionName": "1.0",
+    "versionName": "1.0.0",
     "added": [
       "First stable Foxhole Messages release",
       "Link previews: messages containing a URL now show a thumbnail, title, and description",
