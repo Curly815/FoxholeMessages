@@ -204,6 +204,9 @@ dependencies {
     implementation "com.f2prateek.rx.preferences2:rx-preferences:$rx_preferences_version"
     implementation "com.github.google:flexbox-layout:0.3.1"
     implementation "com.jakewharton.timber:timber:$timber_version"
+
+    // link previews (thumbnail/title/description unfurling for URLs in messages)
+    implementation "me.saket.unfurl:unfurl:2.3.0"
     implementation "com.squareup.moshi:moshi-kotlin:$moshi_version"
     implementation "me.leolin:ShortcutBadger:1.1.22"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"

@@ -19,7 +19,9 @@
 package dev.octoshrimpy.quik.feature.compose
 
 import android.animation.ObjectAnimator
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
@@ -39,6 +41,8 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.net.toUri
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.jakewharton.rxbinding2.view.clicks
 import com.moez.QKSMS.common.QkMediaPlayer
 import dev.octoshrimpy.quik.R
@@ -46,6 +50,7 @@ import dev.octoshrimpy.quik.common.base.QkRealmAdapter
 import dev.octoshrimpy.quik.common.base.QkViewHolder
 import dev.octoshrimpy.quik.common.util.Colors
 import dev.octoshrimpy.quik.common.util.DateFormatter
+import dev.octoshrimpy.quik.common.util.LinkPreviewRepository
 import dev.octoshrimpy.quik.common.util.TextViewStyler
 import dev.octoshrimpy.quik.common.util.extensions.dpToPx
 import dev.octoshrimpy.quik.common.util.extensions.setBackgroundTint
@@ -68,12 +73,15 @@ import dev.octoshrimpy.quik.model.Message
 import dev.octoshrimpy.quik.model.Recipient
 import dev.octoshrimpy.quik.databinding.MessageListItemInBinding
 import dev.octoshrimpy.quik.databinding.MessageListItemOutBinding
+import dev.octoshrimpy.quik.util.GlideApp
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
 import dev.octoshrimpy.quik.util.Preferences
+import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import io.realm.RealmResults
+import timber.log.Timber
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -84,6 +92,7 @@ class MessagesAdapter @Inject constructor(
     private val context: Context,
     private val colors: Colors,
     private val dateFormatter: DateFormatter,
+    private val linkPreviewRepository: LinkPreviewRepository,
     private val partsAdapterProvider: Provider<PartsAdapter>,
     private val phoneNumberUtils: PhoneNumberUtils,
     private val prefs: Preferences,
@@ -213,6 +222,12 @@ class MessagesAdapter @Inject constructor(
         val reactions: View
         val reactionText: TextView
         val status: TextView
+        val linkPreview: View
+        val linkPreviewThumbnail: ImageView
+        val linkPreviewTitle: TextView
+        val linkPreviewDescription: TextView
+        val linkPreviewFavicon: ImageView
+        val linkPreviewHost: TextView
 
         if (isOutgoing) {
             val binding = MessageListItemOutBinding.bind(holder.itemView)
@@ -224,6 +239,12 @@ class MessagesAdapter @Inject constructor(
             reactions = binding.reactions
             reactionText = binding.reactionText
             status = binding.status
+            linkPreview = binding.linkPreview
+            linkPreviewThumbnail = binding.linkPreviewThumbnail
+            linkPreviewTitle = binding.linkPreviewTitle
+            linkPreviewDescription = binding.linkPreviewDescription
+            linkPreviewFavicon = binding.linkPreviewFavicon
+            linkPreviewHost = binding.linkPreviewHost
 
             // bind the cancelFrame (cancel button) and send now button
             val isCancellable = message.isSending() && message.date > System.currentTimeMillis()
@@ -286,6 +307,12 @@ class MessagesAdapter @Inject constructor(
             reactions = binding.reactions
             reactionText = binding.reactionText
             status = binding.status
+            linkPreview = binding.linkPreview
+            linkPreviewThumbnail = binding.linkPreviewThumbnail
+            linkPreviewTitle = binding.linkPreviewTitle
+            linkPreviewDescription = binding.linkPreviewDescription
+            linkPreviewFavicon = binding.linkPreviewFavicon
+            linkPreviewHost = binding.linkPreviewHost
 
             // Bind the avatar and bubble colour
             binding.avatar.apply {
@@ -425,7 +452,101 @@ class MessagesAdapter @Inject constructor(
         }
 
         showEmojiReactions(reactions, reactionText, message)
+
+        bindLinkPreview(
+            message = message,
+            text = displayText,
+            linkPreview = linkPreview,
+            thumbnail = linkPreviewThumbnail,
+            title = linkPreviewTitle,
+            description = linkPreviewDescription,
+            favicon = linkPreviewFavicon,
+            host = linkPreviewHost
+        )
     }
+
+    /**
+     * Fetch and display an Open Graph/Twitter Card preview for the first URL in [text], unless
+     * the user has disabled link handling entirely (they've already told us they don't want this
+     * app reaching out to links in their messages). Any previous in-flight request for this view
+     * is cancelled first, and the [message]'s id is stashed as the view's tag so that a result
+     * which arrives after the holder has been recycled for a different message is ignored.
+     */
+    private fun bindLinkPreview(
+        message: Message,
+        text: CharSequence,
+        linkPreview: View,
+        thumbnail: ImageView,
+        title: TextView,
+        description: TextView,
+        favicon: ImageView,
+        host: TextView
+    ) {
+        (linkPreview.tag as? LinkPreviewBinding)?.disposable?.dispose()
+        linkPreview.tag = LinkPreviewBinding(message.id, null)
+        linkPreview.setVisible(false)
+        linkPreview.setOnClickListener(null)
+
+        if (prefs.messageLinkHandling.get() == Preferences.MESSAGE_LINK_HANDLING_BLOCK) return
+
+        val url = extractFirstUrl(text) ?: return
+
+        val disposable = linkPreviewRepository.unfurl(url)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe({ preview ->
+                    if ((linkPreview.tag as? LinkPreviewBinding)?.messageId != message.id) return@subscribe
+
+                    title.text = preview.title
+                    title.setVisible(preview.title != null)
+
+                    description.text = preview.description
+                    description.setVisible(preview.description != null)
+
+                    thumbnail.setVisible(preview.thumbnailUrl != null)
+                    if (preview.thumbnailUrl != null) {
+                        GlideApp.with(context)
+                                .load(preview.thumbnailUrl)
+                                .transform(CenterCrop(), RoundedCorners(8.dpToPx(context)))
+                                .into(thumbnail)
+                    }
+
+                    val displayHost = Uri.parse(preview.url).host
+                    host.text = displayHost
+                    favicon.setVisible(preview.faviconUrl != null && displayHost != null)
+                    host.setVisible(displayHost != null)
+                    if (preview.faviconUrl != null) {
+                        GlideApp.with(context).load(preview.faviconUrl).into(favicon)
+                    }
+
+                    linkPreview.setOnClickListener {
+                        when (prefs.messageLinkHandling.get()) {
+                            Preferences.MESSAGE_LINK_HANDLING_ASK -> messageLinkClicks.onNext(url.toUri())
+                            else -> try {
+                                linkPreview.context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                            } catch (e: ActivityNotFoundException) {
+                                Timber.w(e, "No activity to open $url")
+                            }
+                        }
+                    }
+                    linkPreview.setVisible(true)
+                }, { Timber.w(it, "Failed to bind link preview for $url") })
+
+        linkPreview.tag = LinkPreviewBinding(message.id, disposable)
+    }
+
+    override fun onViewRecycled(holder: QkViewHolder) {
+        super.onViewRecycled(holder)
+        val linkPreview = holder.itemView.findViewById<View>(R.id.linkPreview)
+        (linkPreview?.tag as? LinkPreviewBinding)?.disposable?.dispose()
+    }
+
+    private fun extractFirstUrl(text: CharSequence): String? {
+        val spannable = SpannableString(text)
+        Linkify.addLinks(spannable, Linkify.WEB_URLS)
+        return spannable.getSpans(0, spannable.length, URLSpan::class.java).firstOrNull()?.url
+    }
+
+    private data class LinkPreviewBinding(val messageId: Long, val disposable: Disposable?)
 
     private fun showEmojiReactions(reactionsContainer: View, reactionTextView: TextView, message: Message) {
         val reactions = message.emojiReactions

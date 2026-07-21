@@ -24,9 +24,22 @@ Finalizing v1.0 (`versionCode 2239`, `versionName '1.0'`, bumped in
    developer" row. Other already-inert `!upgraded` dead code (drawer
    badges, Backup/Scheduled FAB fallbacks, Settings gates) was left
    untouched since it was already invisible to users.
-3. Link thumbnail previews in message bubbles (Open Graph/Twitter Card
-   metadata via `me.saket:unfurl`, fetched off the main thread, cached
-   in-memory since this app uses Realm rather than Room).
+3. Link thumbnail previews in message bubbles — implemented, pending
+   device verification. Uses `me.saket.unfurl:unfurl:2.3.0` (Maven
+   Central, Apache 2.0), whose `Unfurler` is a suspend-based, coroutine
+   API with its own built-in in-memory LRU cache (size 100, 24h expiry)
+   keyed by URL — no separate Realm/Room cache layer was needed.
+   `LinkPreviewRepository` (`common/util/LinkPreviewRepository.kt`)
+   wraps it as `Maybe<LinkPreview>` (empty = no preview, never throws)
+   via `rxMaybe(Dispatchers.IO)`. `MessagesAdapter` extracts the first
+   URL per message with `Linkify`, fetches/binds/cancels per-ViewHolder
+   (tag-based staleness guard + `onViewRecycled` disposal), and renders
+   a card (thumbnail/title/description/host) below the message body in
+   both `message_list_item_in.xml`/`_out.xml`. Previews are only
+   fetched when the existing Settings "link handling" preference is
+   not set to Block — fetching a preview means silently contacting
+   whatever server is in the URL, which the Block setting exists to
+   prevent, so it was tied to that instead of adding a new toggle.
 
 Verification workflow: this sandbox has no Android SDK and no device
 attached, and Google/JitPack Maven access is blocked by network

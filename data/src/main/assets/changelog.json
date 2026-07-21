@@ -3,10 +3,13 @@
     "versionCode": 2239,
     "versionName": "1.0",
     "added": [
-      "First stable Foxhole Messages release"
+      "First stable Foxhole Messages release",
+      "Link previews: messages containing a URL now show a thumbnail, title, and description",
+      "Support the developer via Venmo"
     ],
     "improved": [
-      "Rebranded from QUIK/QKSMS to Foxhole Messages"
+      "Rebranded from QUIK/QKSMS to Foxhole Messages",
+      "Removed the non-functional PayPal/upgrade prompts — every feature is free"
     ]
   },
   {
