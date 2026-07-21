@@ -157,6 +157,40 @@ bump — new backward-compatible feature, not a fix). Changelog and
 F-Droid metadata updated alongside the version bump per the process
 below.
 
+## v1.2.0 — Settings cleanup + OTP message retention
+
+Requested changes to `SettingsController`/`AboutController`, device-verified
+via sideload before cutting the release:
+- Removed "Disable Screenshots" (toggle, pref, and the `FLAG_SECURE`
+  logic it drove in `QkActivity`).
+- Removed "Strip accents" (toggle, pref, and the `StripAccents` call in
+  the MMS send pipeline — `QkTransaction.kt`/`MessageRepositoryImpl.kt`).
+- Removed "Mobile numbers only" (toggle, pref, and the contact-filtering
+  logic in `ContactRepositoryImpl`).
+- Removed the "Developers" row from the About screen
+  (`ExternalNavigator.showDeveloper()` and its strings).
+- Bumped the default "Auto-compress MMS image attachments" threshold
+  from 300KB to 1000KB (`Preferences.mmsSize` default; 1000KB was
+  already a selectable option in `R.array.mms_sizes`, so no new array
+  entry was needed).
+- Added an "OTP message retention" picker (Never/1/7/30 days) to the
+  Message Sorting settings screen, following the same
+  toggle-then-schedule-a-job pattern as the existing "Delete old
+  messages automatically" setting: a new `DeleteOldOtps` interactor
+  (queries `Message` where `isOtp == true` and older than N days) plus
+  a new `OtpRetentionService` daily `JobService`
+  (`MessageRepository.getOldOtpCounts`/`deleteOldOtps` added
+  alongside the existing `getOldMessageCounts`/`deleteOldMessages`).
+- The message-deletion confirmation dialog the request also asked for
+  turned out to already exist end-to-end (single and bulk, across
+  Compose/Main/Scheduled/BlockedMessages/ConversationInfo, all with
+  Cancel/Delete `AlertDialog`s gating the actual delete) — verified by
+  reading the existing flow rather than re-implementing it.
+
+Shipped as `versionCode 2241` / `versionName '1.2.0'` (semver minor
+bump — a new feature (OTP retention) alongside settings removals, not
+a pure fix).
+
 ## Cutting a release
 
 1. Merge changes into `master`.

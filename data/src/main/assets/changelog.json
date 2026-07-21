@@ -1,5 +1,21 @@
 [
   {
+    "versionCode": 2241,
+    "versionName": "1.2.0",
+    "added": [
+      "OTP message retention: choose how long verification code messages are kept (Never, 1, 7, or 30 days) before they're auto-deleted"
+    ],
+    "improved": [
+      "Auto-compress MMS image attachments now defaults to 1000KB"
+    ],
+    "removed": [
+      "Disable Screenshots setting",
+      "Strip accents setting",
+      "Mobile numbers only setting",
+      "Developers link on the About screen"
+    ]
+  },
+  {
     "versionCode": 2240,
     "versionName": "1.1.0",
     "added": [
