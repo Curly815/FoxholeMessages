@@ -27,6 +27,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
+import android.util.TypedValue
 import android.view.View
 import android.widget.LinearLayout
 import androidx.appcompat.app.ActionBarDrawerToggle
@@ -34,6 +35,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
+import androidx.core.widget.TextViewCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
@@ -239,6 +241,12 @@ class MainActivity : QkThemedActivity(), MainView {
                 width = 0
                 weight = 1f
             }
+            tabView.label.maxLines = 1
+            // Shrink to fit instead of wrapping, but never grow past the themed size
+            val maxSp = (tabView.label.textSize / resources.displayMetrics.scaledDensity).toInt().coerceAtLeast(8)
+            TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                tabView.label, 8, maxSp, 1, TypedValue.COMPLEX_UNIT_SP
+            )
             tabView.root.setOnClickListener { binding.tabPager.currentItem = index }
             binding.tabStrip.addView(tabView.root)
         }
