@@ -22,14 +22,14 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
 
 android {
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId 'com.foxhole.messages'
         minSdkVersion 23
-        targetSdkVersion 34
-        versionCode 2242
-        versionName '1.2.1'
+        targetSdkVersion 35
+        versionCode 2243
+        versionName '1.2.2'
         setProperty("archivesBaseName", "FoxholeMessages-v${versionName}")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

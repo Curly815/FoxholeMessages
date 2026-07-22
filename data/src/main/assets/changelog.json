@@ -1,5 +1,12 @@
 [
   {
+    "versionCode": 2243,
+    "versionName": "1.2.2",
+    "improved": [
+      "Target SDK bumped to Android 15 (API 35), per Google Play's updated requirement"
+    ]
+  },
+  {
     "versionCode": 2242,
     "versionName": "1.2.1",
     "fixed": [

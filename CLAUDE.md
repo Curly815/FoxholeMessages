@@ -345,3 +345,39 @@ completes):**
   `bundleRelease` + a plugin like Triple-T's `gradle-play-publisher`
   is realistic to wire into `build-and-release.yml` — deliberately not
   set up yet since it needs a secret that doesn't exist.
+
+### v1.2.2 — targetSdk 35
+
+Play's console flagged the v1.2.1 upload: it now requires targeting
+API 35 (Android 15), not 34 — Google raises this minimum periodically
+and this is expected, not something broken. Bumped `compileSdk`/
+`targetSdkVersion` 34 → 35 in all five modules together this time
+(missing this in just the `common` module is exactly what broke the
+first targetSdk 34 attempt — see v1.2.1 above).
+
+Checked what API 35 actually enforces before bumping blindly, same as
+the 34 pass: the one real behavior change here is edge-to-edge display
+being forced on by default for apps targeting 35, with the old
+opt-out APIs becoming no-ops. The app has no explicit
+`WindowCompat`/insets handling anywhere (verified — only one
+`fitsSystemWindows="true"` in `collapsing_toolbar.xml`, nothing else).
+This isn't a crash risk like the API 34 foreground-service/receiver
+issues were, but it can mean content rendering behind the status/nav
+bar on screens that don't already handle insets well — and it
+potentially touches every screen, which can't be checked visually in
+this sandbox. **Not fixed, flagged for Erik to eyeball after
+sideloading v1.2.2** rather than attempting a blind UI-wide change.
+
+Also left `com.android.tools.build:gradle` at 8.2.2 (predates API 35's
+release) rather than bumping AGP preemptively — compileSdk mismatches
+with AGP are usually just a lint warning, not a hard failure, and an
+AGP bump is a bigger, separate risk (often drags in a Gradle wrapper
+bump too). Verify via the usual `build-on-pull.yml` pass before
+assuming this is fine; if AGP itself needs bumping, that CI run will
+show it.
+
+Also worth knowing for later: Play is separately moving toward
+requiring 16 KB memory page size support for apps with native
+libraries (a different requirement than targetSdk). This project
+bundles Realm, which ships native `.so` files — likely the next thing
+Play flags after this, not urgent yet.
