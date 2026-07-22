@@ -17,13 +17,14 @@
   ~ You should have received a copy of the GNU General Public License
   ~ along with QKSMS.  If not, see <http://www.gnu.org/licenses/>.
   -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="AppTheme" parent="AppBaseTheme">
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <style name="AppBaseTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
         <item name="android:divider">@color/separatorDark</item>
         <item name="android:navigationBarColor">@color/backgroundDark</item>
         <item name="android:queryBackground">@color/bubbleDark</item>

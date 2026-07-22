@@ -368,6 +368,31 @@ potentially touches every screen, which can't be checked visually in
 this sandbox. **Not fixed, flagged for Erik to eyeball after
 sideloading v1.2.2** rather than attempting a blind UI-wide change.
 
+**Confirmed broken on-device** — Erik reported message content blended
+into the status bar and nav bar, matching the predicted risk exactly.
+There's no user-facing Android Settings toggle for this (it's enforced
+by the OS based on the app's declared `targetSdkVersion`, not a
+runtime per-app setting; the "developer options app compatibility
+override" trick only works on debuggable apps / userdebug-eng Android
+builds, not a normal signed release APK on a normal phone).
+
+Fixed in v1.2.3 with `android:windowOptOutEdgeToEdgeEnforcement` —
+Google's own sanctioned temporary opt-out for exactly this transition
+(restores the pre-35 behavior of respecting `statusBarColor`/
+`navigationBarColor`/`windowLightStatusBar`, which is what this app's
+whole theming system in `themes.xml` is built around, in both
+light/`values/themes.xml` and dark/`values-night/themes.xml` — added
+to `AppBaseTheme` in both, plus `AppLaunchTheme`, since
+`QkThemedActivity` applies `AppTheme` → `AppBaseTheme` at runtime and
+that's the only place proper insets handling would otherwise be
+needed screen-by-screen). This is a stopgap, not a real fix: Google
+has stated this opt-out attribute stops working in a future SDK
+level, so this app will eventually need actual `WindowCompat`/insets
+handling across its UI to look right edge-to-edge. Not attempted now
+since it's a much bigger, unverifiable-in-this-sandbox change than a
+one-line theme opt-out — noted here for whenever that becomes
+unavoidable.
+
 Also left `com.android.tools.build:gradle` at 8.2.2 (predates API 35's
 release) rather than bumping AGP preemptively — compileSdk mismatches
 with AGP are usually just a lint warning, not a hard failure, and an

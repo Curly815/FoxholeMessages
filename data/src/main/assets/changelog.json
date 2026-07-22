@@ -1,5 +1,12 @@
 [
   {
+    "versionCode": 2244,
+    "versionName": "1.2.3",
+    "fixed": [
+      "Fixed message content rendering behind the status bar and navigation bar on Android 15"
+    ]
+  },
+  {
     "versionCode": 2243,
     "versionName": "1.2.2",
     "improved": [
