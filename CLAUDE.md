@@ -393,6 +393,18 @@ since it's a much bigger, unverifiable-in-this-sandbox change than a
 one-line theme opt-out — noted here for whenever that becomes
 unavoidable.
 
+Discussed doing the real insets work immediately instead of the
+opt-out. Decided against it for this pass: it touches essentially
+every screen (Conductor Controllers + Activities + dialogs + the
+full-screen gallery viewer), the message compose bar's IME-inset
+handling specifically is the part most edge-to-edge migrations get
+wrong, and none of it can be visually verified in this sandbox — a
+wrong guess there risks trading one visible bug for several new ones,
+discovered only after more sideload round-trips. **Erik agreed to
+ship v1.2.3 with the opt-out now and tackle real insets handling next
+week**, ideally screen-by-screen with device testing as we go rather
+than one large blind change.
+
 Also left `com.android.tools.build:gradle` at 8.2.2 (predates API 35's
 release) rather than bumping AGP preemptively — compileSdk mismatches
 with AGP are usually just a lint warning, not a hard failure, and an
