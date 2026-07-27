@@ -464,7 +464,7 @@ priority is getting v1 through Play review first.
    `Message`, a new Realm schema version bump like the ones in the
    Message Sorting work), updating every delete call site to
    soft-delete instead, filtering soft-deleted messages out of normal
-   conversation views, and deciding a retention/auto-purge policy
-   (e.g. permanently gone after 30 days, mirroring how Gmail/Photos
-   trash works) — Erik hasn't specified a retention period yet, ask
-   before implementing.
+   conversation views, and auto-purging permanently after **30 days**
+   in the trash (Erik confirmed this retention period) — likely a
+   daily `JobService` following the same pattern as
+   `AutoDeleteService`/`OtpRetentionService`.
