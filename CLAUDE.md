@@ -432,26 +432,25 @@ Whenever it's worth it, AGP can generate these automatically via
 Requested by Erik, deliberately deferred rather than done now — the
 priority is getting v1 through Play review first.
 
-1. **Auto-backup on Wi-Fi + MMS backup support.** Auto-trigger a
-   backup when the device connects to Wi-Fi specifically (not any
-   network) — likely a `WorkManager` constraint
-   (`NetworkType.UNMETERED`) or a connectivity-change receiver
-   checking Wi-Fi specifically, not just "any internet." Must require
-   a backup location to already be set (`prefs.backupDirectory`, the
-   existing SAF folder picker in `BackupController`/
-   `BackupPresenter`) before the auto-backup toggle can be enabled —
-   don't silently do nothing if no location is chosen. Also extend
-   backup/restore to cover MMS, not just SMS — this is the bigger
-   piece: MMS messages carry attachments and more structure than SMS,
-   so the backup file format and `BackupRepositoryImpl`'s
-   read/write logic both need to grow to handle them, not just the
-   auto-trigger plumbing.
+1. **MMS backup support.** Extend backup/restore to cover MMS, not
+   just SMS — MMS messages carry attachments and more structure than
+   SMS, so the backup file format and `BackupRepositoryImpl`'s
+   read/write logic both need to grow to handle them. Manual/
+   user-triggered only, same as the existing SMS backup flow
+   (`BackupController`/`BackupPresenter`) — **no auto-backup**. Erik
+   explicitly wants the user to trigger backups themselves rather
+   than the app doing it automatically (e.g. on Wi-Fi connect); that
+   idea was considered and dropped.
 2. **Remove the stale "SMS only" disclaimer.** Once (1) ships,
-   remove `R.string.backup_disclaimer` ("Currently, only SMS is
+   update `R.string.backup_disclaimer` ("Currently, only SMS is
    supported by Backup and Restore. MMS support and scheduled backups
-   will be coming soon!") from the Backup screen UI. This is a
-   consequence of (1), not an independent task; don't remove the
-   string until MMS + scheduled/auto backup are actually true.
+   will be coming soon!") on the Backup screen — at minimum drop the
+   "MMS support... coming soon" half since it'll be true. The
+   "scheduled backups" half should just be removed outright (not
+   reworded to "coming soon" indefinitely), since auto/scheduled
+   backup isn't planned at all now. This is a consequence of (1), not
+   an independent task; don't touch the string until MMS backup is
+   actually shipped.
 3. **Deleted-message trash/recovery.** A new "Trash" entry in the
    main nav drawer (`presentation/src/main/res/layout/drawer_view.xml`
    — sits alongside the existing `archived` `LinearLayout` row at
