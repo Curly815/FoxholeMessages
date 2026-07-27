@@ -472,20 +472,25 @@ priority is getting v1 through Play review first.
    Promotions/Starred set. Requested UX: a "+" at the end of the tab
    strip to add a new (user-named) tab; long-press an existing tab for
    a Delete/Rename menu; long-press also enables drag-to-reorder.
-   **This is a bigger change than it sounds, needs a design decision
-   before building**: today `Tab` (`feature/conversations/Tab.kt`) is
-   a fixed 4-value enum where membership is real classifier logic —
-   PERSONAL/TRANSACTIONS/PROMOTIONS map to a `Message.category`
-   string the classifier assigns, and STARRED maps to
-   `Message.isStarred`. Making tabs user-created means deciding what
-   determines which messages land in a custom tab — e.g. manual-only
-   (drag/move a conversation in, like the existing "Move to..."
-   override), sender/keyword rules (reusing the `SenderCategoryRule`
-   mechanism from Message Sorting), or something else — since a
-   custom tab has no classifier category to hook into. Also needs: a
-   persisted, ordered list of tabs (new Realm model, another schema
-   bump) replacing the hardcoded enum, and reworking
-   `ConversationsPagerAdapter`/`ConversationRepository.
-   getConversationsByCategory` (currently keyed off the fixed enum)
-   to be data-driven. Ask Erik for the membership-rule decision before
-   starting.
+
+   Membership decision (Erik confirmed): custom tabs work exactly
+   like the existing "Move to..." feature — moving a conversation to
+   a custom tab sets an override *and* persists a rule for that
+   sender, so future messages from them land in the same tab
+   automatically. Same mechanism as today's
+   `Conversation.categoryOverride` + `SenderCategoryRule` (the
+   existing "Move to..." toolbar action from the Message Sorting
+   work), just extended to arbitrary user-defined tabs instead of
+   only the 3 fixed classifier categories.
+
+   Still a bigger change than it sounds: today `Tab`
+   (`feature/conversations/Tab.kt`) is a fixed 4-value enum, and
+   `categoryOverride`/`SenderCategoryRule` are typed around the fixed
+   `Category` enum (PERSONAL/TRANSACTIONAL/PROMOTIONAL). Needs a
+   persisted, ordered list of user-defined tabs (new Realm model,
+   another schema bump) to replace the hardcoded enum, and
+   `categoryOverride`/`SenderCategoryRule`/`ConversationRepository.
+   getConversationsByCategory`/`ConversationsPagerAdapter` all need to
+   move from "typed to 3 fixed categories" to "keyed by an arbitrary
+   tab ID." Starred stays separate either way (it's the `isStarred`
+   flag, not a category).
