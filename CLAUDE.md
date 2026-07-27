@@ -467,3 +467,25 @@ priority is getting v1 through Play review first.
    in the trash (Erik confirmed this retention period) — likely a
    daily `JobService` following the same pattern as
    `AutoDeleteService`/`OtpRetentionService`.
+4. **Custom inbox tabs.** Let the user create, rename, delete, and
+   reorder tabs, instead of the fixed Personal/Transactions/
+   Promotions/Starred set. Requested UX: a "+" at the end of the tab
+   strip to add a new (user-named) tab; long-press an existing tab for
+   a Delete/Rename menu; long-press also enables drag-to-reorder.
+   **This is a bigger change than it sounds, needs a design decision
+   before building**: today `Tab` (`feature/conversations/Tab.kt`) is
+   a fixed 4-value enum where membership is real classifier logic —
+   PERSONAL/TRANSACTIONS/PROMOTIONS map to a `Message.category`
+   string the classifier assigns, and STARRED maps to
+   `Message.isStarred`. Making tabs user-created means deciding what
+   determines which messages land in a custom tab — e.g. manual-only
+   (drag/move a conversation in, like the existing "Move to..."
+   override), sender/keyword rules (reusing the `SenderCategoryRule`
+   mechanism from Message Sorting), or something else — since a
+   custom tab has no classifier category to hook into. Also needs: a
+   persisted, ordered list of tabs (new Realm model, another schema
+   bump) replacing the hardcoded enum, and reworking
+   `ConversationsPagerAdapter`/`ConversationRepository.
+   getConversationsByCategory` (currently keyed off the fixed enum)
+   to be data-driven. Ask Erik for the membership-rule decision before
+   starting.
