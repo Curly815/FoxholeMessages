@@ -418,3 +418,53 @@ requiring 16 KB memory page size support for apps with native
 libraries (a different requirement than targetSdk). This project
 bundles Realm, which ships native `.so` files — likely the next thing
 Play flags after this, not urgent yet.
+
+Play Console also warned (not blocking) that the `.aab` for v1.2.3
+contains native code (Realm) with no debug symbols uploaded, making
+native crash/ANR reports harder to read in Android vitals. Deferred —
+not worth doing before real users exist to generate crash reports.
+Whenever it's worth it, AGP can generate these automatically via
+`android.buildTypes.release.ndk.debugSymbolLevel` in
+`presentation/build.gradle`, wired into `build-and-release.yml`.
+
+## Post-launch roadmap (after the first Play release)
+
+Requested by Erik, deliberately deferred rather than done now — the
+priority is getting v1 through Play review first.
+
+1. **Auto-backup on Wi-Fi + MMS backup support.** Auto-trigger a
+   backup when the device connects to Wi-Fi specifically (not any
+   network) — likely a `WorkManager` constraint
+   (`NetworkType.UNMETERED`) or a connectivity-change receiver
+   checking Wi-Fi specifically, not just "any internet." Must require
+   a backup location to already be set (`prefs.backupDirectory`, the
+   existing SAF folder picker in `BackupController`/
+   `BackupPresenter`) before the auto-backup toggle can be enabled —
+   don't silently do nothing if no location is chosen. Also extend
+   backup/restore to cover MMS, not just SMS — this is the bigger
+   piece: MMS messages carry attachments and more structure than SMS,
+   so the backup file format and `BackupRepositoryImpl`'s
+   read/write logic both need to grow to handle them, not just the
+   auto-trigger plumbing.
+2. **Remove the stale "SMS only" disclaimer.** Once (1) ships,
+   remove `R.string.backup_disclaimer` ("Currently, only SMS is
+   supported by Backup and Restore. MMS support and scheduled backups
+   will be coming soon!") from the Backup screen UI. This is a
+   consequence of (1), not an independent task; don't remove the
+   string until MMS + scheduled/auto backup are actually true.
+3. **Deleted-message trash/recovery.** A new "Trash" entry in the
+   main nav drawer (`presentation/src/main/res/layout/drawer_view.xml`
+   — sits alongside the existing `archived` `LinearLayout` row at
+   line 51, same `DrawerRow`/`DrawerIcon`/`DrawerText` style pattern,
+   placed under/near "Archived") listing recently deleted messages
+   with a restore action. Needs actual design decisions before
+   building: this app currently hard-deletes messages
+   (`MessageRepository.deleteMessages`) rather than soft-deleting, so
+   this requires a schema change (a `deletedAt`/`isDeleted` field on
+   `Message`, a new Realm schema version bump like the ones in the
+   Message Sorting work), updating every delete call site to
+   soft-delete instead, filtering soft-deleted messages out of normal
+   conversation views, and deciding a retention/auto-purge policy
+   (e.g. permanently gone after 30 days, mirroring how Gmail/Photos
+   trash works) — Erik hasn't specified a retention period yet, ask
+   before implementing.
