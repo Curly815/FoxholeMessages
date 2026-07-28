@@ -25,6 +25,7 @@ import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.ExternalNavigator
 import dev.octoshrimpy.quik.common.Navigator
 import dev.octoshrimpy.quik.common.base.QkViewModel
+import dev.octoshrimpy.quik.extensions.asObservable
 import dev.octoshrimpy.quik.extensions.mapNotNull
 import dev.octoshrimpy.quik.feature.conversations.Tab
 import dev.octoshrimpy.quik.interactor.DeleteConversations
@@ -54,6 +55,7 @@ import dev.octoshrimpy.quik.repository.ScheduledMessageRepository
 import dev.octoshrimpy.quik.repository.SenderCategoryRuleRepository
 import dev.octoshrimpy.quik.repository.SyncRepository
 import dev.octoshrimpy.quik.util.Preferences
+import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.plusAssign
 import io.reactivex.schedulers.Schedulers
@@ -639,8 +641,22 @@ class MainViewModel @Inject constructor(
                 .autoDisposable(view.scope())
                 .subscribe()
 
-        // Refresh tab contents/unread counts on resume, since the unread counts aren't backed by
-        // a live Realm query
+        // Recompute the tab unread-count badges whenever any tab's conversation list changes (a
+        // message read/unread, a new message arriving, or a conversation being moved to another
+        // tab via "Move to..."), instead of only on resume, so a moved conversation's unread
+        // badge follows it immediately. tabData's RealmResults are already live (findAllAsync),
+        // this just derives the counts from that same live data instead of a one-off snapshot.
+        disposables += state
+            .map { it.tabData }
+            .distinctUntilChanged()
+            .switchMap { tabData -> Observable.merge(tabData.values.filterNotNull().map { it.asObservable() }) }
+            .observeOn(Schedulers.io())
+            .subscribe {
+                newState { copy(tabUnreadCounts = buildTabUnreadCounts(conversationRepo)) }
+            }
+
+        // Refresh tab contents/unread counts on resume too, as a fallback in case data changed
+        // while the process was backgrounded and missed the live listeners above
         view.activityResumedIntent
             .filter { resumed -> resumed }
             .observeOn(Schedulers.io())
