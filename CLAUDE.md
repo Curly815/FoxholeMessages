@@ -494,16 +494,26 @@ priority is getting v1 through Play review first.
    move from "typed to 3 fixed categories" to "keyed by an arbitrary
    tab ID." Starred stays separate either way (it's the `isStarred`
    flag, not a category).
-5. **Change the notification bar icon.** Erik wants a different icon
-   shown in the status bar / notification tray. Current assets:
-   `ic_notification` (new message), `ic_notification_worker`
-   (background sync), `ic_notification_failed` (send failure) —
-   `presentation/src/main/res/drawable*/`, referenced from
-   `NotificationManagerImpl.kt`. Design not yet decided — needs a new
-   icon from Erik (Android status bar icons must be a flat white
-   silhouette on transparent, no color, per Android's notification
-   icon guidelines) before this can be built. Note the actual app
-   *launcher* icon (green/cream chat bubble, recovered in the v1.1.0
-   decompile pass) is a separate asset and is NOT part of this — only
-   the small status-bar notification icon changes.
+5. **Change the notification bar icon.** Erik wants the status bar /
+   notification tray icon changed. Current assets are flat PNGs, only
+   at `drawable-xxxhdpi/` (no other density buckets exist for these):
+   `ic_notification.png` (new message), `ic_notification_worker.png`
+   (background sync), `ic_notification_failed.png` (send failure) —
+   referenced from `NotificationManagerImpl.kt`.
+
+   Design direction (Erik confirmed): reuse the app's current
+   launcher icon design — the chat bubble with three dots
+   (`ic_launcher_foreground.xml`: cream `#F5F1E6` bubble path, three
+   `#2F4A3D` dot paths, recovered in the v1.1.0 decompile pass) —
+   rather than a brand-new design. Since Android status bar icons must
+   be a flat white silhouette on transparent (no color, per Android's
+   notification icon guidelines), the three dots can't stay a second
+   fill color like they are on the launcher icon — they'll need to
+   become transparent cutouts in the bubble silhouette (e.g. an
+   evenOdd/subtracted path) so the icon renders as one white bubble
+   shape with three punched-out dots, not two colors. Needs new art
+   for all three variants (new message/worker/failed) in this style —
+   not yet produced. Note the actual app *launcher* icon itself is a
+   separate asset and is unaffected by this — only the small
+   status-bar notification icons change.
    flag, not a category).
