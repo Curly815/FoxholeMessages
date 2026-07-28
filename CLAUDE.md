@@ -494,3 +494,16 @@ priority is getting v1 through Play review first.
    move from "typed to 3 fixed categories" to "keyed by an arbitrary
    tab ID." Starred stays separate either way (it's the `isStarred`
    flag, not a category).
+5. **Change the notification bar icon.** Erik wants a different icon
+   shown in the status bar / notification tray. Current assets:
+   `ic_notification` (new message), `ic_notification_worker`
+   (background sync), `ic_notification_failed` (send failure) —
+   `presentation/src/main/res/drawable*/`, referenced from
+   `NotificationManagerImpl.kt`. Design not yet decided — needs a new
+   icon from Erik (Android status bar icons must be a flat white
+   silhouette on transparent, no color, per Android's notification
+   icon guidelines) before this can be built. Note the actual app
+   *launcher* icon (green/cream chat bubble, recovered in the v1.1.0
+   decompile pass) is a separate asset and is NOT part of this — only
+   the small status-bar notification icon changes.
+   flag, not a category).
