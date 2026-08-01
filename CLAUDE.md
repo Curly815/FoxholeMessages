@@ -516,4 +516,28 @@ priority is getting v1 through Play review first.
    not yet produced. Note the actual app *launcher* icon itself is a
    separate asset and is unaffected by this — only the small
    status-bar notification icons change.
+6. **Pinch-to-zoom text size in the message thread.** Erik wants a
+   toggle (in addition to the existing font size setting) that lets
+   the user pinch-to-zoom the message thread itself to freely resize
+   text, instead of being limited to the 5 fixed steps
+   (`Preferences.textSize`: SMALL/NORMAL/LARGE/LARGER/SUPER —
+   `domain/.../util/Preferences.kt`) that `TextViewStyler.setTextSize`
+   currently maps to fixed dp values per text role
+   (`common/util/TextViewStyler.kt`) and which apply app-wide via
+   every `QkTextView`/`QkEditText`. The existing "Font size" row lives
+   in `SettingsController`/`SettingsState` (`binding.textSize`,
+   `R.string.settings_text_size` picker dialog, `R.array.text_sizes`)
+   — the new toggle should sit near it, following the same
+   toggle-then-behavior-change pattern as other settings switches in
+   that controller.
+
+   This needs actual design decisions before building, since pinching
+   only makes sense scoped to the conversation thread (not every
+   `QkTextView` in the app the way the current preference works): a
+   `ScaleGestureDetector` on the message `RecyclerView` in
+   `MessagesAdapter`/the compose screen, a persisted scale factor
+   (per-conversation or global — TBD), and a decision on whether it
+   fully replaces the fixed-size setting when enabled or just acts as
+   a temporary multiplier on top of whichever fixed size is currently
+   selected.
    flag, not a category).
