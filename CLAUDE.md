@@ -540,4 +540,12 @@ priority is getting v1 through Play review first.
    fully replaces the fixed-size setting when enabled or just acts as
    a temporary multiplier on top of whichever fixed size is currently
    selected.
-   flag, not a category).
+7. **Rename the "QK Reply" section in Settings.** In
+   `notification_prefs_activity.xml`, the category header
+   (`qkreplyTitle`, `@string/settings_category_qkreply`, currently
+   "QK Reply") should become "Quick Reaction Force Reply", and the
+   toggle row underneath it (`qkreply` `PreferenceView`,
+   `@string/settings_qkreply_title`, also currently "QK Reply") should
+   be abbreviated to "QRF Reply". Just a strings.xml rename — the
+   `settings_qkreply_summary`/`_tap_dismiss_*` strings and the actual
+   QK Reply popup feature/functionality are unaffected.
