@@ -549,3 +549,16 @@ priority is getting v1 through Play review first.
    be abbreviated to "QRF Reply". Just a strings.xml rename — the
    `settings_qkreply_summary`/`_tap_dismiss_*` strings and the actual
    QK Reply popup feature/functionality are unaffected.
+8. **Move "Support the developer" out to the main Settings menu.**
+   Currently it's a `PreferenceView` row (`R.id/support`,
+   `@string/about_support_title` "Support the developer",
+   `@string/about_support` summary) inside the About screen
+   (`about_controller.xml`/`AboutPresenter.kt`, opens
+   `ExternalNavigator.showVenmoDonation()`). Erik wants it moved to
+   sit on the main Settings screen, under the existing "About Foxhole
+   Messages" row (`R.id/about`, `settings_controller.xml:241`,
+   `@string/settings_about_title`) — i.e. promoted up a level rather
+   than requiring a tap into About first. Also append "Tap here" after
+   the word "development" in the summary text (currently
+   `@string/about_support`: "All features are free — donate via Venmo
+   if you'd like to support development").
