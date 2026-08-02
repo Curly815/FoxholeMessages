@@ -23,6 +23,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
+import android.os.Build;
 import android.provider.Telephony.Mms.Rate;
 
 import com.android.mms.logs.LogTag;
@@ -126,8 +127,12 @@ public class RateController {
         }
         sMutexLock = true;
 
-        mContext.registerReceiver(mBroadcastReceiver,
-                new IntentFilter(RATE_LIMIT_CONFIRMED_ACTION));
+        IntentFilter rateLimitFilter = new IntentFilter(RATE_LIMIT_CONFIRMED_ACTION);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            mContext.registerReceiver(mBroadcastReceiver, rateLimitFilter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            mContext.registerReceiver(mBroadcastReceiver, rateLimitFilter);
+        }
 
         mAnswer = NO_ANSWER;
         try {

@@ -273,17 +273,32 @@ account), which this sandbox can't touch.
   Android 13/14 devices before today's targetSdk bump, not something
   the bump introduced. Fixed via `ContextCompat.registerReceiver(...,
   RECEIVER_EXPORTED)`.
-- **Known follow-up, not fixed**: the vendored `android-smsmms/`
-  library (`RateController`, `DownloadManager`, `TransactionService`,
-  `MmsConfigManager`, `Transaction`) has five more `registerReceiver()`
-  calls with the same missing-exported-flag issue, pre-existing at the
-  already-shipped targetSdk 33 (not newly introduced). Didn't fix
-  these: correctly classifying each as system vs. app-internal (which
-  determines exported vs. not) needs tracing every sender, and getting
-  it wrong risks breaking MMS send/receive — which can't be verified
-  here (no Android SDK/emulator in this sandbox, matching the
-  project's existing verification-workflow constraint). Needs a real
-  device test pass.
+- **Fixed (was flagged as a follow-up, now resolved)**: the vendored
+  `android-smsmms/` library had four more `registerReceiver()` calls
+  with the same missing-exported-flag issue (`RateController`,
+  `DownloadManager`, `TransactionService`, `MmsConfigManager` — the
+  fifth, in `Transaction.java`, only runs on API ≤ 19 and was left
+  alone since it can't hit this on any real device). Root-caused this
+  as the actual explanation for Erik's "pictures aren't being
+  received" report: `DownloadManager.downloadMultimediaMessage()` —
+  the method that downloads MMS attachment content after a WAP push
+  notification arrives — calls an unguarded `registerReceiver()` for
+  its download-result receiver (`DownloadManager.java:56`). On Android
+  13+ this throws `SecurityException`, which gets silently swallowed
+  by an outer `catch (RuntimeException e)` in `PushReceiver.java` (no
+  crash, no log the user would see) — so the message/notification
+  still arrives, but the actual image content never downloads. This
+  was pre-existing at the already-shipped targetSdk 33 (not introduced
+  by this session's 34/35 bumps), same as the `BluetoothMicManager`
+  issue above, just undiscovered until it actually broke picture
+  receiving in practice. Fixed all four the same way as
+  `BluetoothMicManager`: SDK-gated `Build.VERSION.SDK_INT >=
+  TIRAMISU` branch adding `Context.RECEIVER_NOT_EXPORTED` (all four
+  are app-internal/self-only broadcasts — custom actions or a
+  system broadcast only this app needs, no cross-app delivery
+  required, so `NOT_EXPORTED` is correct rather than `EXPORTED`).
+  Needs device verification since MMS send/receive can't be tested in
+  this sandbox.
 - Removed the unused Firebase Crashlytics classpath (`build.gradle`) —
   never applied, no `google-services.json`, dead since the QUIK fork.
   Left as-is it would've been confusing noise when filling out Play's
