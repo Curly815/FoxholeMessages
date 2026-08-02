@@ -343,8 +343,14 @@ account), which this sandbox can't touch.
   two real, separate Android-version-specific bugs stacked in the
   same method (`DownloadManager.downloadMultimediaMessage`) — the
   registerReceiver fix (13+) and this one (14+) — both needed
-  together for MMS pictures to actually download. Still needs device
-  verification.
+  together for MMS pictures to actually download.
+
+  **Device-verified working end-to-end** — Erik confirmed pictures
+  both send and receive correctly (tested against his mom, a
+  non-Foxhole-Messages recipient/sender) after both fixes landed.
+  This was the actual root cause of the original "pictures aren't
+  being received" report. Shipped as `versionCode 2245`/`versionName
+  1.2.4` — see below.
 - Removed the unused Firebase Crashlytics classpath (`build.gradle`) —
   never applied, no `google-services.json`, dead since the QUIK fork.
   Left as-is it would've been confusing noise when filling out Play's
