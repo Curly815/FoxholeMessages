@@ -1,0 +1,2 @@
+What's new in 1.2.4:
+- Fixed pictures not downloading when received on Android 13+
