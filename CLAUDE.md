@@ -297,8 +297,35 @@ account), which this sandbox can't touch.
   are app-internal/self-only broadcasts — custom actions or a
   system broadcast only this app needs, no cross-app delivery
   required, so `NOT_EXPORTED` is correct rather than `EXPORTED`).
-  Needs device verification since MMS send/receive can't be tested in
-  this sandbox.
+
+  Device-verified this fix as necessary but not sufficient — pictures
+  still didn't arrive after shipping it (v1.2.4). Diagnosed the
+  remainder using the app's own built-in file logger (`FileLoggingTree`
+  + `Preferences.logging`, toggled via long-pressing "About" in
+  Settings — writes a plain-text log to the Downloads folder), since
+  ADB wasn't available (Erik was traveling, no laptop) and an Android
+  bug report's bundled logcat turned out to be uncaptured/empty on his
+  device (`dumpstate_log.txt` showed `logcat: Logcat read failure`).
+  The captured log confirmed the v1.2.4 fix itself worked
+  (`DownloadManager: receiving with system method` now logs cleanly,
+  no more crash) but showed `SmsManager.downloadMultimediaMessage()`'s
+  completion callback never firing afterward — no success, no error,
+  ever. Root cause: that download's `PendingIntent` was created with
+  `FLAG_IMMUTABLE` (`DownloadManager.java`). Android's MMS download
+  API needs to fill result data (HTTP status) into that intent when
+  the download finishes; an immutable `PendingIntent` silently blocks
+  that on-device, so the callback never dispatches at all. The
+  send-side `PendingIntent` (`QkTransaction.kt`) uses the same
+  `FLAG_IMMUTABLE` pattern but only needs a plain result code (no
+  filled-in extras), which is why sending appeared to work — though
+  "Sent"/"Delivered" was never a reliable signal of true delivery to
+  begin with (`Message.isDelivered()` hardcodes MMS delivery to
+  `false` with a `// TODO`; those two labels only reflect the local
+  handoff to the carrier succeeding). Fixed by switching the download
+  `PendingIntent` to `FLAG_MUTABLE`. Left the send-side one untouched
+  since it isn't broken. Still needs device verification — this is
+  the fix for the actual "pictures aren't being received" root cause,
+  v1.2.4's fix was a real but incomplete piece of it.
 - Removed the unused Firebase Crashlytics classpath (`build.gradle`) —
   never applied, no `google-services.json`, dead since the QUIK fork.
   Left as-is it would've been confusing noise when filling out Play's
