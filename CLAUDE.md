@@ -323,9 +323,28 @@ account), which this sandbox can't touch.
   `false` with a `// TODO`; those two labels only reflect the local
   handoff to the carrier succeeding). Fixed by switching the download
   `PendingIntent` to `FLAG_MUTABLE`. Left the send-side one untouched
-  since it isn't broken. Still needs device verification — this is
-  the fix for the actual "pictures aren't being received" root cause,
-  v1.2.4's fix was a real but incomplete piece of it.
+  since it isn't broken.
+
+  Device-verified this FLAG_MUTABLE fix was also necessary but not
+  sufficient, and this time crashed loudly instead of hanging
+  silently: `IllegalArgumentException: Targeting U+ (version 34 and
+  above) disallows creating or retrieving a PendingIntent with
+  FLAG_MUTABLE, an implicit Intent...`. Android 14+ added a rule that
+  a mutable `PendingIntent` can't wrap an *implicit* intent (no
+  explicit target app/component) — and the download intent
+  (`new Intent(receiver.mAction)`) was exactly that, just a bare
+  custom action string with nothing scoping it to this app. Fixed by
+  adding `download.setPackage(context.getPackageName())` before
+  building the `PendingIntent`, matching the same explicit-broadcast
+  pattern `BroadcastUtils.sendExplicitBroadcast` already uses
+  elsewhere in this same vendored library — keeps `FLAG_MUTABLE` (so
+  the system can still fill in the HTTP status result) while
+  satisfying the Android 14+ implicit-intent restriction. This is now
+  two real, separate Android-version-specific bugs stacked in the
+  same method (`DownloadManager.downloadMultimediaMessage`) — the
+  registerReceiver fix (13+) and this one (14+) — both needed
+  together for MMS pictures to actually download. Still needs device
+  verification.
 - Removed the unused Firebase Crashlytics classpath (`build.gradle`) —
   never applied, no `google-services.json`, dead since the QUIK fork.
   Left as-is it would've been confusing noise when filling out Play's
