@@ -629,3 +629,16 @@ priority is getting v1 through Play review first.
    the word "development" in the summary text (currently
    `@string/about_support`: "All features are free — donate via Venmo
    if you'd like to support development").
+9. **Default "Auto-Compress MMS Image Attachments" to Automatic.**
+   Currently defaults to `1000` (KB) — `Preferences.kt`:
+   `val mmsSize = rxPrefs.getInteger("mmsSize", 1000)`. Change the
+   default to `-1` (Automatic, `R.array.mms_sizes_ids`), which uses
+   the carrier's actual reported `MMS_CONFIG_MAX_MESSAGE_SIZE` (and
+   caps dimensions to the carrier's reported max width/height) instead
+   of a guessed flat KB budget — confirmed via Erik's device logs that
+   his carrier's real limit (1200KB) is larger than the 1000KB
+   default, and that Automatic fixed visibly pixelated GIFs (GIFs have
+   no quality knob, only resolution, so a bigger real byte budget means
+   less forced downscaling). Same reasoning as the original 300→1000KB
+   default bump earlier — just discovered Automatic is strictly better
+   than any fixed number, not a specific KB value.
