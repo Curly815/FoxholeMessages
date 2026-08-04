@@ -267,7 +267,7 @@
 
     <string name="settings_category_appearance">Appearance</string>
     <string name="settings_category_general">General</string>
-    <string name="settings_category_qkreply">QK Reply</string>
+    <string name="settings_category_qkreply">Quick Reaction Force Reply</string>
 
     <string name="settings_theme_title">Theme</string>
     <string name="settings_night_title">Night mode</string>
@@ -276,6 +276,8 @@
     <string name="settings_night_end_title">End time</string>
     <string name="settings_automatic_colors_title">Automatic contact colors</string>
     <string name="settings_text_size_title">Font size</string>
+    <string name="settings_pinch_to_zoom_title">Pinch to zoom message text</string>
+    <string name="settings_pinch_to_zoom_summary">Pinch the message thread to freely resize text, overriding Font size</string>
     <string name="settings_system_font_title">Use system font</string>
     <string name="settings_system_show_stt_title">Show the speech-to-text button</string>
     <string name="settings_auto_emoji_title">Automatic emoji</string>
@@ -293,7 +295,7 @@
     <string name="settings_vibration_title">Vibration</string>
     <string name="settings_ringtone_title">Sound</string>
     <string name="settings_ringtone_none">None</string>
-    <string name="settings_qkreply_title">QK Reply</string>
+    <string name="settings_qkreply_title">QRF Reply</string>
     <string name="settings_qkreply_summary">Popup for new messages</string>
     <string name="settings_qkreply_tap_dismiss_title">Tap to dismiss</string>
     <string name="settings_qkreply_tap_dismiss_summary">Tap outside of the popup to close it</string>
@@ -502,7 +504,7 @@
     <string name="about_source" translatable="false">https://github.com/curly815/foxholemessages</string>
     <string name="about_changelog" translatable="false">https://github.com/curly815/foxholemessages/releases</string>
     <string name="about_contact" translatable="false">https://github.com/curly815/foxholemessages/issues</string>
-    <string name="about_support" translatable="false">All features are free — donate via Venmo if you\'d like to support development</string>
+    <string name="about_support" translatable="false">All features are free — donate via Venmo if you\'d like to support development. Tap here</string>
     <string name="about_license" translatable="false">GNU General Public License v3.0</string>
     <string name="about_copyright" translatable="false">© 2014–2026</string>
 

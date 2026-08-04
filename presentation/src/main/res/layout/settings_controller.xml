@@ -85,6 +85,14 @@
             app:title="@string/settings_text_size_title" />
 
         <dev.octoshrimpy.quik.common.widget.PreferenceView
+            android:id="@+id/pinchToZoom"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:summary="@string/settings_pinch_to_zoom_summary"
+            app:title="@string/settings_pinch_to_zoom_title"
+            app:widget="@layout/settings_switch_widget" />
+
+        <dev.octoshrimpy.quik.common.widget.PreferenceView
             android:id="@+id/autoColor"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -244,6 +252,14 @@
             app:icon="@drawable/ic_info_black_24dp"
             app:title="@string/settings_about_title"
             tools:summary="@string/settings_version" />
+
+        <dev.octoshrimpy.quik.common.widget.PreferenceView
+            android:id="@+id/support"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/ic_favorite_black_24dp"
+            app:summary="@string/about_support"
+            app:title="@string/about_support_title" />
 
     </LinearLayout>
 

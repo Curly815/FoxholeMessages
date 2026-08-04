@@ -55,6 +55,11 @@ class TextViewStyler @Inject constructor(
         const val SIZE_DIALOG = 4
         const val SIZE_EMOJI = 5
 
+        // Base sizes (matching TEXT_SIZE_NORMAL) that pinch-to-zoom scales from when it's
+        // enabled, replacing the fixed Font size setting for the message thread.
+        const val PINCH_ZOOM_BASE_PRIMARY = 16f
+        const val PINCH_ZOOM_BASE_EMOJI = 32f
+
         fun applyEditModeAttributes(textView: TextView, attrs: AttributeSet?) {
             textView.run {
                 var colorAttr = 0

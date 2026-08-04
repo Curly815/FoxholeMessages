@@ -170,6 +170,7 @@ class SettingsController : QkController<SettingsControllerBinding, SettingsView,
         binding.textSize.summary = state.textSizeSummary
         textSizeDialog.adapter.selectedItem = state.textSizeId
 
+        binding.pinchToZoom.checkbox?.isChecked = state.pinchToZoomEnabled
         binding.autoColor.checkbox?.isChecked = state.autoColor
 
         binding.systemFont.checkbox?.isChecked = state.systemFontEnabled

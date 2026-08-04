@@ -499,6 +499,12 @@ Whenever it's worth it, AGP can generate these automatically via
 Requested by Erik, deliberately deferred rather than done now — the
 priority is getting v1 through Play review first.
 
+**Update:** Erik decided to build the whole list out now rather than
+wait ("let's knock them all out at once"), after the MMS fix landed
+and things settled down. Working through it item by item below, each
+with its own commit, verified via CI as usual. Progress notes appear
+inline under each item as they're completed.
+
 1. **MMS backup support.** Extend backup/restore to cover MMS, not
    just SMS — MMS messages carry attachments and more structure than
    SMS, so the backup file format and `BackupRepositoryImpl`'s
@@ -583,6 +589,17 @@ priority is getting v1 through Play review first.
    not yet produced. Note the actual app *launcher* icon itself is a
    separate asset and is unaffected by this — only the small
    status-bar notification icons change.
+
+   **Done.** Since bespoke bubble+badge glyphs for the worker/failed
+   variants can't be visually verified in this sandbox, only
+   `ic_notification.xml` (new message) uses the bubble-with-cutout-
+   dots design; `ic_notification_worker.xml`/`ic_notification_failed.xml`
+   reuse this project's existing, already-proven Material `ic_sync`/
+   `ic_cancel` glyph paths in white instead of a risky hand-derived
+   bubble variant. All three are now vector drawables in `drawable/`
+   (the old flat `drawable-xxxhdpi/` PNGs were removed) — the
+   evenOdd fill rule punches the three dot circles out of the bubble
+   path as transparent holes.
 6. **Pinch-to-zoom text size in the message thread.** Erik wants a
    toggle (in addition to the existing font size setting) that lets
    the user pinch-to-zoom the message thread itself to freely resize
@@ -607,6 +624,25 @@ priority is getting v1 through Play review first.
    fully replaces the fixed-size setting when enabled or just acts as
    a temporary multiplier on top of whichever fixed size is currently
    selected.
+
+   **Done.** Erik confirmed: fully replaces the fixed setting when
+   enabled, and the scale is global (matching how Font size already
+   works app-wide), not per-conversation. Added `Preferences.pinchToZoom`
+   (toggle) and `Preferences.messageTextScale` (persisted `Float`,
+   default `1f`, clamped `0.5f..3f`). `MessagesAdapter` checks the
+   toggle when binding message body text: on, it multiplies
+   `TextViewStyler.PINCH_ZOOM_BASE_PRIMARY`/`_EMOJI` (the existing
+   NORMAL-step values) by the scale directly instead of going through
+   `TextViewStyler.setTextSize`, so it's scoped to just the thread's
+   message bubbles, not every `QkTextView`. `ComposeActivity` attaches
+   a `ScaleGestureDetector` via a `RecyclerView.OnItemTouchListener`
+   on `binding.messageList` (`onInterceptTouchEvent` always returns
+   `false` so normal scrolling/clicks are untouched; the detector just
+   observes touch events alongside them, and only acts when the
+   toggle is on) — each `onScale` callback updates the persisted
+   scale and calls `notifyDataSetChanged()` so bubbles resize live
+   during the gesture. Toggle sits right under "Font size" in
+   Settings.
 7. **Rename the "QK Reply" section in Settings.** In
    `notification_prefs_activity.xml`, the category header
    (`qkreplyTitle`, `@string/settings_category_qkreply`, currently
@@ -616,6 +652,8 @@ priority is getting v1 through Play review first.
    be abbreviated to "QRF Reply". Just a strings.xml rename — the
    `settings_qkreply_summary`/`_tap_dismiss_*` strings and the actual
    QK Reply popup feature/functionality are unaffected.
+
+   **Done.** Straight strings.xml rename, as planned.
 8. **Move "Support the developer" out to the main Settings menu.**
    Currently it's a `PreferenceView` row (`R.id/support`,
    `@string/about_support_title` "Support the developer",
@@ -629,6 +667,14 @@ priority is getting v1 through Play review first.
    the word "development" in the summary text (currently
    `@string/about_support`: "All features are free — donate via Venmo
    if you'd like to support development").
+
+   **Done.** Removed the row from `about_controller.xml`/
+   `AboutPresenter.kt` and added it to `settings_controller.xml`
+   under the "About Foxhole Messages" row, reusing the
+   `ic_favorite_black_24dp` heart icon and the same
+   `about_support_title`/`about_support` strings — wired through
+   `SettingsPresenter`'s existing generic `preferenceClicks()`
+   handling, same as every other Settings row.
 9. **Default "Auto-Compress MMS Image Attachments" to Automatic.**
    Currently defaults to `1000` (KB) — `Preferences.kt`:
    `val mmsSize = rxPrefs.getInteger("mmsSize", 1000)`. Change the
@@ -642,3 +688,5 @@ priority is getting v1 through Play review first.
    less forced downscaling). Same reasoning as the original 300→1000KB
    default bump earlier — just discovered Automatic is strictly better
    than any fixed number, not a specific KB value.
+
+   **Done.** One-line default change, as planned.

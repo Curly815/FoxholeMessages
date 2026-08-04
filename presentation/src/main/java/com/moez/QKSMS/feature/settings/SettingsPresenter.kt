@@ -107,6 +107,9 @@ class SettingsPresenter @Inject constructor(
         disposables += prefs.autoColor.asObservable()
                 .subscribe { autoColor -> newState { copy(autoColor = autoColor) } }
 
+        disposables += prefs.pinchToZoom.asObservable()
+                .subscribe { enabled -> newState { copy(pinchToZoomEnabled = enabled) } }
+
         disposables += prefs.systemFont.asObservable()
             .subscribe { enabled -> newState { copy(systemFontEnabled = enabled) } }
 
@@ -188,6 +191,8 @@ class SettingsPresenter @Inject constructor(
 
                         R.id.textSize -> view.showTextSizePicker()
 
+                        R.id.pinchToZoom -> prefs.pinchToZoom.set(!prefs.pinchToZoom.get())
+
                         R.id.autoColor -> {
                             prefs.autoColor.set(!prefs.autoColor.get())
                         }
@@ -209,6 +214,8 @@ class SettingsPresenter @Inject constructor(
                         R.id.sync -> syncMessages.execute(Unit)
 
                         R.id.about -> view.showAbout()
+
+                        R.id.support -> externalNavigator.showVenmoDonation()
                     }
                 }
 

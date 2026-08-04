@@ -42,6 +42,8 @@ import android.view.DragEvent.ACTION_DRAG_EXITED
 import android.view.DragEvent.ACTION_DROP
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.widget.SeekBar
 import android.widget.Toast
@@ -52,6 +54,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.material.snackbar.Snackbar
 import com.jakewharton.rxbinding2.view.clicks
@@ -198,6 +201,29 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
 
             binding.messageList.setHasFixedSize(true)
             binding.messageList.adapter = messageAdapter
+
+            // Pinch-to-zoom: only active while the Settings toggle is on, so normal scrolling
+            // and clicks are unaffected the rest of the time
+            val messageTextScaleDetector = ScaleGestureDetector(this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    val newScale = (prefs.messageTextScale.get() * detector.scaleFactor).coerceIn(0.5f, 3f)
+                    prefs.messageTextScale.set(newScale)
+                    messageAdapter.notifyDataSetChanged()
+                    return true
+                }
+            })
+            binding.messageList.addOnItemTouchListener(object : RecyclerView.OnItemTouchListener {
+                override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+                    if (prefs.pinchToZoom.get()) messageTextScaleDetector.onTouchEvent(e)
+                    return false
+                }
+
+                override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
+                    if (prefs.pinchToZoom.get()) messageTextScaleDetector.onTouchEvent(e)
+                }
+
+                override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) = Unit
+            })
 
             binding.messageAttachments.adapter = composeAttachmentAdapter
 

@@ -384,13 +384,19 @@ class MessagesAdapter @Inject constructor(
 
         // Bind the body text
         val emojiOnly = displayText.isEmojiOnly()
-        textViewStyler.setTextSize(
-            body,
-            when (emojiOnly) {
-                true -> TextViewStyler.SIZE_EMOJI
-                false -> TextViewStyler.SIZE_PRIMARY
-            }
-        )
+        if (prefs.pinchToZoom.get()) {
+            // Pinch-to-zoom replaces the fixed Font size setting for the thread entirely
+            val baseSize = if (emojiOnly) TextViewStyler.PINCH_ZOOM_BASE_EMOJI else TextViewStyler.PINCH_ZOOM_BASE_PRIMARY
+            body.textSize = baseSize * prefs.messageTextScale.get()
+        } else {
+            textViewStyler.setTextSize(
+                body,
+                when (emojiOnly) {
+                    true -> TextViewStyler.SIZE_EMOJI
+                    false -> TextViewStyler.SIZE_PRIMARY
+                }
+            )
+        }
 
         val spanString = SpannableStringBuilder(displayText)
 
