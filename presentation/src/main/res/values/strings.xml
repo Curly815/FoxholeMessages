@@ -241,7 +241,7 @@
     <string name="backup_restore_dialog_title">Backups</string>
     <string name="backup_restore_dialog_summary" translatable="false">/FoxholeMessages/Backups</string>
     <string name="backup_restore_dialog_empty">No backups found</string>
-    <string name="backup_disclaimer">Currently, only SMS is supported by Backup and Restore. MMS support and scheduled backups will be coming soon!</string>
+    <string name="backup_disclaimer">Backups are created manually, whenever you tap the backup button below.</string>
     <string name="backup_now">Backup now</string>
     <string name="backup_progress_parsing">Parsing backup…</string>
     <string name="backup_progress_running">%d/%d messages</string>

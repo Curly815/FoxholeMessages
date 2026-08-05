@@ -514,6 +514,48 @@ inline under each item as they're completed.
    explicitly wants the user to trigger backups themselves rather
    than the app doing it automatically (e.g. on Wi-Fi connect); that
    idea was considered and dropped.
+
+   **Done.** `BackupRepositoryImpl`'s JSON backup format
+   (`BackupMessage`) gained `isMms`/`mmsSubject`/`mmsRecipients`/
+   `mmsParts` (a new `BackupPart` per attachment/text part — binary
+   parts base64-encoded via `data`, text parts via `text`, matching
+   how `MmsPart` already splits these). Old backup files without
+   these fields still parse fine (`isMms` defaults `false`) since
+   Moshi is already configured with `KotlinJsonAdapterFactory`, which
+   honors Kotlin default parameter values for missing JSON keys — no
+   backup-format version bump needed. `mmsRecipients` is sourced from
+   the parent conversation's current recipient list rather than
+   per-message, since `Message.address` for MMS only ever tracks the
+   FROM address (confirmed by reading `CursorToMessageImpl.getMmsAddress`)
+   — this app doesn't track a message's own TO list anywhere, so "the
+   conversation's recipients" is the closest faithful equivalent, same
+   assumption the rest of the app already makes about MMS grouping.
+
+   Restore reconstructs each MMS message via `PduPersister.persist()`
+   (`android-smsmms`'s `com.google.android.mms.pdu_alt` package) —
+   the same mechanism this app's real incoming-MMS pipeline already
+   depends on (`PushReceiver.java`) — rather than hand-writing rows
+   into the MMS content provider's part/addr tables directly, which
+   would've been far more fragile to get right without a device to
+   test on. Inbox messages (`boxId == MESSAGE_BOX_INBOX`) are rebuilt
+   as a `RetrieveConf`; anything else (sent/drafts/outbox) as a
+   `SendReq` — both via their public no-arg constructors plus setters
+   (`setFrom`/`addTo`/`setSubject`/`setDate`/`setBody`), since their
+   headers+body constructors are package-private and only usable by
+   the real `PduParser`. Parts are rebuilt into a fresh `PduBody` via
+   the same part-building shape `Transaction.java`'s `buildPdu()`
+   already uses for composing outgoing MMS (content-type/name/
+   content-location/content-id/data per part), and a SMIL layout part
+   is regenerated fresh from those parts on every restore rather than
+   preserved from backup — SMIL is just a layout description derived
+   from the other parts, the same as when composing a brand new MMS,
+   so there's nothing to lose by not carrying the original through the
+   backup file. After all messages are restored (SMS and MMS both),
+   the existing `syncRepo.syncMessages()` call at the end of
+   `performRestore()` was untouched — it already re-syncs the entire
+   MMS/SMS content provider into Realm generically, so newly-persisted
+   MMS rows get picked up the same way real incoming MMS already are,
+   no separate sync path needed.
 2. **Remove the stale "SMS only" disclaimer.** Once (1) ships,
    update `R.string.backup_disclaimer` ("Currently, only SMS is
    supported by Backup and Restore. MMS support and scheduled backups
@@ -524,6 +566,15 @@ inline under each item as they're completed.
    backup isn't planned at all now. This is a consequence of (1), not
    an independent task; don't touch the string until MMS backup is
    actually shipped.
+
+   **Done.** Replaced with "Backups are created manually, whenever you
+   tap the backup button below." — drops both the MMS caveat (no
+   longer true) and the scheduled-backups mention (not planned) in one
+   pass, per the note above. Only the base `values/strings.xml` was
+   updated; the ~40 other-locale translations of this string were left
+   as-is (stale/untranslated), consistent with how this fork already
+   treats locale files — they lag behind the English source until
+   re-translated upstream, not something to hand-edit per-change.
 3. **Deleted-message trash/recovery.** A new "Trash" entry in the
    main nav drawer (`presentation/src/main/res/layout/drawer_view.xml`
    — sits alongside the existing `archived` `LinearLayout` row at

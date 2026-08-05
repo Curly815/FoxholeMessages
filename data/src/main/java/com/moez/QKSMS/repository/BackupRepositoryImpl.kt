@@ -24,14 +24,28 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.provider.Telephony
+import android.util.Base64
 import androidx.core.content.contentValuesOf
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
+import com.android.mms.dom.smil.parser.SmilXmlSerializer
+import com.google.android.mms.ContentType
+import com.google.android.mms.pdu_alt.CharacterSets
+import com.google.android.mms.pdu_alt.EncodedStringValue
+import com.google.android.mms.pdu_alt.PduBody
+import com.google.android.mms.pdu_alt.PduPart
+import com.google.android.mms.pdu_alt.PduPersister
+import com.google.android.mms.pdu_alt.RetrieveConf
+import com.google.android.mms.pdu_alt.SendReq
+import com.google.android.mms.smil.SmilHelper
 import com.squareup.moshi.Moshi
 import dev.octoshrimpy.quik.common.util.extensions.now
 import dev.octoshrimpy.quik.model.BackupFile
+import dev.octoshrimpy.quik.model.Conversation
 import dev.octoshrimpy.quik.model.Message
+import dev.octoshrimpy.quik.model.MmsPart
 import dev.octoshrimpy.quik.util.Preferences
+import dev.octoshrimpy.quik.util.tryOrNull
 import io.reactivex.Observable
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.Subject
@@ -39,6 +53,7 @@ import io.realm.Realm
 import okio.buffer
 import okio.source
 import timber.log.Timber
+import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Timer
@@ -78,7 +93,24 @@ class BackupRepositoryImpl @Inject constructor(
         val protocol: Int,
         val serviceCenter: String?,
         val locked: Boolean,
-        val subId: Int
+        val subId: Int,
+        // MMS only - absent/empty for SMS, in which case the fields above are used as before.
+        val isMms: Boolean = false,
+        val mmsSubject: String? = null,
+        val mmsRecipients: List<String> = listOf(),
+        val mmsParts: List<BackupPart> = listOf()
+    )
+
+    /**
+     * One MMS attachment/text part. Binary parts (images, video, audio) carry their bytes
+     * base64-encoded in [data]; text/SMIL parts carry their content in [text] instead, so the
+     * (usually much larger) [data] field is left null for them.
+     */
+    data class BackupPart(
+        val contentType: String,
+        val name: String?,
+        val text: String?,
+        val data: String?
     )
 
     // Subjects to emit our progress events to
@@ -125,11 +157,19 @@ class BackupRepositoryImpl @Inject constructor(
             val messages = realm.where(Message::class.java).sort("date").findAll().createSnapshot()
             messageCount = messages.size
 
+            // MMS doesn't track its own recipient list per-message (Message.address is just the
+            // sender), so fall back to the parent conversation's current recipients - same as how
+            // the rest of the app already treats "the conversation" as the group of people.
+            val conversationRecipients = realm.where(Conversation::class.java).findAll()
+                    .associate { conversation ->
+                        conversation.id to conversation.recipients.map { recipient -> recipient.address }
+                    }
+
             // Map the messages to the new format
             messages.mapIndexed { index, message ->
                 // Update the progress
                 backupProgress.onNext(BackupRepository.Progress.Running(messageCount, index))
-                messageToBackupMessage(message)
+                messageToBackupMessage(message, conversationRecipients[message.threadId] ?: listOf())
             }
         }
 
@@ -159,7 +199,7 @@ class BackupRepositoryImpl @Inject constructor(
         Timer().schedule(1000) { backupProgress.onNext(BackupRepository.Progress.Idle()) }
     }
 
-    private fun messageToBackupMessage(message: Message): BackupMessage = BackupMessage(
+    private fun messageToBackupMessage(message: Message, recipients: List<String>): BackupMessage = BackupMessage(
             type = message.boxId,
             address = message.address,
             date = message.date,
@@ -170,8 +210,38 @@ class BackupRepositoryImpl @Inject constructor(
             protocol = 0,
             serviceCenter = null,
             locked = message.locked,
-            subId = message.subId
+            subId = message.subId,
+            isMms = message.isMms(),
+            mmsSubject = message.subject.takeIf { it.isNotBlank() },
+            mmsRecipients = recipients,
+            mmsParts = message.parts
+                    // The SMIL part is just a layout description for the parts below it - it's
+                    // regenerated fresh from those parts on restore, same as when composing a
+                    // new MMS, so there's no need to carry it through the backup file.
+                    .filter { part -> part.type != ContentType.APP_SMIL }
+                    .map(::mmsPartToBackupPart)
     )
+
+    private fun mmsPartToBackupPart(part: MmsPart): BackupPart {
+        val isBinary = part.type.startsWith("image")
+                || part.type.startsWith("video")
+                || part.type.startsWith("audio")
+
+        val data = if (isBinary) {
+            tryOrNull {
+                context.contentResolver.openInputStream(part.getUri())?.use { stream ->
+                    Base64.encodeToString(stream.readBytes(), Base64.NO_WRAP)
+                }
+            }
+        } else null
+
+        return BackupPart(
+                contentType = part.type,
+                name = part.name,
+                text = part.text,
+                data = data
+        )
+    }
 
     override fun getBackupProgress(): Observable<BackupRepository.Progress> = backupProgress
 
@@ -218,25 +288,29 @@ class BackupRepositoryImpl @Inject constructor(
             restoreProgress.onNext(BackupRepository.Progress.Running(messageCount, index))
 
             try {
-                val values = contentValuesOf(
-                        Telephony.Sms.TYPE to message.type,
-                        Telephony.Sms.ADDRESS to message.address,
-                        Telephony.Sms.DATE to message.date,
-                        Telephony.Sms.DATE_SENT to message.dateSent,
-                        Telephony.Sms.READ to message.read,
-                        Telephony.Sms.SEEN to 1,
-                        Telephony.Sms.STATUS to message.status,
-                        Telephony.Sms.BODY to message.body,
-                        Telephony.Sms.PROTOCOL to message.protocol,
-                        Telephony.Sms.SERVICE_CENTER to message.serviceCenter,
-                        Telephony.Sms.LOCKED to message.locked
-                )
+                if (message.isMms) {
+                    restoreMmsMessage(message)
+                } else {
+                    val values = contentValuesOf(
+                            Telephony.Sms.TYPE to message.type,
+                            Telephony.Sms.ADDRESS to message.address,
+                            Telephony.Sms.DATE to message.date,
+                            Telephony.Sms.DATE_SENT to message.dateSent,
+                            Telephony.Sms.READ to message.read,
+                            Telephony.Sms.SEEN to 1,
+                            Telephony.Sms.STATUS to message.status,
+                            Telephony.Sms.BODY to message.body,
+                            Telephony.Sms.PROTOCOL to message.protocol,
+                            Telephony.Sms.SERVICE_CENTER to message.serviceCenter,
+                            Telephony.Sms.LOCKED to message.locked
+                    )
 
-                if (prefs.canUseSubId.get()) {
-                    values.put(Telephony.Sms.SUBSCRIPTION_ID, message.subId)
+                    if (prefs.canUseSubId.get()) {
+                        values.put(Telephony.Sms.SUBSCRIPTION_ID, message.subId)
+                    }
+
+                    context.contentResolver.insert(Telephony.Sms.CONTENT_URI, values)
                 }
-
-                context.contentResolver.insert(Telephony.Sms.CONTENT_URI, values)
             } catch (e: Exception) {
                 Timber.w(e)
                 errorCount++
@@ -254,6 +328,84 @@ class BackupRepositoryImpl @Inject constructor(
         // Mark the task finished, and set it as Idle a second later
         restoreProgress.onNext(BackupRepository.Progress.Finished())
         Timer().schedule(1000) { restoreProgress.onNext(BackupRepository.Progress.Idle()) }
+    }
+
+    /**
+     * Reconstructs and persists an MMS message via [PduPersister] - the same mechanism this app's
+     * real incoming-MMS pipeline already relies on (see PushReceiver.java/DownloadManager.java) -
+     * rather than hand-writing rows into the MMS content provider's tables directly.
+     */
+    private fun restoreMmsMessage(message: BackupMessage) {
+        val subId = if (prefs.canUseSubId.get()) message.subId else -1
+        val persister = PduPersister.getPduPersister(context)
+        val body = buildPduBody(message.mmsParts)
+
+        if (message.type == Telephony.Mms.MESSAGE_BOX_INBOX) {
+            val pdu = RetrieveConf()
+            pdu.setContentType(ContentType.MMS_MESSAGE.toByteArray())
+            pdu.setFrom(EncodedStringValue(message.address))
+            message.mmsRecipients.forEach { address -> pdu.addTo(EncodedStringValue(address)) }
+            message.mmsSubject?.let { subject -> pdu.setSubject(EncodedStringValue(subject)) }
+            pdu.setDate(message.date / 1000)
+            pdu.setBody(body)
+
+            persister.persist(pdu, Uri.parse("content://mms/inbox"), true, true, null, subId)
+        } else {
+            val pdu = SendReq()
+            message.mmsRecipients.forEach { address -> pdu.addTo(EncodedStringValue(address)) }
+            message.mmsSubject?.let { subject -> pdu.setSubject(EncodedStringValue(subject)) }
+            pdu.setDate(message.date / 1000)
+            pdu.setBody(body)
+
+            val box = when (message.type) {
+                Telephony.Mms.MESSAGE_BOX_DRAFTS -> "content://mms/drafts"
+                Telephony.Mms.MESSAGE_BOX_OUTBOX -> "content://mms/outbox"
+                else -> "content://mms/sent"
+            }
+            persister.persist(pdu, Uri.parse(box), true, true, null, subId)
+        }
+    }
+
+    /**
+     * Builds a fresh [PduBody] from backed-up parts, regenerating the SMIL layout part the same
+     * way a new outgoing MMS is composed (see Transaction.java's buildPdu) rather than trying to
+     * preserve the original SMIL, which isn't carried through the backup file.
+     */
+    private fun buildPduBody(parts: List<BackupPart>): PduBody {
+        val body = PduBody()
+
+        parts.forEachIndexed { index, part ->
+            val pduPart = PduPart()
+            pduPart.setContentType(part.contentType.toByteArray())
+
+            val filename = part.name ?: "part$index"
+            pduPart.setName(filename.toByteArray())
+            pduPart.setContentLocation(filename.toByteArray())
+            if (part.contentType.startsWith("text")) {
+                pduPart.setCharset(CharacterSets.UTF_8)
+            }
+
+            val contentId = filename.substringBeforeLast(".", filename)
+            pduPart.setContentId(contentId.toByteArray())
+
+            val data = part.data
+                    ?.let { encoded -> Base64.decode(encoded, Base64.NO_WRAP) }
+                    ?: (part.text ?: "").toByteArray()
+            pduPart.setData(data)
+
+            body.addPart(pduPart)
+        }
+
+        val out = ByteArrayOutputStream()
+        SmilXmlSerializer.serialize(SmilHelper.createSmilDocument(body), out)
+        val smilPart = PduPart()
+        smilPart.setContentId("smil".toByteArray())
+        smilPart.setContentLocation("smil.xml".toByteArray())
+        smilPart.setContentType(ContentType.APP_SMIL.toByteArray())
+        smilPart.setData(out.toByteArray())
+        body.addPart(0, smilPart)
+
+        return body
     }
 
     override fun getRestoreProgress(): Observable<BackupRepository.Progress> = restoreProgress
