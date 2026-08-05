@@ -494,6 +494,66 @@ Whenever it's worth it, AGP can generate these automatically via
 `android.buildTypes.release.ndk.debugSymbolLevel` in
 `presentation/build.gradle`, wired into `build-and-release.yml`.
 
+### targetSdk 36 (Android 16) — required by Aug 31, 2026
+
+Play Console flagged the v1.3.0 upload: apps must target Android 16
+(API 36) or higher by Aug 31, 2026, or updates get blocked entirely.
+Unlike the 33→34→35 bumps, this one wasn't a one-line change:
+
+- **AGP had to jump too.** This project was pinned to Android Gradle
+  Plugin 8.2.2 / Gradle 8.2, which doesn't support compiling against
+  API 36 at all. Researched the two options: AGP 9.x (requires Gradle
+  9.1.0, a major-version jump with real risk of breaking this
+  project's old toolchain — Kotlin 1.7.21, kapt, the Realm Gradle
+  plugin, `jcenter()` still in the repo list) vs. staying on the 8.x
+  line (AGP 8.11.0 officially supports up to API 36, needs only
+  Gradle 8.13). Went with the safer 8.x option — bumped
+  `com.android.tools.build:gradle` 8.2.2 → 8.11.0 and the Gradle
+  wrapper 8.2 → 8.13 in the root `build.gradle`/
+  `gradle-wrapper.properties`, then `compileSdk`/`targetSdkVersion` 35
+  → 36 in all five modules (same set as every prior bump: `common`,
+  `domain`, `data`, `presentation`, `android-smsmms`).
+- **Predictive back becomes default-on at API 36**, and stops
+  dispatching `onBackPressed()`/`KEYCODE_BACK` for anything not
+  migrated to the new back APIs. This app's entire navigation model
+  (Conductor `Controller.handleBack()` overrides across every screen,
+  plus a few `Activity.onBackPressed()` overrides) predates predictive
+  back entirely. Migrating all of it to `OnBackPressedCallback`/
+  `OnBackInvokedCallback` is its own project — added
+  `android:enableOnBackInvokedCallback="false"` to the `<application>`
+  tag instead, the sanctioned temporary opt-out, to keep existing back
+  behavior working unchanged until that migration happens for real.
+- **Edge-to-edge lost its opt-out entirely.** `windowOptOutEdgeToEdgeEnforcement`
+  (added in v1.2.3 as a stopgap for the same status-bar/nav-bar content
+  bug Erik found on-device) is disabled outright at API 36, not just
+  deprecated — there is no opt-out this time. The three
+  `tools:targetApi="35"`-gated uses of it in `themes.xml`/
+  `values-night/themes.xml` were left in place (harmless no-ops now,
+  not worth churning) but the underlying bug **will reappear** the
+  moment this ships. Discussed doing the real `WindowCompat`/insets
+  work now instead of shipping the regression; **Erik chose to ship
+  targetSdk 36 now and accept the regression**, same trade-off
+  reasoning as v1.2.3 — the real fix touches every screen (Conductor
+  Controllers + Activities + dialogs + the gallery viewer), can't be
+  visually verified in this sandbox, and the deadline was real. Real
+  insets handling is still the eventual fix, now with no stopgap
+  available; noted here as higher-priority than before.
+- **16 KB native-library page-size compatibility**: researched
+  separately, not yet acted on. Google's deadline for this (May 31,
+  2026) has already passed as of this writing, and it specifically
+  affects apps bundling native `.so` libraries — which this app does,
+  via Realm. Realm Java (`io.realm:realm-gradle-plugin`, the version
+  this project uses — distinct from the actively-maintained Realm
+  Kotlin SDK) has documented, unresolved 16 KB alignment issues
+  upstream, and it's unclear whether any Realm Java release actually
+  fixes this. Play Console's policy-status page has only ever flagged
+  the targetSdk-36 issue, not a 16 KB one, for this app's uploads, so
+  it isn't blocking anything today — but it's a real, currently
+  unsolved risk if Play starts enforcing it for this app specifically.
+  Flagged here rather than investigated further, since fixing it (if
+  even possible without a Realm upstream fix) is a separate, likely
+  much larger effort than this pass.
+
 ## Post-launch roadmap (after the first Play release)
 
 Requested by Erik, deliberately deferred rather than done now — the
