@@ -16,22 +16,18 @@
  * You should have received a copy of the GNU General Public License
  * along with QKSMS.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dev.octoshrimpy.quik.feature.trash
+package dev.octoshrimpy.quik.interactor
 
-import dev.octoshrimpy.quik.common.base.QkViewContract
-import io.reactivex.Observable
+import dev.octoshrimpy.quik.repository.MessageRepository
+import io.reactivex.Flowable
+import javax.inject.Inject
 
-interface TrashView : QkViewContract<TrashState> {
+class EmptyTrash @Inject constructor(
+    private val messageRepo: MessageRepository
+) : Interactor<Unit>() {
 
-    val restoreClicks: Observable<Long>
-    val deleteForeverClicks: Observable<Long>
-    val confirmDeleteForeverIntent: Observable<Long>
-    val emptyTrashIntent: Observable<Unit>
-    val confirmEmptyTrashIntent: Observable<Unit>
-    val backClicked: Observable<*>
-
-    fun showDeleteForeverDialog(messageId: Long)
-    fun showEmptyTrashDialog()
-    fun goBack()
+    override fun buildObservable(params: Unit): Flowable<*> = Flowable.fromCallable {
+        messageRepo.emptyTrash()
+    }
 
 }

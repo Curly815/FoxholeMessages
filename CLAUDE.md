@@ -665,6 +665,14 @@ inline under each item as they're completed.
    else in the app) — so permanent deletion doesn't have to wait for
    the automatic 30-day purge. New "Trash" drawer row sits right
    under "Archived", as planned.
+
+   Also added, per Erik's follow-up ask: an "Empty Trash" toolbar
+   action (top-right, `R.menu.trash`) that permanently deletes
+   everything currently in Trash in one confirm dialog, rather than
+   only per-message. New `MessageRepository.emptyTrash()`/`EmptyTrash`
+   interactor mirror `purgeTrash()`/`PurgeTrash` minus the age filter
+   (deletes every message with a non-null `deletedAt`, not just ones
+   past the 30-day cutoff).
 4. **Custom inbox tabs.** Let the user create, rename, delete, and
    reorder tabs, instead of the fixed Personal/Transactions/
    Promotions/Starred set. Requested UX: a "+" at the end of the tab

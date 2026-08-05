@@ -1048,6 +1048,19 @@ open class MessageRepositoryImpl @Inject constructor(
             uris.forEach { uri -> context.contentResolver.delete(uri, null, null) }
         }
 
+    override fun emptyTrash() =
+        Realm.getDefaultInstance().use { realm ->
+            val messages = realm.where(Message::class.java)
+                .isNotNull("deletedAt")
+                .findAll()
+
+            val uris = messages.map { it.getUri() }
+
+            realm.executeTransaction { messages.deleteAllFromRealm() }
+
+            uris.forEach { uri -> context.contentResolver.delete(uri, null, null) }
+        }
+
     override fun getOldMessageCounts(maxAgeDays: Int) =
         Realm.getDefaultInstance().use { realm ->
             realm.where(Message::class.java)

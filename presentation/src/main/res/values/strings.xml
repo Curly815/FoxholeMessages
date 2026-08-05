@@ -424,6 +424,9 @@
     <string name="trash_delete_forever_message">This message will be permanently deleted and can\'t be recovered.</string>
     <string name="trash_days_left">%1$d days left</string>
     <string name="trash_last_day">Last day</string>
+    <string name="trash_menu_empty">Empty Trash</string>
+    <string name="trash_empty_all_title">Empty trash?</string>
+    <string name="trash_empty_all_message">All messages in Trash will be permanently deleted and can\'t be recovered.</string>
     <string name="drawer_trash">Trash</string>
     <string name="blocked_messages_empty">Your blocked messages will appear here</string>
 

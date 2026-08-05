@@ -19,6 +19,9 @@
 package dev.octoshrimpy.quik.feature.trash
 
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
@@ -39,6 +42,8 @@ class TrashController : QkController<TrashControllerBinding, TrashView, TrashSta
     override val restoreClicks by lazy { trashAdapter.restoreClicks }
     override val deleteForeverClicks by lazy { trashAdapter.deleteForeverClicks }
     override val confirmDeleteForeverIntent: Subject<Long> = PublishSubject.create()
+    override val emptyTrashIntent: Subject<Unit> = PublishSubject.create()
+    override val confirmEmptyTrashIntent: Subject<Unit> = PublishSubject.create()
     override val backClicked: Subject<Unit> = PublishSubject.create()
 
     @Inject lateinit var trashAdapter: TrashAdapter
@@ -60,6 +65,19 @@ class TrashController : QkController<TrashControllerBinding, TrashView, TrashSta
         presenter.bindIntents(this)
         setTitle(R.string.trash_title)
         showBackButton(true)
+        setHasOptionsMenu(true)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        super.onCreateOptionsMenu(menu, inflater)
+        inflater.inflate(R.menu.trash, menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.emptyTrash -> emptyTrashIntent.onNext(Unit)
+        }
+        return true
     }
 
     override fun handleBack(): Boolean {
@@ -76,6 +94,15 @@ class TrashController : QkController<TrashControllerBinding, TrashView, TrashSta
                 .setTitle(R.string.trash_delete_forever_title)
                 .setMessage(R.string.trash_delete_forever_message)
                 .setPositiveButton(R.string.button_delete) { _, _ -> confirmDeleteForeverIntent.onNext(messageId) }
+                .setNegativeButton(R.string.button_cancel, null)
+                .show()
+    }
+
+    override fun showEmptyTrashDialog() {
+        AlertDialog.Builder(activity!!)
+                .setTitle(R.string.trash_empty_all_title)
+                .setMessage(R.string.trash_empty_all_message)
+                .setPositiveButton(R.string.button_delete) { _, _ -> confirmEmptyTrashIntent.onNext(Unit) }
                 .setNegativeButton(R.string.button_cancel, null)
                 .show()
     }

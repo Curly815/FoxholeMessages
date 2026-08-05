@@ -107,6 +107,8 @@ interface MessageRepository {
 
     fun purgeTrash(maxAgeDays: Int)
 
+    fun emptyTrash()
+
     fun getOldMessageCounts(maxAgeDays: Int): Map<Long, Int>
 
     fun deleteOldMessages(maxAgeDays: Int)

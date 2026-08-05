@@ -21,13 +21,15 @@ package dev.octoshrimpy.quik.feature.trash
 import com.uber.autodispose.android.lifecycle.scope
 import com.uber.autodispose.autoDisposable
 import dev.octoshrimpy.quik.common.base.QkPresenter
+import dev.octoshrimpy.quik.interactor.EmptyTrash
 import dev.octoshrimpy.quik.interactor.RestoreMessages
 import dev.octoshrimpy.quik.repository.MessageRepository
 import javax.inject.Inject
 
 class TrashPresenter @Inject constructor(
     private val messageRepo: MessageRepository,
-    private val restoreMessages: RestoreMessages
+    private val restoreMessages: RestoreMessages,
+    private val emptyTrash: EmptyTrash
 ) : QkPresenter<TrashView, TrashState>(TrashState(
         data = messageRepo.getDeletedMessages()
 )) {
@@ -48,6 +50,14 @@ class TrashPresenter @Inject constructor(
         view.confirmDeleteForeverIntent
                 .autoDisposable(view.scope())
                 .subscribe { messageId -> messageRepo.deleteMessages(listOf(messageId)) }
+
+        view.emptyTrashIntent
+                .autoDisposable(view.scope())
+                .subscribe { view.showEmptyTrashDialog() }
+
+        view.confirmEmptyTrashIntent
+                .autoDisposable(view.scope())
+                .subscribe { emptyTrash.execute(Unit) }
 
         view.backClicked
                 .autoDisposable(view.scope())
