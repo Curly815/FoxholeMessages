@@ -18,8 +18,8 @@
  */
 package dev.octoshrimpy.quik.repository
 
-import android.content.ContentUris
 import android.content.Context
+import dev.octoshrimpy.quik.common.util.extensions.now
 import dev.octoshrimpy.quik.compat.TelephonyCompat
 import dev.octoshrimpy.quik.extensions.anyOf
 import dev.octoshrimpy.quik.extensions.asObservable
@@ -458,27 +458,31 @@ class ConversationRepositoryImpl @Inject constructor(
             }
         }
 
+    // Trashes (soft-deletes) the conversation's messages rather than removing them outright -
+    // matches how individual message deletion already works, so a deleted conversation is
+    // recoverable from Trash within the retention window (see PurgeTrashService). The
+    // conversation row itself is kept (not deleted) with lastMessage/draft cleared, which is
+    // enough for getConversationsBase's isNotNull("lastMessage") OR isNotEmpty("draft") filter to
+    // hide it from every list; restoring any of its messages naturally brings it back via
+    // updateConversations() recomputing lastMessage.
     override fun deleteConversations(vararg threadIds: Long) {
         Realm.getDefaultInstance().use { realm ->
-            val conversation = realm.where(Conversation::class.java)
+            val conversations = realm.where(Conversation::class.java)
                 .anyOf("id", threadIds)
                 .findAll()
             val messages = realm.where(Message::class.java)
                 .anyOf("threadId", threadIds)
+                .isNull("deletedAt")
                 .findAll()
 
             realm.executeTransaction {
-                conversation.deleteAllFromRealm()
-                messages.deleteAllFromRealm()
+                messages.forEach { message -> message.deletedAt = now() }
+                conversations.forEach { conversation ->
+                    conversation.lastMessage = null
+                    conversation.draft = ""
+                    conversation.draftDate = 0
+                }
             }
-        }
-
-        threadIds.forEach {
-            context.contentResolver.delete(
-                ContentUris.withAppendedId(TelephonyCompat.THREADS_CONTENT_URI, it),
-                null,
-                null
-            )
         }
     }
 

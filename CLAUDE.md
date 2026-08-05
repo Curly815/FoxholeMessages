@@ -623,6 +623,40 @@ inline under each item as they're completed.
    `QKApplication.onCreate`, since unlike OTP retention this isn't
    user-configurable.
 
+   **Bug found on device-verify:** the "Done" note above was wrong —
+   deleting an entire *conversation* (the common swipe/long-press
+   action on the main inbox list) never went through `DeleteMessages`
+   at all. It's a separate path: `DeleteConversations` interactor →
+   `ConversationRepository.deleteConversations()`, which
+   unconditionally hard-deleted the `Conversation` row, hard-deleted
+   every `Message` in that thread, and deleted the thread from the
+   system content provider — completely bypassing Trash. Only
+   deleting individual messages *within* a conversation (Compose/
+   QkReply) actually went through `DeleteMessages`/`trashMessages()`.
+   Erik caught this by sideloading and testing: deleted messages
+   weren't showing up in Trash.
+
+   Fixed by changing `ConversationRepositoryImpl.deleteConversations()`
+   to trash (not hard-delete) the thread's messages, and to leave the
+   `Conversation` row itself in place with `lastMessage`/`draft`
+   cleared instead of deleting it. That's sufficient for it to
+   disappear from every list on its own: `getConversationsBase()`
+   already requires `isNotNull("lastMessage") OR isNotEmpty("draft")`,
+   so a conversation with both cleared is already invisible without
+   needing a new query condition. Restoring any of its messages from
+   Trash (`RestoreMessages` → `updateConversations()`) naturally
+   recomputes `lastMessage` and brings the conversation back. No
+   longer touches the system content provider on delete, matching how
+   individual-message trashing already works — only the eventual
+   `PurgeTrashService` purge does, one message at a time via each
+   message's own `getUri()`. `ConversationRepository.deleteConversations()`
+   has exactly one caller (`DeleteConversations` interactor), so this
+   was safe to change in place without touching the interface.
+   Known minor gap left as-is: after all of a conversation's messages
+   are purged, its now-empty `Conversation` row isn't itself cleaned
+   up (harmless — already permanently invisible via the same
+   lastMessage/draft filter, just an unused row in Realm).
+
    New `feature/trash/` screen (`TrashActivity`/`Controller`/
    `Presenter`/`View`/`State`/`Adapter`, modeled on the existing
    `BlockedMessages` screen) lists trashed messages with a restore
