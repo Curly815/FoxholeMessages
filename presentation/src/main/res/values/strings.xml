@@ -520,9 +520,6 @@
     <string name="about_license" translatable="false">GNU General Public License v3.0</string>
     <string name="about_copyright" translatable="false">© 2014–2026</string>
 
-    <string name="about_attribution_title">Based on</string>
-    <string name="about_attribution" translatable="false">QUIK/QKSMS, licensed under GPLv3. This is a modified version — see the upstream project at https://github.com/octoshrimpy/quik</string>
-
     <string name="changelog_title" translatable="false">New in Foxhole Messages</string>
     <string name="changelog_version" translatable="false">Version %s</string>
     <string name="changelog_added" translatable="false">Added</string>

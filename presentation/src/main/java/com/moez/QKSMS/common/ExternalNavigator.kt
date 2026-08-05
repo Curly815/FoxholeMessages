@@ -52,8 +52,6 @@ class ExternalNavigator @Inject constructor(
     fun showLicense() =
         openExternalActivity("https://github.com/curly815/foxholemessages/blob/master/LICENSE")
 
-    fun showUpstreamRepo() = openExternalActivity("https://github.com/octoshrimpy/quik")
-
     fun makePhoneCall(address: String) {
         val action = if (permissions.hasCalling()) Intent.ACTION_CALL else Intent.ACTION_DIAL
         val intent = Intent(action, "tel:$address".toUri())
