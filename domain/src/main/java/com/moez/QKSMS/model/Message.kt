@@ -88,6 +88,11 @@ open class Message : RealmObject() {
     var isOtp: Boolean = false
     var isStarred: Boolean = false
 
+    // Trash: null unless the user deleted this message. Kept in Realm (not the system SMS/MMS
+    // content provider, which is untouched until the permanent purge) so it can be restored
+    // within the retention window - see PurgeTrashService.
+    var deletedAt: Long? = null
+
     fun getUri(): Uri {
         if (contentId == 0L)
             return Uri.EMPTY

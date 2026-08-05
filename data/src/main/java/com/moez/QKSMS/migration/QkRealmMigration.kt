@@ -37,7 +37,7 @@ class QkRealmMigration @Inject constructor(
 ) : RealmMigration {
 
     companion object {
-        const val SCHEMA_VERSION: Long = 17
+        const val SCHEMA_VERSION: Long = 18
     }
 
     @SuppressLint("ApplySharedPref")
@@ -324,6 +324,13 @@ class QkRealmMigration @Inject constructor(
 
             realm.schema.get("Conversation")
                 ?.addField("categoryOverride", String::class.java, FieldAttribute.INDEXED)
+
+            version++
+        }
+
+        if (version == 17L) {
+            realm.schema.get("Message")
+                ?.addField("deletedAt", Long::class.java, FieldAttribute.INDEXED)
 
             version++
         }

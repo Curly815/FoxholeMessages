@@ -356,6 +356,7 @@ class MainViewModel @Inject constructor(
                             }
                             else -> newState { copy(hasError = true) }
                         }
+                        NavItem.TRASH -> navigator.showTrash()
                         NavItem.BACKUP -> navigator.showBackup()
                         NavItem.SCHEDULED -> navigator.showScheduled(null)
                         NavItem.BLOCKING -> navigator.showBlockedConversations()

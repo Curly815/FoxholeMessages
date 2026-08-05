@@ -375,6 +375,7 @@ class ConversationRepositoryImpl @Inject constructor(
                         conversation,
                         realm.where(Message::class.java)
                             .equalTo("threadId", conversation.id)
+                            .isNull("deletedAt")
                             .sort("date", Sort.DESCENDING)
                             .findFirst()
                     )

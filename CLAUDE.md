@@ -540,6 +540,46 @@ inline under each item as they're completed.
    in the trash (Erik confirmed this retention period) — likely a
    daily `JobService` following the same pattern as
    `AutoDeleteService`/`OtpRetentionService`.
+
+   **Done.** `Message.deletedAt: Long?` (schema v17→18, nullable so
+   existing rows default to "not deleted"). The existing
+   `DeleteMessages` interactor (used everywhere a user deletes a
+   message — Compose/Main/Scheduled/BlockedMessages/ConversationInfo)
+   now calls a new `MessageRepository.trashMessages()` (sets
+   `deletedAt`) instead of the original `deleteMessages()` (which is
+   kept as-is, unchanged, since it's also used internally by
+   `ReceiveMmsWorker`/`ReceiveSmsWorker`/`ActionDelayedMessage` for
+   non-user-initiated cleanup that should stay a real hard delete, not
+   go to Trash). Trashing does *not* touch the system SMS/MMS content
+   provider — only the permanent purge does — since this app always
+   displays messages from its own Realm copy, never re-reads the
+   provider, so nothing is lost for restore purposes either way.
+   `getMessagesBase` (the thread view query) and
+   `ConversationRepositoryImpl.updateConversations`'s `lastMessage`
+   lookup both now filter `isNull("deletedAt")`, so trashed messages
+   disappear from the thread and from conversation snippets/dates
+   immediately. (Narrower queries used for notification-building —
+   `getUnreadMessages`/`getUnreadUnseenMessages`/
+   `getLastIncomingMessage` — were *not* updated for time reasons;
+   low risk since trashing only ever applies to messages the user
+   already had in front of them, but noted here as a known gap.)
+
+   New `RestoreMessages` interactor (mirrors `DeleteMessages`) clears
+   `deletedAt` and calls `updateConversations`. New
+   `PurgeTrashService`/`PurgeTrash` (mirrors `OtpRetentionService`/
+   `DeleteOldOtps`) hard-deletes (provider + Realm) anything trashed
+   over 30 days ago — scheduled unconditionally in
+   `QKApplication.onCreate`, since unlike OTP retention this isn't
+   user-configurable.
+
+   New `feature/trash/` screen (`TrashActivity`/`Controller`/
+   `Presenter`/`View`/`State`/`Adapter`, modeled on the existing
+   `BlockedMessages` screen) lists trashed messages with a restore
+   button and, per Erik's explicit ask, a manual "Delete forever"
+   button too (with the same confirm-dialog pattern used everywhere
+   else in the app) — so permanent deletion doesn't have to wait for
+   the automatic 30-day purge. New "Trash" drawer row sits right
+   under "Archived", as planned.
 4. **Custom inbox tabs.** Let the user create, rename, delete, and
    reorder tabs, instead of the fixed Personal/Transactions/
    Promotions/Starred set. Requested UX: a "+" at the end of the tab

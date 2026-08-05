@@ -103,6 +103,7 @@ open class MessageRepositoryImpl @Inject constructor(
             .where(Message::class.java)
             .equalTo("threadId", threadId)
             .equalTo("isEmojiReaction", false)
+            .isNull("deletedAt")
             .let {
                 when (query.isEmpty()) {
                     true -> it
@@ -995,6 +996,56 @@ open class MessageRepositoryImpl @Inject constructor(
 
                     realm.executeTransaction { messages.deleteAllFromRealm() }
                 } ?: Unit
+        }
+
+    override fun trashMessages(messageIds: Collection<Long>) =
+        Realm.getDefaultInstance().use { realm ->
+            realm.refresh()
+
+            val messages = realm.where(Message::class.java)
+                .anyOf("id", messageIds.toLongArray())
+                .findAll()
+
+            realm.executeTransaction {
+                messages.forEach { message -> message.deletedAt = now() }
+            }
+        }
+
+    override fun restoreMessages(messageIds: Collection<Long>) =
+        Realm.getDefaultInstance().use { realm ->
+            realm.refresh()
+
+            val messages = realm.where(Message::class.java)
+                .anyOf("id", messageIds.toLongArray())
+                .findAll()
+
+            realm.executeTransaction {
+                messages.forEach { message -> message.deletedAt = null }
+            }
+        }
+
+    override fun getDeletedMessages(): RealmResults<Message> =
+        Realm.getDefaultInstance()
+            .where(Message::class.java)
+            .isNotNull("deletedAt")
+            .sort("deletedAt", Sort.DESCENDING)
+            .findAllAsync()
+
+    override fun purgeTrash(maxAgeDays: Int) =
+        Realm.getDefaultInstance().use { realm ->
+            val messages = realm.where(Message::class.java)
+                .isNotNull("deletedAt")
+                .lessThan(
+                    "deletedAt",
+                    now() - TimeUnit.DAYS.toMillis(maxAgeDays.toLong())
+                )
+                .findAll()
+
+            val uris = messages.map { it.getUri() }
+
+            realm.executeTransaction { messages.deleteAllFromRealm() }
+
+            uris.forEach { uri -> context.contentResolver.delete(uri, null, null) }
         }
 
     override fun getOldMessageCounts(maxAgeDays: Int) =

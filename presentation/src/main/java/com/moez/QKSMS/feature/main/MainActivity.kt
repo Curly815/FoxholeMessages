@@ -105,6 +105,7 @@ class MainActivity : QkThemedActivity(), MainView {
                 backPressedSubject,
                 binding.drawer.inbox.clicks().map { NavItem.INBOX },
                 binding.drawer.archived.clicks().map { NavItem.ARCHIVED },
+                binding.drawer.trash.clicks().map { NavItem.TRASH },
                 binding.drawer.backup.clicks().map { NavItem.BACKUP },
                 binding.drawer.scheduled.clicks().map { NavItem.SCHEDULED },
                 binding.drawer.blocking.clicks().map { NavItem.BLOCKING },

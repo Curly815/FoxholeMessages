@@ -22,6 +22,7 @@ import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import dev.octoshrimpy.quik.feature.backup.BackupActivity
 import dev.octoshrimpy.quik.feature.blocking.BlockingActivity
+import dev.octoshrimpy.quik.feature.trash.TrashActivity
 import dev.octoshrimpy.quik.feature.compose.ComposeActivity
 import dev.octoshrimpy.quik.feature.compose.ComposeActivityModule
 import dev.octoshrimpy.quik.feature.contacts.ContactsActivity
@@ -104,6 +105,10 @@ abstract class ActivityBuilderModule {
     @ActivityScope
     @ContributesAndroidInjector(modules = [])
     abstract fun bindBlockingActivity(): BlockingActivity
+
+    @ActivityScope
+    @ContributesAndroidInjector(modules = [])
+    abstract fun bindTrashActivity(): TrashActivity
 
     @ActivityScope
     @ContributesAndroidInjector(modules = [CategoryNotificationActivityModule::class])

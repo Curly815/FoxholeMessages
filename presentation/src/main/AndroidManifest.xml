@@ -115,6 +115,7 @@
         <activity android:name=".feature.conversationinfo.ConversationInfoActivity" />
         <activity android:name=".feature.notificationprefs.NotificationPrefsActivity" />
         <activity android:name=".feature.blocking.BlockingActivity" />
+        <activity android:name=".feature.trash.TrashActivity" />
         <activity android:name=".feature.settings.messagesorting.notifications.CategoryNotificationActivity" />
         <activity
             android:name=".feature.qkreply.QkReplyActivity"
@@ -224,6 +225,9 @@
             android:permission="android.permission.BIND_JOB_SERVICE" />
         <service
             android:name=".service.OtpRetentionService"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service
+            android:name=".service.PurgeTrashService"
             android:permission="android.permission.BIND_JOB_SERVICE" />
         <service
             android:name=".service.HeadlessSmsSendService"

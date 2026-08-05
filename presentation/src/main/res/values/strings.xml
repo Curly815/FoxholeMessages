@@ -416,6 +416,15 @@
     <string name="message_content_filters_dialog_create">Create</string>
 
     <string name="blocked_messages_title">Blocked messages</string>
+    <string name="trash_title">Trash</string>
+    <string name="trash_empty">No deleted messages</string>
+    <string name="trash_restore">Restore</string>
+    <string name="trash_delete_forever">Delete forever</string>
+    <string name="trash_delete_forever_title">Delete forever?</string>
+    <string name="trash_delete_forever_message">This message will be permanently deleted and can\'t be recovered.</string>
+    <string name="trash_days_left">%1$d days left</string>
+    <string name="trash_last_day">Last day</string>
+    <string name="drawer_trash">Trash</string>
     <string name="blocked_messages_empty">Your blocked messages will appear here</string>
 
     <string name="blocking_block_title">Block</string>

@@ -43,6 +43,7 @@ import dev.octoshrimpy.quik.manager.BillingManager
 import dev.octoshrimpy.quik.manager.ReferralManager
 import dev.octoshrimpy.quik.migration.QkMigration
 import dev.octoshrimpy.quik.migration.QkRealmMigration
+import dev.octoshrimpy.quik.service.PurgeTrashService
 import dev.octoshrimpy.quik.util.NightModeManager
 import dev.octoshrimpy.quik.worker.HousekeepingWorker
 import io.realm.Realm
@@ -88,6 +89,10 @@ class QKApplication : Application(), HasActivityInjector, HasBroadcastReceiverIn
                 .build())
 
         qkMigration.performMigration()
+
+        // Trash retention isn't user-configurable (unlike OTP retention), so this job is
+        // always scheduled rather than toggled from a settings screen
+        PurgeTrashService.scheduleJob(this)
 
         GlobalScope.launch(Dispatchers.IO) {
             referralManager.trackReferrer()

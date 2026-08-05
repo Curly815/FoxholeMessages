@@ -25,6 +25,7 @@ import dev.octoshrimpy.quik.injection.scope.ActivityScope
 import dev.octoshrimpy.quik.service.HeadlessSmsSendService
 import dev.octoshrimpy.quik.service.AutoDeleteService
 import dev.octoshrimpy.quik.service.OtpRetentionService
+import dev.octoshrimpy.quik.service.PurgeTrashService
 
 @Module
 abstract class ServiceBuilderModule {
@@ -36,6 +37,10 @@ abstract class ServiceBuilderModule {
     @ActivityScope
     @ContributesAndroidInjector
     abstract fun bindOtpRetentionService(): OtpRetentionService
+
+    @ActivityScope
+    @ContributesAndroidInjector
+    abstract fun bindPurgeTrashService(): PurgeTrashService
 
     @ActivityScope
     @ContributesAndroidInjector

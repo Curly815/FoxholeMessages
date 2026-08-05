@@ -27,6 +27,7 @@ import dev.octoshrimpy.quik.extensions.resourceExists
 import dev.octoshrimpy.quik.feature.settings.about.AboutActivity
 import dev.octoshrimpy.quik.feature.backup.BackupActivity
 import dev.octoshrimpy.quik.feature.blocking.BlockingActivity
+import dev.octoshrimpy.quik.feature.trash.TrashActivity
 import dev.octoshrimpy.quik.feature.compose.ComposeActivity
 import dev.octoshrimpy.quik.feature.conversationinfo.ConversationInfoActivity
 import dev.octoshrimpy.quik.feature.gallery.GalleryActivity
@@ -144,6 +145,10 @@ class Navigator @Inject constructor(
 
     fun showBlockedConversations() {
         startActivity(Intent(context, BlockingActivity::class.java))
+    }
+
+    fun showTrash() {
+        startActivity(Intent(context, TrashActivity::class.java))
     }
 
     fun showCategoryNotificationSettings(category: String) {

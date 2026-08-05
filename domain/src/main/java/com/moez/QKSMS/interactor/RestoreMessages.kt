@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Moez Bhatti <moez.bhatti@gmail.com>
+ * Copyright (C) 2026 Foxhole Messages contributors
  *
  * This file is part of QKSMS.
  *
@@ -18,33 +18,25 @@
  */
 package dev.octoshrimpy.quik.interactor
 
-import dev.octoshrimpy.quik.manager.NotificationManager
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
 import io.reactivex.Flowable
 import javax.inject.Inject
 
-// Soft-deletes (trashes) messages rather than removing them outright - see PurgeTrashService
-// for the actual permanent delete after the retention window.
-class DeleteMessages @Inject constructor(
+class RestoreMessages @Inject constructor(
     private val conversationRepo: ConversationRepository,
-    private val messageRepo: MessageRepository,
-    private val notificationManager: NotificationManager,
-    private val updateBadge: UpdateBadge
-) : Interactor<DeleteMessages.Params>() {
+    private val messageRepo: MessageRepository
+) : Interactor<List<Long>>() {
 
-    data class Params(val messageIds: List<Long>, val threadId: Long)
-
-    override fun buildObservable(params: Params): Flowable<*> {
-        return Flowable.just(params.messageIds)
+    override fun buildObservable(params: List<Long>): Flowable<*> {
+        return Flowable.just(params)
             .doOnNext { messageIds ->
-                messageRepo.trashMessages(messageIds)
+                val threadIds = messageRepo.getMessages(messageIds).map { it.threadId }.distinct()
 
-                conversationRepo.updateConversations(listOf(params.threadId))
+                messageRepo.restoreMessages(messageIds)
 
-                notificationManager.update(params.threadId)
+                conversationRepo.updateConversations(threadIds)
             }
-            .flatMap { updateBadge.buildObservable(Unit) } // Update the badge
     }
 
 }
