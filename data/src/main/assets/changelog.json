@@ -1,6 +1,6 @@
 [
   {
-    "versionCode": 2246,
+    "versionCode": 2247,
     "versionName": "1.3.0",
     "added": [
       "Trash: deleted messages and conversations are kept for 30 days before being permanently removed, with a restore option and a manual \"Delete forever\"/\"Empty Trash\" if you don't want to wait",

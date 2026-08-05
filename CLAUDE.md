@@ -850,3 +850,21 @@ bump — Trash, MMS backup, and pinch-to-zoom are all new features).
 Covers roadmap items 1, 2, 3, and 5–9 above. Item 4 (custom inbox
 tabs) is deliberately not included — Erik wants to hold off on it for
 now, so it stays pending for a future release.
+
+Uploading the `v1.3.0` `.aab` to Play Console's closed testing track
+failed: "Version code 2246 has already been used." Play tracks
+versionCodes globally across every track (production, testing,
+internal, even abandoned drafts) — Play Console's "Previous release"
+panel only shows the last *live* release (2244/1.2.3), so this
+conflict came from some other Play Console upload attempt outside
+this repo's history, not from anything visible here. Since nothing in
+the app actually changed, bumped **`versionCode` only, to `2247`**,
+keeping `versionName '1.3.0'` — this deliberately breaks the usual
+1:1 versionCode↔versionName pairing this project has followed for
+every other release, but a Play-packaging-only retry doesn't warrant
+a new public GitHub release/tag (`v1.3.0` already exists and is
+public). Built via `build-and-release.yml` with `publish_release:
+false` so it lands as a draft release rather than touching the
+existing public `v1.3.0` tag/release — the `.aab` was pulled from
+that run's `build-artifacts` CI artifact, same as always, and the
+draft can be discarded.
