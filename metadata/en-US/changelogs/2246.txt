@@ -1,0 +1,9 @@
+What's new in 1.3.0:
+- Added Trash: deleted messages/conversations are recoverable for 30 days, with manual "Delete forever" and "Empty Trash" options
+- Backup and Restore now covers MMS (attachments, subject, recipients), not just SMS
+- Added pinch-to-zoom for message thread text size
+- Auto-compress MMS attachments now defaults to Automatic (uses your carrier's real limit)
+- Moved "Support the developer" to the main Settings screen
+- Renamed QK Reply to Quick Reaction Force Reply / QRF Reply
+- New notification bar icon
+- Removed the "Based on" row from the About screen

@@ -1,5 +1,21 @@
 [
   {
+    "versionCode": 2246,
+    "versionName": "1.3.0",
+    "added": [
+      "Trash: deleted messages and conversations are kept for 30 days before being permanently removed, with a restore option and a manual \"Delete forever\"/\"Empty Trash\" if you don't want to wait",
+      "Backup and Restore now covers MMS (attachments, subject, and recipients), not just SMS",
+      "Pinch-to-zoom the message thread to freely resize text, as an alternative to the fixed Font Size steps"
+    ],
+    "improved": [
+      "Auto-compress MMS image attachments now defaults to Automatic (uses your carrier's real limit instead of a fixed size)",
+      "\"Support the developer\" moved from the About screen to the main Settings screen",
+      "Renamed the QK Reply settings section to Quick Reaction Force Reply / QRF Reply",
+      "New notification bar icon",
+      "Removed the \"Based on\" row from the About screen"
+    ]
+  },
+  {
     "versionCode": 2245,
     "versionName": "1.2.4",
     "fixed": [

@@ -836,3 +836,17 @@ inline under each item as they're completed.
    than any fixed number, not a specific KB value.
 
    **Done.** One-line default change, as planned.
+
+Also fixed along the way, not part of the original 9-item list: the
+notification icon (item 5) looked too small on-device after shipping —
+scaled up 1.4x, see item 5's notes above. And per a follow-up ask, the
+About screen's "Based on" row (which linked to the upstream
+octoshrimpy/quik repo) was removed entirely — dropped the row,
+`ExternalNavigator.showUpstreamRepo()` (now unused), and its two
+strings.
+
+**Shipped as `versionCode 2246` / `versionName '1.3.0'`** (semver minor
+bump — Trash, MMS backup, and pinch-to-zoom are all new features).
+Covers roadmap items 1, 2, 3, and 5–9 above. Item 4 (custom inbox
+tabs) is deliberately not included — Erik wants to hold off on it for
+now, so it stays pending for a future release.
