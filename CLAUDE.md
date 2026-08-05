@@ -733,6 +733,19 @@ inline under each item as they're completed.
    (the old flat `drawable-xxxhdpi/` PNGs were removed) — the
    evenOdd fill rule punches the three dot circles out of the bubble
    path as transparent holes.
+
+   Erik reported the bubble glyph looked small in the status bar once
+   sideloaded. Root cause: the bubble path's coordinates were carried
+   over directly from `ic_launcher_foreground.xml`, which targets
+   Android's adaptive-icon format — a 108x108 viewport where only the
+   inner ~66x66 "safe zone" is meant to hold visible content, since
+   the OS applies its own mask/crop around it. Status bar icons have
+   no such mask, so that same built-in padding just reads as dead
+   space and makes the glyph look undersized. Fixed by scaling the
+   bubble+dots path 1.4x about the viewport center (`ic_notification.xml`
+   only — `_worker`/`_failed` reuse stock Material glyph paths that
+   were already appropriately sized for a 24dp icon and don't have
+   this issue).
 6. **Pinch-to-zoom text size in the message thread.** Erik wants a
    toggle (in addition to the existing font size setting) that lets
    the user pinch-to-zoom the message thread itself to freely resize
