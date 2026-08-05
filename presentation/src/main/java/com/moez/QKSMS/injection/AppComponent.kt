@@ -46,6 +46,7 @@ import dev.octoshrimpy.quik.feature.settings.messagesorting.senders.SenderRulesC
 import dev.octoshrimpy.quik.feature.settings.messagesorting.senders.TrustedSendersController
 import dev.octoshrimpy.quik.feature.settings.swipe.SwipeActionsController
 import dev.octoshrimpy.quik.feature.themepicker.injection.ThemePickerComponent
+import dev.octoshrimpy.quik.feature.trash.TrashController
 import dev.octoshrimpy.quik.feature.widget.WidgetAdapter
 import dev.octoshrimpy.quik.injection.android.ActivityBuilderModule
 import dev.octoshrimpy.quik.injection.android.BroadcastReceiverBuilderModule
@@ -79,6 +80,7 @@ interface AppComponent {
     fun inject(controller: TrustedSendersController)
     fun inject(controller: SettingsController)
     fun inject(controller: SwipeActionsController)
+    fun inject(controller: TrashController)
 
     fun inject(dialog: QkDialog)
 
