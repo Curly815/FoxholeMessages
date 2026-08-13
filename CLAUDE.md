@@ -554,6 +554,34 @@ Unlike the 33→34→35 bumps, this one wasn't a one-line change:
   even possible without a Realm upstream fix) is a separate, likely
   much larger effort than this pass.
 
+  **Update:** Play Console's pre-launch report flagged this exact
+  issue on the v1.3.1 upload ("Recompile your app with 16 KB native
+  library alignment"), confirming it's real rather than theoretical.
+  Checked for an upstream fix: Realm Java added 16 KB ELF packaging
+  support in **10.19.0** (2024-09-13, issue
+  [#7894](https://github.com/realm/realm-java/issues/7894)) — this
+  project was pinned to 10.15.0, four minor versions behind. Bumped
+  `realm_version` to `10.19.0` (its documented minimum Gradle/AGP
+  requirements — Gradle 7.5+, AGP 7.4.0+ — are well below what this
+  project already runs, so no toolchain conflict expected).
+
+  Also researched jumping to AGP 9.0 while looking at this, since it
+  was asked about directly. Concluded against it for now: AGP 9.0
+  requires Kotlin Gradle Plugin 2.2.10, a five-major-version jump from
+  this project's Kotlin 1.7.21 that also means adopting the K2
+  compiler — real risk given how much this project leans on `kapt`
+  (Dagger, Glide, Moshi, Realm's annotation processor). AGP 9.0 also
+  hides the old `BaseExtension`/variant APIs outright, and Google's
+  own release notes warn that old-style Gradle plugins can fail
+  outright under it — `io.realm:realm-gradle-plugin` hasn't been
+  restructured for AGP 9's new DSL as far as could be found, so it's
+  a real risk of the build just not working, with no fix available
+  under our control if so. The provided escape hatch
+  (`android.newDsl=false`) is explicitly temporary, removed entirely
+  in AGP 10 (mid-2026). Staying on AGP 8.11.0 - already sufficient for
+  compileSdk 36, Play's actual requirement - until something concrete
+  forces the AGP 9 jump.
+
 ### Real edge-to-edge insets handling
 
 Erik confirmed the predicted edge-to-edge regression on-device after
