@@ -582,6 +582,11 @@ Unlike the 33→34→35 bumps, this one wasn't a one-line change:
   compileSdk 36, Play's actual requirement - until something concrete
   forces the AGP 9 jump.
 
+  **Shipped as `versionCode 2249` / `versionName '1.3.2'`** alongside
+  removing the "Copyright" row from the About screen (Erik's separate
+  ask, same pass) — a straightforward strings.xml/layout removal, no
+  click handler existed for that row to begin with.
+
 ### Real edge-to-edge insets handling
 
 Erik confirmed the predicted edge-to-edge regression on-device after

@@ -458,7 +458,6 @@
     <string name="about_contact_title">Contact</string>
     <string name="about_support_title">Support the developer</string>
     <string name="about_license_title">License</string>
-    <string name="about_copyright_title">Copyright</string>
 
     <string name="qksms_plus_description_title">Support development, unlock everything</string>
     <string name="qksms_plus_description_summary">You can save a starving developer for just %s</string>
@@ -518,7 +517,6 @@
     <string name="about_contact" translatable="false">https://github.com/curly815/foxholemessages/issues</string>
     <string name="about_support" translatable="false">All features are free — donate via Venmo if you\'d like to support development. Tap here</string>
     <string name="about_license" translatable="false">GNU General Public License v3.0</string>
-    <string name="about_copyright" translatable="false">© 2014–2026</string>
 
     <string name="changelog_title" translatable="false">New in Foxhole Messages</string>
     <string name="changelog_version" translatable="false">Version %s</string>

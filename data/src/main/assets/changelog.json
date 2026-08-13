@@ -1,5 +1,15 @@
 [
   {
+    "versionCode": 2249,
+    "versionName": "1.3.2",
+    "improved": [
+      "Recompiled the database library with 16 KB memory page-size alignment, per Google Play's device compatibility requirement"
+    ],
+    "removed": [
+      "Copyright row on the About screen"
+    ]
+  },
+  {
     "versionCode": 2248,
     "versionName": "1.3.1",
     "improved": [

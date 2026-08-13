@@ -68,13 +68,6 @@
             app:summary="@string/about_license"
             app:title="@string/about_license_title" />
 
-        <dev.octoshrimpy.quik.common.widget.PreferenceView
-            android:id="@+id/copyright"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:summary="@string/about_copyright"
-            app:title="@string/about_copyright_title" />
-
     </LinearLayout>
 
 </ScrollView>
