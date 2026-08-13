@@ -606,11 +606,15 @@ through its `setContentView()` override:
   instance and aren't affected by an Activity's
   `decorFitsSystemWindows` setting, so they needed no changes.
 
-Not verified on-device yet as of writing this — CI only confirms it
-compiles, not that it looks right on a real screen. Expect at least
-one more round of "sideload, report what's off, adjust" given how
-many screens this touches and the total lack of visual verification
-available in this sandbox.
+**Device-verified working** — Erik sideloaded and confirmed all three
+checks: no more status/nav bar overlap across the main screens, back
+button/gesture still works everywhere, and the keyboard doesn't cover
+the compose message box. First-pass insets handling landed clean, no
+follow-up round needed.
+
+**Shipped as `versionCode 2248` / `versionName '1.3.1'`** (semver
+patch bump — targetSdk 36 plus the insets fix are platform/behavior
+work, not a new user-facing feature).
 
 ## Post-launch roadmap (after the first Play release)
 
