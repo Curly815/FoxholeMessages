@@ -43,6 +43,10 @@ import javax.inject.Inject
 
 class GalleryActivity : QkActivity(), GalleryView {
 
+    // Full-bleed image viewer - only the overlaid toolbar should move away from the status bar,
+    // the image content itself should stay genuinely edge-to-edge.
+    override val applyContentInsets = false
+
     private lateinit var binding: GalleryActivityBinding
 
     @Inject lateinit var dateFormatter: DateFormatter

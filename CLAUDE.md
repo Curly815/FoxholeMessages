@@ -554,6 +554,64 @@ Unlike the 33→34→35 bumps, this one wasn't a one-line change:
   even possible without a Realm upstream fix) is a separate, likely
   much larger effort than this pass.
 
+### Real edge-to-edge insets handling
+
+Erik confirmed the predicted edge-to-edge regression on-device after
+sideloading the targetSdk 36 build (content behind the status/nav
+bars, same symptom as the original v1.2.3 bug) and asked for the real
+fix this time, since no opt-out exists anymore.
+
+Centralized in `QkActivity` rather than touching every screen's
+layout individually, since almost every screen already funnels
+through its `setContentView()` override:
+- `onCreate` calls `WindowCompat.setDecorFitsSystemWindows(window,
+  false)` unconditionally (previously this only happened implicitly
+  via OS enforcement on API 35+ with no opt-out at 36 - doing it
+  explicitly here makes behavior consistent on API < 35 too, where it
+  was never forced before).
+- `setContentView` (both overloads) now also calls a new
+  `applyEdgeToEdgeInsets()`, which installs a
+  `ViewCompat.setOnApplyWindowInsetsListener` on `android.R.id.content`
+  (the framework-provided container every activity's content view sits
+  inside, regardless of whether that's a `DrawerLayout`, `LinearLayout`,
+  or `ConstraintLayout` root — found this to be a cleaner single
+  integration point than trying to special-case every root layout
+  type) and pads it by `systemBars() or ime()` insets (top + bottom).
+  Unioning in the IME type means the same listener also keeps
+  `ComposeActivity`'s message input bar above the keyboard when it's
+  showing, without a separate screen-specific override — this was
+  flagged ahead of time as "the part most edge-to-edge migrations get
+  wrong," so folding it into the generic path rather than bolting it
+  on later seemed safer.
+- This works out visually because `Toolbar`'s background
+  (`?attr/colorPrimary`) and `windowBackground` are the *same* color
+  in this app's theme (`@color/backgroundLight`/`backgroundDark`) —
+  so whether the reserved padding strip shows the window background or
+  a toolbar's own background, it's indistinguishable. Confirmed this
+  before relying on it rather than assuming.
+- `GalleryActivity` (the full-screen image viewer, with its own
+  translucent overlay toolbar) is the one screen that should stay
+  genuinely edge-to-edge — added an overridable `applyContentInsets`
+  flag (default `true`) that it sets to `false`, so only its toolbar
+  gets top-padded while the image content behind it still draws
+  full-bleed.
+- `MainActivity`'s nav drawer wasn't special-cased — since it's a
+  sibling child of the same padded `android.R.id.content` container as
+  the main content pane, it inherits the same top/bottom padding
+  automatically, so its header no longer sits under the status bar
+  either. Traded away the "drawer background extends behind the status
+  bar" look in exchange for not writing screen-specific handling for
+  it; can revisit if it looks wrong once sideloaded.
+- Dialogs (`AlertDialog`, etc.) use their own separate `Window`
+  instance and aren't affected by an Activity's
+  `decorFitsSystemWindows` setting, so they needed no changes.
+
+Not verified on-device yet as of writing this — CI only confirms it
+compiles, not that it looks right on a real screen. Expect at least
+one more round of "sideload, report what's off, adjust" given how
+many screens this touches and the total lack of visual verification
+available in this sandbox.
+
 ## Post-launch roadmap (after the first Play release)
 
 Requested by Erik, deliberately deferred rather than done now — the

@@ -26,6 +26,10 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.subjects.BehaviorSubject
@@ -40,10 +44,37 @@ abstract class QkActivity : AppCompatActivity() {
     protected val toolbar: Toolbar? get() = findViewById(R.id.toolbar)
     protected val toolbarTitle: TextView? get() = findViewById(R.id.toolbarTitle)
 
+    /**
+     * Most screens want their content padded away from the status/navigation bars (and the
+     * keyboard) so nothing draws underneath them - see [setContentView]. Full-bleed screens like
+     * [dev.octoshrimpy.quik.feature.gallery.GalleryActivity] override this to false and pad just
+     * their overlaid toolbar instead, leaving the rest of the content genuinely edge-to-edge.
+     */
+    protected open val applyContentInsets: Boolean = true
+
     @SuppressLint("InlinedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         onNewIntent(intent)
+    }
+
+    /**
+     * Pads either the whole content view or just the toolbar away from the status/navigation
+     * bars and the keyboard, since API 36 removed the `windowOptOutEdgeToEdgeEnforcement` opt-out
+     * this app relied on - see CLAUDE.md's "targetSdk 36" notes for the full background.
+     */
+    private fun applyEdgeToEdgeInsets() {
+        val content = findViewById<View>(android.R.id.content) ?: return
+        ViewCompat.setOnApplyWindowInsetsListener(content) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
+            if (applyContentInsets) {
+                view.updatePadding(top = bars.top, bottom = bars.bottom)
+            } else {
+                toolbar?.updatePadding(top = bars.top)
+            }
+            insets
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -59,12 +90,14 @@ abstract class QkActivity : AppCompatActivity() {
     override fun setContentView(layoutResID: Int) {
         super.setContentView(layoutResID)
         setSupportActionBar(toolbar)
+        applyEdgeToEdgeInsets()
         title = title // The title may have been set before layout inflation
     }
 
     override fun setContentView(view: View?) {
         super.setContentView(view)
         setSupportActionBar(toolbar)
+        applyEdgeToEdgeInsets()
         title = title // The title may have been set before layout inflation
     }
 
