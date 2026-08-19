@@ -605,14 +605,30 @@ class ComposeViewModel @Inject constructor(
                 val part = menuInfo.viewHolderValue ?: return@subscribe
                 val message = messageRepo.getMessage(part.messageId)
 
+                // A device log showed the previous version of this (which excluded only isSmil()
+                // parts from the "no other content" check) still only grouped the one
+                // long-pressed message. Best diagnosis without further log evidence: many MMS
+                // messages carry an empty "text/plain" part as a structural artifact of the
+                // format even with no visible caption, which the old check would have counted as
+                // disqualifying "other content" - so blank text parts are now ignored here too,
+                // the same way hasNonWhitespaceText() already treats them. Logged per-message so
+                // if this is still wrong, the next log shows exactly which check failed instead
+                // of needing another guess.
                 fun isGroupable(candidate: Message): Boolean {
-                    val mediaParts = candidate.parts.filter { p -> !p.isSmil() }
-                    return message != null &&
-                        candidate.isMe() == message.isMe() &&
-                        candidate.address == message.address &&
-                        !candidate.hasNonWhitespaceText() &&
-                        mediaParts.isNotEmpty() &&
-                        mediaParts.all { p -> p.isImage() || p.isVideo() }
+                    val meaningfulParts = candidate.parts.filter { p ->
+                        !p.isSmil() && !(p.type.lowercase() == "text/plain" && p.text.isNullOrBlank())
+                    }
+                    val sameSender = message != null && candidate.isMe() == message.isMe() &&
+                        candidate.address == message.address
+                    val mediaOnly = meaningfulParts.isNotEmpty() &&
+                        meaningfulParts.all { p -> p.isImage() || p.isVideo() }
+                    val groupable = sameSender && mediaOnly
+                    if (!groupable) {
+                        Timber.v("save_all: message ${candidate.id} not groupable with " +
+                            "${message?.id} - sameSender=$sameSender mediaOnly=$mediaOnly " +
+                            "parts=${candidate.parts.map { p -> p.type }}")
+                    }
+                    return groupable
                 }
 
                 val threadMessages = message?.let { messageRepo.getMessagesSync(it.threadId).toList() }
