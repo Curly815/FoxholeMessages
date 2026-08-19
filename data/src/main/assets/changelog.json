@@ -1,5 +1,13 @@
 [
   {
+    "versionCode": 2252,
+    "versionName": "2.0.2",
+    "fixed": [
+      "Pixelated/low-quality video playback in the photo/video viewer - upgraded the video player library",
+      "\"Save all to gallery\" saving fewer photos than expected, or overwriting one photo with another, when a message had multiple attachments (they could end up with identical filenames)"
+    ]
+  },
+  {
     "versionCode": 2251,
     "versionName": "2.0.1",
     "fixed": [
