@@ -69,7 +69,6 @@ import dev.octoshrimpy.quik.feature.conversations.ConversationsPagerAdapter
 import dev.octoshrimpy.quik.feature.conversations.Tab
 import dev.octoshrimpy.quik.manager.ChangelogManager
 import dev.octoshrimpy.quik.repository.SyncRepository
-import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.subjects.PublishSubject
@@ -89,7 +88,6 @@ class MainActivity : QkThemedActivity(), MainView {
     @Inject lateinit var conversationsAdapterProvider: Provider<ConversationsAdapter>
     @Inject lateinit var itemTouchCallbackProvider: Provider<ConversationItemTouchCallback>
     @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
-    @Inject lateinit var prefs: Preferences
 
     private lateinit var binding: MainActivityBinding
     private lateinit var snackbarBinding: MainPermissionHintBinding
