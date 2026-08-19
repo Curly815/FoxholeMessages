@@ -590,9 +590,12 @@ class ComposeViewModel @Inject constructor(
                     }
             }
 
-        // message part context menu item selected - save all (every picture/video belonging to
-        // the same message as the long-pressed part, in one go) - lets a grouped set of photos
-        // be saved without having to open the gallery viewer first
+        // message part context menu item selected - save all. On-device testing showed a batch
+        // of photos is usually several separate messages, not one MMS with multiple parts, so
+        // "the group" is the run of consecutive messages around the long-pressed one, from the
+        // same sender, that are themselves nothing but an image/video with no caption text -
+        // the run stops at the first text message or a message from someone else. Lets a
+        // visually-grouped set of photos be saved without opening the gallery viewer first.
         view.contextItemIntent
             .filter { it.itemId == R.id.save_all }
             .filter { permissionManager.hasStorage().also { if (!it) view.requestStoragePermission() } }
@@ -600,10 +603,37 @@ class ComposeViewModel @Inject constructor(
             .subscribe {
                 val menuInfo = it.menuInfo as QkContextMenuRecyclerView.ContextMenuInfo<Long, MmsPart>
                 val part = menuInfo.viewHolderValue ?: return@subscribe
-                val partIds = messageRepo.getMessage(part.messageId)?.parts
-                    ?.filter { sibling -> sibling.isImage() || sibling.isVideo() }
-                    ?.map { sibling -> sibling.id }
-                    ?.takeIf { it.isNotEmpty() }
+                val message = messageRepo.getMessage(part.messageId)
+
+                fun isGroupable(candidate: Message): Boolean {
+                    val mediaParts = candidate.parts.filter { p -> !p.isSmil() }
+                    return message != null &&
+                        candidate.isMe() == message.isMe() &&
+                        candidate.address == message.address &&
+                        !candidate.hasNonWhitespaceText() &&
+                        mediaParts.isNotEmpty() &&
+                        mediaParts.all { p -> p.isImage() || p.isVideo() }
+                }
+
+                val threadMessages = message?.let { messageRepo.getMessagesSync(it.threadId).toList() }
+                val index = threadMessages?.indexOfFirst { m -> m.id == message?.id } ?: -1
+
+                val group = mutableListOf<Message>()
+                if (threadMessages != null && index != -1) {
+                    for (i in index downTo 0) {
+                        if (!isGroupable(threadMessages[i])) break
+                        group.add(0, threadMessages[i])
+                    }
+                    for (i in (index + 1) until threadMessages.size) {
+                        if (!isGroupable(threadMessages[i])) break
+                        group.add(threadMessages[i])
+                    }
+                }
+
+                val partIds = group
+                    .flatMap { m -> m.parts.filter { p -> p.isImage() || p.isVideo() } }
+                    .map { p -> p.id }
+                    .takeIf { it.isNotEmpty() }
                     ?: listOf(part.id)
 
                 var remaining = partIds.size
