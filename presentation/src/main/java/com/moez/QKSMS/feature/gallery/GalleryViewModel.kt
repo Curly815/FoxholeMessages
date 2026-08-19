@@ -76,6 +76,32 @@ class GalleryViewModel @Inject constructor(
                 .autoDisposable(view.scope())
                 .subscribe { partId -> saveImage.execute(partId) { context.makeToast(R.string.gallery_toast_saved) } }
 
+        // Save every picture/video belonging to the current message in one go, instead of
+        // paging through them and saving one at a time
+        view.optionsItemSelected()
+                .filter { it == R.id.save_all }
+                .filter { permissions.hasStorage().also { if (!it) view.requestStoragePermission() } }
+                .withLatestFrom(view.pageChanged(), state) { _, part, state -> part to state.parts }
+                .autoDisposable(view.scope())
+                .subscribe { (part, parts) ->
+                    val siblingIds = parts
+                            ?.filter { it.messageId == part.messageId }
+                            ?.map { it.id }
+                            ?.takeIf { it.isNotEmpty() }
+                            ?: listOf(part.id)
+
+                    var remaining = siblingIds.size
+                    siblingIds.forEach { id ->
+                        saveImage.execute(id) {
+                            remaining -= 1
+                            if (remaining == 0) {
+                                context.makeToast(context.resources.getQuantityString(
+                                        R.plurals.gallery_toast_saved_all, siblingIds.size, siblingIds.size))
+                            }
+                        }
+                    }
+                }
+
         // Share image externally
         view.optionsItemSelected()
                 .filter { it == R.id.share }

@@ -41,6 +41,7 @@
     <string name="menu_info">Details</string>
 
     <string name="menu_mms_part_save">Save to gallery</string>
+    <string name="menu_mms_part_save_all">Save all to gallery</string>
     <string name="menu_mms_part_share">Share</string>
     <string name="menu_mms_part_forward">Forward</string>
     <string name="menu_mms_part_open">Open externally</string>
@@ -216,6 +217,10 @@
 
     <string name="gallery_error">Couldn\'t load media</string>
     <string name="gallery_toast_saved">Saved to gallery</string>
+    <plurals name="gallery_toast_saved_all">
+        <item quantity="one">Saved %d picture to gallery</item>
+        <item quantity="other">Saved %d pictures to gallery</item>
+    </plurals>
 
     <string name="backup_title">Backup and restore</string>
     <string name="backup_backing_up">Backing up messages</string>

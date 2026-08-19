@@ -24,6 +24,10 @@
         android:title="@string/menu_mms_part_save" />
 
     <item
+        android:id="@+id/save_all"
+        android:title="@string/menu_mms_part_save_all" />
+
+    <item
         android:id="@+id/share"
         android:title="@string/menu_mms_part_share" />
 

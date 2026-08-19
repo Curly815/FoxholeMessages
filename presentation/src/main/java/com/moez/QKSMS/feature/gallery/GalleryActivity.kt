@@ -87,10 +87,15 @@ class GalleryActivity : QkActivity(), GalleryView {
         })
     }
 
+    private var currentPart: MmsPart? = null
+
     fun onPageSelected(position: Int) {
         binding.toolbarSubtitle.text = pagerAdapter.getItem(position)?.messages?.firstOrNull()?.date
                 ?.let(dateFormatter::getDetailedTimestamp)
         binding.toolbarSubtitle.isVisible = binding.toolbarTitle.text.isNotBlank()
+
+        currentPart = pagerAdapter.getItem(position)
+        invalidateOptionsMenu()
 
         pagerAdapter.getItem(position)?.run(pageChangedSubject::onNext)
     }
@@ -115,6 +120,15 @@ class GalleryActivity : QkActivity(), GalleryView {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.mms_part_menu, menu)
         return super.onCreateOptionsMenu(menu)
+    }
+
+    // "Save all" only makes sense when the current message has more than one picture/video -
+    // otherwise it's a confusing duplicate of "Save"
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        val messageId = currentPart?.messageId
+        val siblingCount = pagerAdapter.data?.count { it.messageId == messageId } ?: 0
+        menu.findItem(R.id.save_all)?.isVisible = messageId != null && siblingCount > 1
+        return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
