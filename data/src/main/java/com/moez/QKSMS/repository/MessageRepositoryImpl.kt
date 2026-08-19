@@ -177,6 +177,18 @@ open class MessageRepositoryImpl @Inject constructor(
                 .count()
         }
 
+    // Same filter as getUnreadMessages(threadId) but a count() rather than findAll(), since this
+    // is called once per visible conversation row (to show an actual number instead of just a
+    // dot) and only needs the count, not the message objects themselves.
+    override fun getUnreadCountForConversation(threadId: Long) =
+        Realm.getDefaultInstance().use { realm ->
+            realm.refresh()
+            realm.where(Message::class.java)
+                .equalTo("read", false)
+                .equalTo("threadId", threadId)
+                .count()
+        }
+
     override fun getPart(id: Long) =
         Realm.getDefaultInstance()
             .where(MmsPart::class.java)

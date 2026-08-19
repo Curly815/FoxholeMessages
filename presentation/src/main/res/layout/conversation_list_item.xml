@@ -101,18 +101,26 @@
         app:layout_constraintTop_toTopOf="@id/snippet"
         tools:visibility="visible" />
 
-    <ImageView
+    <dev.octoshrimpy.quik.common.widget.QkTextView
         android:id="@+id/unread"
-        android:layout_width="20dp"
-        android:layout_height="16sp"
-        android:paddingStart="8dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp"
-        android:src="@drawable/circle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:minWidth="20dp"
+        android:minHeight="20dp"
+        android:background="@drawable/circle"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:paddingStart="5dp"
+        android:paddingEnd="5dp"
+        android:textColor="@android:color/white"
+        android:textSize="11sp"
+        android:textStyle="bold"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/snippet"
-        tools:tint="@color/tools_theme"
+        tools:backgroundTint="@color/tools_theme"
+        tools:text="3"
         tools:visibility="visible" />
 
     <dev.octoshrimpy.quik.common.widget.QkTextView

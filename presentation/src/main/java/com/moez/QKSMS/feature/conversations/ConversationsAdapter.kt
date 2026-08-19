@@ -19,6 +19,7 @@
 package dev.octoshrimpy.quik.feature.conversations
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -32,9 +33,9 @@ import dev.octoshrimpy.quik.common.base.QkRealmAdapter
 import dev.octoshrimpy.quik.common.util.Colors
 import dev.octoshrimpy.quik.common.util.DateFormatter
 import dev.octoshrimpy.quik.common.util.extensions.resolveThemeColor
-import dev.octoshrimpy.quik.common.util.extensions.setTint
 import dev.octoshrimpy.quik.databinding.ConversationListItemBinding
 import dev.octoshrimpy.quik.model.Conversation
+import dev.octoshrimpy.quik.repository.MessageRepository
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
 import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
@@ -43,6 +44,7 @@ class ConversationsAdapter @Inject constructor(
     private val colors: Colors,
     private val context: Context,
     private val dateFormatter: DateFormatter,
+    private val messageRepo: MessageRepository,
     private val navigator: Navigator,
     private val phoneNumberUtils: PhoneNumberUtils
 ) : QkRealmAdapter<Conversation, QkBindingViewHolder<ConversationListItemBinding>>() {
@@ -130,7 +132,15 @@ class ConversationsAdapter @Inject constructor(
         binding.scheduled.isVisible = conversation.id in hasScheduledConversation
 
         binding.pinned.isVisible = conversation.pinned
-        binding.unread.setTint(theme)
+
+        // unread is now a numeric badge (a QkTextView, not an ImageView) rather than a plain
+        // dot, so it needs the theme colour on its background drawable specifically - the
+        // generic TextView.setTint() extension tints the foreground instead, which would be a
+        // silent no-op here since this view has no foreground drawable set.
+        binding.unread.backgroundTintList = ColorStateList.valueOf(theme)
+        if (conversation.unread) {
+            binding.unread.text = messageRepo.getUnreadCountForConversation(conversation.id).toString()
+        }
     }
 
     override fun getItemId(position: Int): Long {
