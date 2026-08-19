@@ -1,0 +1,4 @@
+What's new in 2.0.1:
+- Fixed "Save" and "Save all to gallery" doing nothing on Android 10+
+- Fixed MMS videos not sending/playing correctly (reverted the experimental video compression added in 2.0.0)
+- Fixed the photo/video viewer's playback controls being hidden under the navigation bar

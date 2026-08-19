@@ -1,5 +1,14 @@
 [
   {
+    "versionCode": 2251,
+    "versionName": "2.0.1",
+    "fixed": [
+      "\"Save\" and \"Save all to gallery\" doing nothing on Android 10+ (a storage permission check was blocking every save - that permission isn't needed or even grantable on modern Android)",
+      "MMS videos not sending/playing correctly - reverted the experimental video-compression feature added in 2.0.0 after it broke video playback",
+      "The photo/video viewer's playback controls being hidden under the navigation bar"
+    ]
+  },
+  {
     "versionCode": 2250,
     "versionName": "2.0.0",
     "added": [
