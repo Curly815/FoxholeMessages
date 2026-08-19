@@ -28,7 +28,6 @@ import dev.octoshrimpy.quik.common.QkChangeHandler
 import dev.octoshrimpy.quik.common.base.QkController
 import dev.octoshrimpy.quik.common.util.Colors
 import dev.octoshrimpy.quik.common.util.extensions.animateLayoutChanges
-import dev.octoshrimpy.quik.feature.blocking.manager.BlockingManagerController
 import dev.octoshrimpy.quik.feature.blocking.messages.BlockedMessagesController
 import dev.octoshrimpy.quik.feature.blocking.numbers.BlockedNumbersController
 import dev.octoshrimpy.quik.feature.blocking.filters.MessageContentFiltersController
@@ -41,7 +40,6 @@ class BlockingController : QkController<BlockingControllerBinding, BlockingView,
     override fun inflateBinding(inflater: LayoutInflater, container: ViewGroup): BlockingControllerBinding =
         BlockingControllerBinding.inflate(inflater, container, false)
 
-    override val blockingManagerIntent get() = binding.blockingManager.clicks()
     override val blockedNumbersIntent get() = binding.blockedNumbers.clicks()
     override val messageContentFiltersIntent get() = binding.messageContentFilters.clicks()
     override val blockedMessagesIntent get() = binding.blockedMessages.clicks()
@@ -68,7 +66,6 @@ class BlockingController : QkController<BlockingControllerBinding, BlockingView,
     }
 
     override fun render(state: BlockingState) {
-        binding.blockingManager.summary = state.blockingManager
         binding.drop.checkbox?.isChecked = state.dropEnabled
         binding.blockedMessages.isEnabled = !state.dropEnabled
     }
@@ -87,12 +84,6 @@ class BlockingController : QkController<BlockingControllerBinding, BlockingView,
 
     override fun openBlockedMessages() {
         router.pushController(RouterTransaction.with(BlockedMessagesController())
-                .pushChangeHandler(QkChangeHandler())
-                .popChangeHandler(QkChangeHandler()))
-    }
-
-    override fun openBlockingManager() {
-        router.pushController(RouterTransaction.with(BlockingManagerController())
                 .pushChangeHandler(QkChangeHandler())
                 .popChangeHandler(QkChangeHandler()))
     }

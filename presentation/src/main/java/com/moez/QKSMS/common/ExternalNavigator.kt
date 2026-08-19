@@ -81,21 +81,6 @@ class ExternalNavigator @Inject constructor(
         }
     }
 
-    fun openAppStoreForCallBlocker() =
-        openExternalActivity(
-            "https://play.google.com/store/apps/details?id=com.cuiet.blockCalls"
-        )
-
-    fun openAppStoreForCallControl() =
-        openExternalActivity(
-            "https://play.google.com/store/apps/details?id=com.flexaspect.android.everycallcontrol"
-        )
-
-    fun openAppStoreForSia() =
-        openExternalActivity(
-            "https://play.google.com/store/apps/details?id=org.mistergroup.shouldianswer"
-        )
-
     fun showSupport() = openExternalActivity("https://github.com/curly815/foxholemessages/issues")
 
     fun showInvite() {
