@@ -45,22 +45,32 @@ class RemoteMessagingReceiver : BroadcastReceiver() {
 
         val threadId = bundle.getLong("threadId")
 
-        markRead.execute(listOf(threadId))
-
         val lastMessage = messageRepo.getMessages(threadId).lastOrNull()
-        val conversation = conversationRepo.getConversation(threadId)
+        val conversation = conversationRepo.getConversation(threadId) ?: return
 
-        val pendingRepository = goAsync()
+        // Keep the process alive until both markRead (which dismisses/refreshes the
+        // notification) and sendNewMessage have actually finished - finishing early lets
+        // the system reclaim the process mid-flight, leaving the notification stuck.
+        val pendingResult = goAsync()
+        var pending = 2
+        val onOneComplete = {
+            pending -= 1
+            if (pending == 0) pendingResult.finish()
+        }
+
+        markRead.execute(listOf(threadId), onOneComplete)
+
         sendNewMessage.execute(
             SendNewMessage.Params(
                 subscriptionManager.activeSubscriptionInfoList
                     .firstOrNull { it.subscriptionId == lastMessage?.subId }
                     ?.subscriptionId ?: -1,
                 0,
-                conversation?.recipients?.map { it.address } ?: return,
+                conversation.recipients.map { it.address },
                 remoteInput.getCharSequence("body").toString(),
                 conversation.sendAsGroup
-            )
-        ) { pendingRepository.finish() }
+            ),
+            onOneComplete
+        )
     }
 }
