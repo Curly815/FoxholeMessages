@@ -78,12 +78,6 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-reactive:$coroutines_version"
 
     implementation 'com.callcontrol:datashare:1.3.0'
-    // video compression for oversized MMS video attachments - a hand-rolled MediaCodec
-    // surface-to-surface transcode (VideoUtils.kt, since removed) failed real-device testing
-    // twice: it never actually rendered/scaled a frame between decode and encode, only working
-    // when no resolution change was needed. This library's DefaultVideoStrategy does real
-    // GL-based scaling, matching how Google's own reference MediaCodec transcode sample works.
-    implementation "com.otaliastudios:transcoder:$transcoder_lib_version"
     implementation "com.f2prateek.rx.preferences2:rx-preferences:$rx_preferences_version"
     implementation "com.jakewharton.timber:timber:$timber_version"
     implementation "com.squareup.moshi:moshi:$moshi_version"
