@@ -24,6 +24,8 @@ import android.view.View
 import android.view.ViewGroup
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.PlaybackException
+import com.google.android.exoplayer2.Player
 import com.google.android.mms.ContentType
 import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.base.QkRealmAdapter
@@ -36,6 +38,7 @@ import dev.octoshrimpy.quik.model.MmsPart
 import dev.octoshrimpy.quik.util.GlideApp
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
+import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 
@@ -112,6 +115,16 @@ class GalleryPagerAdapter @Inject constructor(private val context: Context) : Qk
                 val exoPlayer = ExoPlayer.Builder(context).build()
                 binding.video.player = exoPlayer
                 exoPlayers.add(exoPlayer)
+
+                // In-app playback of a since-confirmed-valid video (plays fine externally) was
+                // still failing with no visible error - ExoPlayer had no error listener at all,
+                // so a PlaybackException would fail completely silently. Logging it now instead
+                // of guessing again what's different about this app's own player setup.
+                exoPlayer.addListener(object : Player.Listener {
+                    override fun onPlayerError(error: PlaybackException) {
+                        Timber.e(error, "ExoPlayer error playing part ${part.id} (${part.type})")
+                    }
+                })
 
                 exoPlayer.setMediaItem(MediaItem.fromUri(part.getUri()))
                 exoPlayer.prepare()
