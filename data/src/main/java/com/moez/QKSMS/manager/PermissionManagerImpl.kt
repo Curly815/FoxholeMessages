@@ -69,6 +69,13 @@ class PermissionManagerImpl @Inject constructor(private val context: Context) : 
     }
 
     override fun hasStorage(): Boolean {
+        // WRITE_EXTERNAL_STORAGE is only meaningful pre-scoped-storage (below Android 10). On
+        // Android 10+ apps write shared media through MediaStore instead (see
+        // MessageRepositoryImpl.savePart), which needs no permission at all - and on Android
+        // 13+ the system won't even grant this permission to an app targeting API 33+, so
+        // checking for it there means every save silently no-ops forever.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return true
+
         return hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
     }
 
