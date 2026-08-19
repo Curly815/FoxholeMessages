@@ -1,0 +1,6 @@
+What's new in 2.0.0:
+- Long-press an inbox tab to rename it
+- "Save all to gallery" for multi-image MMS attachments, instead of downloading them one at a time
+- MMS videos are now compressed to fit your carrier's limit before sending, for better quality than letting the carrier compress them
+- Fixed a notification getting stuck showing "sending" after using the quick-reply chip
+- Removed the unused Blocking Manager from Settings

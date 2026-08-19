@@ -1,5 +1,20 @@
 [
   {
+    "versionCode": 2250,
+    "versionName": "2.0.0",
+    "added": [
+      "Long-press an inbox tab (Personal/Transactions/Promotions/Starred) to rename it",
+      "\"Save all to gallery\" in the picture/video viewer, to download every attachment in a multi-image MMS at once instead of one at a time"
+    ],
+    "improved": [
+      "MMS video attachments are now compressed to fit your carrier's size limit before sending, instead of being sent untouched and left to your carrier's own (often much lower quality) compression",
+      "Fixed a notification getting stuck showing \"sending\" after replying from the notification's quick-reply chip, even though the message had actually sent"
+    ],
+    "removed": [
+      "Blocking Manager (delegating spam-blocking to a third-party app) from Settings - unused"
+    ]
+  },
+  {
     "versionCode": 2249,
     "versionName": "1.3.2",
     "improved": [
