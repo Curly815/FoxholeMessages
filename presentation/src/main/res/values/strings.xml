@@ -339,6 +339,7 @@
     <string name="tab_transactions">Transactions</string>
     <string name="tab_promotions">Promotions</string>
     <string name="tab_starred">Starred</string>
+    <string name="tab_rename_hint">Tab name</string>
     <string name="settings_swipe_actions_right">Right swipe</string>
     <string name="settings_swipe_actions_left">Left swipe</string>
     <string name="settings_swipe_actions_change">CHANGE</string>

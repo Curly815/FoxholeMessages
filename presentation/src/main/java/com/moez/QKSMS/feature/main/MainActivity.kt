@@ -28,6 +28,7 @@ import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
@@ -68,6 +69,7 @@ import dev.octoshrimpy.quik.feature.conversations.ConversationsPagerAdapter
 import dev.octoshrimpy.quik.feature.conversations.Tab
 import dev.octoshrimpy.quik.manager.ChangelogManager
 import dev.octoshrimpy.quik.repository.SyncRepository
+import dev.octoshrimpy.quik.util.Preferences
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.subjects.PublishSubject
@@ -87,6 +89,7 @@ class MainActivity : QkThemedActivity(), MainView {
     @Inject lateinit var conversationsAdapterProvider: Provider<ConversationsAdapter>
     @Inject lateinit var itemTouchCallbackProvider: Provider<ConversationItemTouchCallback>
     @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
+    @Inject lateinit var prefs: Preferences
 
     private lateinit var binding: MainActivityBinding
     private lateinit var snackbarBinding: MainPermissionHintBinding
@@ -234,16 +237,41 @@ class MainActivity : QkThemedActivity(), MainView {
                 }
     }
 
+    private var lastTabUnreadCounts: Map<Tab, Long> = emptyMap()
+
+    private fun tabDisplayName(tab: Tab): String =
+        prefs.tabTitle(tab.name).get().takeIf { it.isNotBlank() } ?: getString(tab.titleRes)
+
     private fun buildTabStrip() {
         TabLayoutMediator(binding.tabStrip, binding.tabPager) { tab, position ->
-            tab.text = getString(tabPages[position].tab.titleRes)
+            tab.text = tabDisplayName(tabPages[position].tab)
         }.attach()
+
+        // TabLayout has no per-tab long-click API, so reach into its tab views directly to
+        // let the user rename a tab by long-pressing it.
+        val tabViews = binding.tabStrip.getChildAt(0) as? ViewGroup
+        tabPages.forEachIndexed { index, page ->
+            tabViews?.getChildAt(index)?.setOnLongClickListener {
+                showRenameTabDialog(page.tab)
+                true
+            }
+        }
+    }
+
+    private fun showRenameTabDialog(tab: Tab) {
+        TextInputDialog(this, getString(R.string.tab_rename_hint)) { newName ->
+            prefs.tabTitle(tab.name).set(newName.trim())
+            updateTabBadges(lastTabUnreadCounts)
+        }
+            .setText(tabDisplayName(tab))
+            .show()
     }
 
     private fun updateTabBadges(unreadCounts: Map<Tab, Long>) {
+        lastTabUnreadCounts = unreadCounts
         tabPages.forEachIndexed { index, page ->
             val count = unreadCounts[page.tab] ?: 0
-            val label = getString(page.tab.titleRes)
+            val label = tabDisplayName(page.tab)
             binding.tabStrip.getTabAt(index)?.text = if (count > 0) "$label ($count)" else label
         }
     }

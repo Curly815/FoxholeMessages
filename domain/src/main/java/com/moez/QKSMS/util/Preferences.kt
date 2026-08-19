@@ -252,4 +252,11 @@ class Preferences @Inject constructor(
             else -> rxPrefs.getString("backgroundUri_$threadId", default.get())
         }
     }
+
+    /**
+     * User-chosen display name for an inbox tab (Personal/Transactions/Promotions/Starred),
+     * keyed by the Tab enum's name. Empty means "use the built-in default title" - keyed by
+     * name rather than the Tab type itself since Tab lives in the presentation module.
+     */
+    fun tabTitle(tabName: String): Preference<String> = rxPrefs.getString("tabTitle_$tabName", "")
 }
