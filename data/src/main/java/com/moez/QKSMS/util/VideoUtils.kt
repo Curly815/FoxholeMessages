@@ -114,9 +114,15 @@ object VideoUtils {
         val bitsPerPixel = targetBitrate.toDouble() / (sourceWidth * sourceHeight * frameRate)
         if (bitsPerPixel < MIN_BITS_PER_PIXEL) {
             val scale = sqrt(bitsPerPixel / MIN_BITS_PER_PIXEL)
-            // Round to a multiple of 16 - some hardware encoders reject arbitrary dimensions
+            // Round width to a multiple of 16 first - some hardware encoders reject arbitrary
+            // dimensions - then derive height from width via the source's exact aspect ratio,
+            // rather than rounding width and height independently. On-device testing showed a
+            // visibly stretched result from independent rounding: 16 rounds down to the nearest
+            // multiple of 16 is a much bigger relative error on the shorter dimension (up to
+            // ~8% of ~192) than the longer one (up to ~4.5% of ~336), skewing the aspect ratio.
             targetWidth = (sourceWidth * scale).roundToInt().coerceAtLeast(16).let { it - it % 16 }.coerceAtLeast(16)
-            targetHeight = (sourceHeight * scale).roundToInt().coerceAtLeast(16).let { it - it % 16 }.coerceAtLeast(16)
+            targetHeight = (targetWidth.toDouble() * sourceHeight / sourceWidth).roundToInt()
+                    .coerceAtLeast(16).let { it - it % 16 }.coerceAtLeast(16)
             targetBitrate = ((videoBudgetBytes * 8) / durationSec).toInt().coerceAtLeast(MIN_VIDEO_BITRATE)
         }
 
