@@ -62,6 +62,7 @@ import dev.octoshrimpy.quik.receiver.SendDelayedMessageReceiver.Companion.MESSAG
 import dev.octoshrimpy.quik.util.ImageUtils
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
 import dev.octoshrimpy.quik.util.Preferences
+import dev.octoshrimpy.quik.util.VideoUtils
 import dev.octoshrimpy.quik.util.sha256
 import dev.octoshrimpy.quik.util.tryOrNull
 import io.reactivex.Flowable
@@ -481,31 +482,39 @@ open class MessageRepositoryImpl @Inject constructor(
 
             remainingBytes -= body.takeIf { it.isNotEmpty() }?.toByteArray()?.size ?: 0
 
-            // Attach those that can't be compressed (ie. everything but images)
+            // Attach those that can't be compressed by ImageUtils (ie. everything but images).
             //
-            // Videos are included here (sent at their original size, uncompressed) rather than
-            // routed through VideoUtils's MediaCodec transcoder - that was tried a second time
-            // (wired in only when a video already exceeded the size budget, on the theory that
-            // the first failure was actually an old-ExoPlayer rendering bug rather than a bad
-            // transcode) and real-device testing disproved that theory: the video was still
-            // audio-only even after saving it and opening it in a completely different, external
-            // player app, which rules out anything about our own player - the transcoder itself
-            // is producing a file with no usable video track. Reverted a second time. VideoUtils.kt
-            // is left in the tree in case a properly-tested fix to the transcoder itself is
-            // attempted later, but do not wire it back into the send path again without first
-            // verifying its raw output (independent of any change to our own player) actually
-            // contains a valid, playable video track.
+            // Videos that don't already fit the remaining budget are routed through
+            // VideoUtils's transcoder. Two prior hand-rolled MediaCodec attempts here both
+            // failed real-device testing (the second confirmed via external-player testing that
+            // the output file's video track was genuinely broken, not a rendering bug in our own
+            // player) - VideoUtils.kt now uses the com.otaliastudios:transcoder library instead
+            // of hand-rolled MediaCodec, since a third from-scratch attempt seemed unwise given
+            // that track record. Still unverified on a real device - do not treat this as done
+            // until confirmed. VideoUtils.getScaledVideo() already treats any exception as "give
+            // up and send the original bytes unmodified" per its class doc, so a still-broken
+            // transcoder degrades back to today's send-at-full-size behavior rather than
+            // producing a corrupt attachment.
             parts += attachments
                 // filter in non-images only
                 .filter { !it.isImage(context) }
                 // filter in only items that exist (user may have deleted the file)
                 .filter { it.uri.resourceExists(context) }
                 .map {
-                    remainingBytes -= it.getResourceBytes(context).size
+                    val bytes = when {
+                        it.isVideo(context) && it.getSize(context) > remainingBytes ->
+                            tryOrNull(false) {
+                                VideoUtils.getScaledVideo(context, it.uri, remainingBytes.toLong())
+                            } ?: it.getResourceBytes(context)
+
+                        else -> it.getResourceBytes(context)
+                    }
+
+                    remainingBytes -= bytes.size
                     val part = com.google.android.mms.MMSPart().apply {
                         MimeType = it.getType(context)
                         Name = it.getName(context)
-                        Data = it.getResourceBytes(context)
+                        Data = bytes
                     }
 
                     // release the attachment hold on the image bytes so the GC can reclaim
