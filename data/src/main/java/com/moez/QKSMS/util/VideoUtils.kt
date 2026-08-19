@@ -114,15 +114,19 @@ object VideoUtils {
         val bitsPerPixel = targetBitrate.toDouble() / (sourceWidth * sourceHeight * frameRate)
         if (bitsPerPixel < MIN_BITS_PER_PIXEL) {
             val scale = sqrt(bitsPerPixel / MIN_BITS_PER_PIXEL)
-            // Round width to a multiple of 16 first - some hardware encoders reject arbitrary
-            // dimensions - then derive height from width via the source's exact aspect ratio,
-            // rather than rounding width and height independently. On-device testing showed a
-            // visibly stretched result from independent rounding: 16 rounds down to the nearest
-            // multiple of 16 is a much bigger relative error on the shorter dimension (up to
-            // ~8% of ~192) than the longer one (up to ~4.5% of ~336), skewing the aspect ratio.
-            targetWidth = (sourceWidth * scale).roundToInt().coerceAtLeast(16).let { it - it % 16 }.coerceAtLeast(16)
-            targetHeight = (targetWidth.toDouble() * sourceHeight / sourceWidth).roundToInt()
-                    .coerceAtLeast(16).let { it - it % 16 }.coerceAtLeast(16)
+            // Round width to the NEAREST multiple of 16 (not down to it) - some hardware
+            // encoders reject arbitrary dimensions - then derive height from width via the
+            // source's exact aspect ratio, rather than rounding width and height independently.
+            // On-device testing showed still-visible stretching after switching independent
+            // rounding to this derive-from-width approach, because rounding down/truncating
+            // (via `it - it % 16`) can lose up to 15px, and at extreme downscales (eg. a 4K
+            // source to a target around 160-300px) that's a large fraction of the whole
+            // dimension - one observed case truncated a derived 171px height down to 160
+            // (-6.4%), enough to be visibly stretched. Rounding to the nearest 16 instead of
+            // always down halves the worst case and removes the systematic downward bias.
+            fun roundToNearest16(px: Int) = (((px + 8) / 16) * 16).coerceAtLeast(16)
+            targetWidth = roundToNearest16((sourceWidth * scale).roundToInt())
+            targetHeight = roundToNearest16((targetWidth.toDouble() * sourceHeight / sourceWidth).roundToInt())
             targetBitrate = ((videoBudgetBytes * 8) / durationSec).toInt().coerceAtLeast(MIN_VIDEO_BITRATE)
         }
 
