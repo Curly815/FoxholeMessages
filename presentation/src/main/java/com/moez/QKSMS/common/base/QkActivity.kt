@@ -45,10 +45,12 @@ abstract class QkActivity : AppCompatActivity() {
     protected val toolbarTitle: TextView? get() = findViewById(R.id.toolbarTitle)
 
     /**
-     * Most screens want their content padded away from the status/navigation bars (and the
-     * keyboard) so nothing draws underneath them - see [setContentView]. Full-bleed screens like
-     * [dev.octoshrimpy.quik.feature.gallery.GalleryActivity] override this to false and pad just
-     * their overlaid toolbar instead, leaving the rest of the content genuinely edge-to-edge.
+     * Screens want their content padded away from the status/navigation bars (and the keyboard)
+     * so nothing draws underneath them - see [setContentView]. A screen can override this to
+     * false to instead pad just its overlaid toolbar and leave the rest of the content genuinely
+     * edge-to-edge, but be careful doing so if the content has its own interactive controls near
+     * the bottom edge (eg. video playback controls) - they can end up unreachable under the
+     * navigation bar.
      */
     protected open val applyContentInsets: Boolean = true
 

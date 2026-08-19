@@ -43,9 +43,10 @@ import javax.inject.Inject
 
 class GalleryActivity : QkActivity(), GalleryView {
 
-    // Full-bleed image viewer - only the overlaid toolbar should move away from the status bar,
-    // the image content itself should stay genuinely edge-to-edge.
-    override val applyContentInsets = false
+    // Previously kept genuinely edge-to-edge (only the toolbar padded away from the status
+    // bar), but that left the video player's playback controls - the play/pause button
+    // included - sitting right under the navigation bar, where they could be unreachable
+    // depending on the device's nav bar style. Padded like every other screen instead.
 
     private lateinit var binding: GalleryActivityBinding
 
