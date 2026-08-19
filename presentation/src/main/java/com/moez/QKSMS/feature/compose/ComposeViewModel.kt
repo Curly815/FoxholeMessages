@@ -590,6 +590,34 @@ class ComposeViewModel @Inject constructor(
                     }
             }
 
+        // message part context menu item selected - save all (every picture/video belonging to
+        // the same message as the long-pressed part, in one go) - lets a grouped set of photos
+        // be saved without having to open the gallery viewer first
+        view.contextItemIntent
+            .filter { it.itemId == R.id.save_all }
+            .filter { permissionManager.hasStorage().also { if (!it) view.requestStoragePermission() } }
+            .autoDisposable(view.scope())
+            .subscribe {
+                val menuInfo = it.menuInfo as QkContextMenuRecyclerView.ContextMenuInfo<Long, MmsPart>
+                val part = menuInfo.viewHolderValue ?: return@subscribe
+                val partIds = messageRepo.getMessage(part.messageId)?.parts
+                    ?.filter { sibling -> sibling.isImage() || sibling.isVideo() }
+                    ?.map { sibling -> sibling.id }
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: listOf(part.id)
+
+                var remaining = partIds.size
+                partIds.forEach { id ->
+                    saveImage.execute(id) {
+                        remaining -= 1
+                        if (remaining == 0) {
+                            context.makeToast(context.resources.getQuantityString(
+                                    R.plurals.gallery_toast_saved_all, partIds.size, partIds.size))
+                        }
+                    }
+                }
+            }
+
         // message part context menu item selected - share
         view.contextItemIntent
             .filter { it.itemId == R.id.share }
