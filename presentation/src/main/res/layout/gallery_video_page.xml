@@ -17,7 +17,18 @@
   ~ You should have received a copy of the GNU General Public License
   ~ along with QKSMS.  If not, see <http://www.gnu.org/licenses/>.
   -->
+<!--
+  ~ surface_type is explicitly texture_view, not the PlayerView default of surface_view -
+  ~ a SurfaceView here renders on a separate system-compositor layer that doesn't sync
+  ~ correctly with a scrolling ViewPager2 (this page's parent), which is a well-documented
+  ~ cause of exactly the symptom reported on-device: audio plays fine (unaffected either
+  ~ way) while the video image itself never composites, staying blank/black. TextureView
+  ~ renders through the normal view hierarchy instead, at a minor performance cost that's
+  ~ acceptable for this single full-screen video page.
+  -->
 <com.google.android.exoplayer2.ui.PlayerView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/video"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    android:layout_height="match_parent"
+    app:surface_type="texture_view" />
