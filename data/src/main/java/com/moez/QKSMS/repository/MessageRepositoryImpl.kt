@@ -62,6 +62,7 @@ import dev.octoshrimpy.quik.receiver.SendDelayedMessageReceiver.Companion.MESSAG
 import dev.octoshrimpy.quik.util.ImageUtils
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
 import dev.octoshrimpy.quik.util.Preferences
+import dev.octoshrimpy.quik.util.VideoUtils
 import dev.octoshrimpy.quik.util.sha256
 import dev.octoshrimpy.quik.util.tryOrNull
 import io.reactivex.Flowable
@@ -481,25 +482,40 @@ open class MessageRepositoryImpl @Inject constructor(
 
             remainingBytes -= body.takeIf { it.isNotEmpty() }?.toByteArray()?.size ?: 0
 
-            // Attach those that can't be compressed (ie. everything but images)
+            // Attach those that can't be compressed by ImageUtils (ie. everything but images).
             //
-            // Videos are included here (sent at their original size, uncompressed) rather than
-            // routed through VideoUtils's MediaCodec transcoder - that was tried and reverted
-            // after real-device testing showed it broke video playback entirely (tap-to-play
-            // did nothing; only a long-press fallback played audio, no video). VideoUtils.kt is
-            // left in the tree for a future, properly device-tested attempt, but is currently
-            // unused - do not wire it back in without verifying actual playback on a device.
+            // Videos that don't already fit the remaining budget are routed through
+            // VideoUtils's MediaCodec transcoder. This was tried once before and reverted after
+            // real-device testing showed it broke playback entirely (tap-to-play did nothing;
+            // only a long-press fallback played audio, no video) - but that testing happened
+            // against the old JitPack-distributed ExoPlayer r2.9.0 (2018), which has since been
+            // replaced with the modern 2.19.1 release for unrelated quality reasons. It's not
+            // confirmed whether the old player's poor format support was the actual cause of
+            // that failure, so this still needs real-device verification via a debug build
+            // before shipping in a release - VideoUtils.getScaledVideo() already treats any
+            // exception as "give up and send the original bytes unmodified" per its class doc,
+            // so a still-broken transcoder degrades back to today's send-at-full-size behavior
+            // rather than producing a corrupt attachment.
             parts += attachments
                 // filter in non-images only
                 .filter { !it.isImage(context) }
                 // filter in only items that exist (user may have deleted the file)
                 .filter { it.uri.resourceExists(context) }
                 .map {
-                    remainingBytes -= it.getResourceBytes(context).size
+                    val bytes = when {
+                        it.isVideo(context) && it.getSize(context) > remainingBytes ->
+                            tryOrNull(false) {
+                                VideoUtils.getScaledVideo(context, it.uri, remainingBytes.toLong())
+                            } ?: it.getResourceBytes(context)
+
+                        else -> it.getResourceBytes(context)
+                    }
+
+                    remainingBytes -= bytes.size
                     val part = com.google.android.mms.MMSPart().apply {
                         MimeType = it.getType(context)
                         Name = it.getName(context)
-                        Data = it.getResourceBytes(context)
+                        Data = bytes
                     }
 
                     // release the attachment hold on the image bytes so the GC can reclaim
