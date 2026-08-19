@@ -62,6 +62,7 @@ import dev.octoshrimpy.quik.receiver.SendDelayedMessageReceiver.Companion.MESSAG
 import dev.octoshrimpy.quik.util.ImageUtils
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
 import dev.octoshrimpy.quik.util.Preferences
+import dev.octoshrimpy.quik.util.VideoUtils
 import dev.octoshrimpy.quik.util.sha256
 import dev.octoshrimpy.quik.util.tryOrNull
 import io.reactivex.Flowable
@@ -477,10 +478,9 @@ open class MessageRepositoryImpl @Inject constructor(
 
             remainingBytes -= body.takeIf { it.isNotEmpty() }?.toByteArray()?.size ?: 0
 
-            // Attach those that can't be compressed (ie. everything but images)
+            // Attach those that truly can't be compressed (ie. everything but images and videos)
             parts += attachments
-                // filter in non-images only
-                .filter { !it.isImage(context) }
+                .filter { !it.isImage(context) && !it.isVideo(context) }
                 // filter in only items that exist (user may have deleted the file)
                 .filter { it.uri.resourceExists(context) }
                 .map {
@@ -496,6 +496,57 @@ open class MessageRepositoryImpl @Inject constructor(
 
                     part
                 }
+
+            // Videos are always attached at their original size (no compression, unlike
+            // images), so an oversized video would silently get sent as-is and left for the
+            // carrier's own MMSC to re-transcode - usually at much worse quality than we can
+            // manage ourselves, which is the actual cause of "pixelated" MMS video. Only
+            // touch a video if it doesn't already fit its share of what's left, same rule the
+            // image compressor follows.
+            val videoAttachments = attachments
+                .filter { it.isVideo(context) }
+                .filter { it.uri.resourceExists(context) }
+
+            if (videoAttachments.isNotEmpty()) {
+                val videoSizes = videoAttachments.associateWith { it.getSize(context) }
+                val totalVideoBytes = videoSizes.values.sum()
+                val videoBudgetBytes = remainingBytes.coerceAtMost(totalVideoBytes.toDouble())
+                remainingBytes -= totalVideoBytes
+
+                parts += videoAttachments.map { attachment ->
+                    val originalSize = videoSizes.getValue(attachment)
+                    val shareOfBudget = if (totalVideoBytes > 0) {
+                        (originalSize.toDouble() / totalVideoBytes) * videoBudgetBytes
+                    } else 0.0
+
+                    // VideoUtils always writes an MP4 container, regardless of the source
+                    // format, so the mime type/filename need to reflect that when it actually
+                    // ran - otherwise a transcoded .mov/.3gp would be mislabeled and could fail
+                    // to parse on the receiving end
+                    val transcodedBytes = (originalSize > shareOfBudget).let { needsCompression ->
+                        if (!needsCompression) null
+                        else tryOrNull(true) {
+                            VideoUtils.getScaledVideo(context, attachment.uri, shareOfBudget.toLong())
+                        }
+                    }
+
+                    val part = com.google.android.mms.MMSPart().apply {
+                        if (transcodedBytes != null) {
+                            MimeType = ContentType.VIDEO_MP4
+                            Name = attachment.getName(context).substringBeforeLast('.') + ".mp4"
+                            Data = transcodedBytes
+                        } else {
+                            MimeType = attachment.getType(context)
+                            Name = attachment.getName(context)
+                            Data = attachment.getResourceBytes(context)
+                        }
+                    }
+
+                    attachment.releaseResourceBytes()
+
+                    part
+                }
+            }
 
             val imageBytesByAttachment = attachments
                 // filter in images only

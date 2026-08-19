@@ -33,6 +33,7 @@ import dev.octoshrimpy.quik.extensions.isAudio
 import dev.octoshrimpy.quik.extensions.isContact
 import dev.octoshrimpy.quik.extensions.isImage
 import dev.octoshrimpy.quik.extensions.isVCard
+import dev.octoshrimpy.quik.extensions.isVideo
 
 
 class Attachment (
@@ -56,6 +57,8 @@ class Attachment (
     fun isAudio(context: Context): Boolean = uri.isAudio(context)
 
     fun isImage(context: Context): Boolean = uri.isImage(context)
+
+    fun isVideo(context: Context): Boolean = uri.isVideo(context)
 
     fun getType(context: Context): String = uri.getType(context)
 
