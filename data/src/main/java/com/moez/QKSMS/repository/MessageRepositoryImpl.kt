@@ -202,7 +202,11 @@ open class MessageRepositoryImpl @Inject constructor(
         // fileDateAndTime is divided by 1000 in order to remove the extra 0's after date and time
         // This way the file name isn't so long.
         val fileDateAndTime = (part.messages?.first()?.date)?.div(1000)
-        val fileName = "FoxholeMessages_${part.type.split("/").last()}_$fileDateAndTime.$extension"
+        // part.id makes this unique per-attachment - without it, every picture/video in the same
+        // MMS message (same parent message date) generated the identical filename, so saving
+        // several of them at once (eg. "Save all to gallery") raced on the same MediaStore row
+        // instead of creating separate files.
+        val fileName = "FoxholeMessages_${part.type.split("/").last()}_${fileDateAndTime}_${part.id}.$extension"
 
         val values = contentValuesOf(
             MediaStore.MediaColumns.DISPLAY_NAME to fileName,
