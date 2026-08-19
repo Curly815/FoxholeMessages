@@ -239,7 +239,14 @@ object VideoUtils {
                 while (true) {
                     val sampleSize = extractor.readSampleData(audioBuffer, 0)
                     if (sampleSize < 0) break
-                    audioBufferInfo.set(0, sampleSize, extractor.sampleTime, extractor.sampleFlags)
+                    // MediaExtractor.SAMPLE_FLAG_* and MediaCodec.BUFFER_FLAG_* are different,
+                    // unrelated namespaces that happen to share bit values (eg. both define bit
+                    // 1) - translate rather than pass the raw int through, which could mislabel
+                    // a sample (eg. SAMPLE_FLAG_ENCRYPTED getting read as BUFFER_FLAG_CODEC_CONFIG)
+                    val flags = if (extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) {
+                        MediaCodec.BUFFER_FLAG_SYNC_FRAME
+                    } else 0
+                    audioBufferInfo.set(0, sampleSize, extractor.sampleTime, flags)
                     muxer.writeSampleData(muxerAudioTrack, audioBuffer, audioBufferInfo)
                     extractor.advance()
                 }
