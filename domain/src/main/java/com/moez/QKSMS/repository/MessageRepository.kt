@@ -60,6 +60,12 @@ interface MessageRepository {
 
     fun getPartsForConversation(threadId: Long): RealmResults<MmsPart>
 
+    // Queries MmsPart by its own messageId field directly, rather than via Message.parts -
+    // that RealmList forward-link was found (via device log) to sometimes be empty even when
+    // MmsPart rows with a matching messageId genuinely exist, so anything that needs a
+    // message's actual parts reliably should use this instead of Message.parts.
+    fun getPartsForMessage(messageId: Long): RealmResults<MmsPart>
+
     fun savePart(id: Long): Uri?
 
     fun getUnreadUnseenMessages(threadId: Long): RealmResults<Message>

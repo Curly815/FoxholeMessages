@@ -605,17 +605,16 @@ class ComposeViewModel @Inject constructor(
                 val part = menuInfo.viewHolderValue ?: return@subscribe
                 val message = messageRepo.getMessage(part.messageId)
 
-                // A device log showed the previous version of this (which excluded only isSmil()
-                // parts from the "no other content" check) still only grouped the one
-                // long-pressed message. Best diagnosis without further log evidence: many MMS
-                // messages carry an empty "text/plain" part as a structural artifact of the
-                // format even with no visible caption, which the old check would have counted as
-                // disqualifying "other content" - so blank text parts are now ignored here too,
-                // the same way hasNonWhitespaceText() already treats them. Logged per-message so
-                // if this is still wrong, the next log shows exactly which check failed instead
-                // of needing another guess.
+                // A device log proved candidate.parts (Message's RealmList forward-link) is not
+                // reliable - it came back empty for the anchor message itself, even though a
+                // real MmsPart row with a matching messageId provably existed (that exact photo
+                // had just been saved via "Save"). Every parts lookup in this block now goes
+                // through messageRepo.getPartsForMessage(), which queries MmsPart.messageId
+                // directly instead of trusting that relationship. Logged per-message so if this
+                // is still wrong, the next log shows exactly which check failed.
                 fun isGroupable(candidate: Message): Boolean {
-                    val meaningfulParts = candidate.parts.filter { p ->
+                    val candidateParts = messageRepo.getPartsForMessage(candidate.id)
+                    val meaningfulParts = candidateParts.filter { p ->
                         !p.isSmil() && !(p.type.lowercase() == "text/plain" && p.text.isNullOrBlank())
                     }
                     val sameSender = message != null && candidate.isMe() == message.isMe() &&
@@ -626,7 +625,7 @@ class ComposeViewModel @Inject constructor(
                     if (!groupable) {
                         Timber.v("save_all: message ${candidate.id} not groupable with " +
                             "${message?.id} - sameSender=$sameSender mediaOnly=$mediaOnly " +
-                            "parts=${candidate.parts.map { p -> p.type }}")
+                            "parts=${candidateParts.map { p -> p.type }}")
                     }
                     return groupable
                 }
@@ -647,7 +646,7 @@ class ComposeViewModel @Inject constructor(
                 }
 
                 val partIds = group
-                    .flatMap { m -> m.parts.filter { p -> p.isImage() || p.isVideo() } }
+                    .flatMap { m -> messageRepo.getPartsForMessage(m.id).filter { p -> p.isImage() || p.isVideo() } }
                     .map { p -> p.id }
                     .takeIf { it.isNotEmpty() }
                     ?: listOf(part.id)
