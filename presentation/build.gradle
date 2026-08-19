@@ -134,11 +134,11 @@ dependencies {
     implementation "com.github.bumptech.glide:glide:$glide_version"
     kapt "com.github.bumptech.glide:compiler:$glide_version"
 
-    // exoplayer
-    implementation "com.github.google.ExoPlayer:exoplayer-core:$exoplayer_version"
-    implementation("com.github.google.ExoPlayer:exoplayer-ui:$exoplayer_version", {
-        exclude group: "com.android.support", module: "support-media-compat"
-    })
+    // exoplayer - was pinned to the old JitPack-distributed r2.9.0 (2018), which rendered some
+    // modern phone video noticeably worse than other players. Moved to the official Google
+    // Maven artifact at the last ExoPlayer 2.x release before the project moved to Media3.
+    implementation "com.google.android.exoplayer:exoplayer-core:$exoplayer_version"
+    implementation "com.google.android.exoplayer:exoplayer-ui:$exoplayer_version"
 
     // rxbinding
     implementation "com.jakewharton.rxbinding2:rxbinding-kotlin:$rxbinding_version"
