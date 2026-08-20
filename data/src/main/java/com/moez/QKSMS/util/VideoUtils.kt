@@ -72,14 +72,11 @@ object VideoUtils {
         // is 23, and calling a framework method the OS doesn't have throws NoSuchMethodError at
         // runtime rather than failing to compile, so release() is used explicitly instead.
         val retriever = MediaMetadataRetriever()
-        val (durationMs, rotation) = try {
+        val durationMs = try {
             retriever.setDataSource(context, uri)
-            val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                     ?.toLongOrNull()?.takeIf { it > 0 }
                     ?: throw IllegalStateException("could not read video duration")
-            val rot = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
-                    ?.toIntOrNull() ?: 0
-            duration to rot
         } finally {
             retriever.release()
         }
@@ -97,6 +94,19 @@ object VideoUtils {
         val sourceWidth = sourceFormat.getInteger(MediaFormat.KEY_WIDTH)
         val sourceHeight = sourceFormat.getInteger(MediaFormat.KEY_HEIGHT)
         val frameRate = tryOrNull(false) { sourceFormat.getInteger(MediaFormat.KEY_FRAME_RATE) } ?: 30
+
+        // Read rotation from this same track format rather than a second, independent
+        // MediaMetadataRetriever.extractMetadata(METADATA_KEY_VIDEO_ROTATION) pass - device
+        // testing found a real video where those two disagreed: the retriever reported a 90
+        // degree rotation that didn't match the source's actual pixel content (confirmed by
+        // decoding the frames both ways - un-rotated was the correct, normally-proportioned
+        // picture; rotated squished it into an impossible portrait strip). "rotation-degrees" is
+        // the same string key MediaFormat.KEY_ROTATION wraps (that constant needs API 30, but the
+        // key itself works fine down to this app's minSdk 23 - it's just not present on every
+        // format, hence the default), and reading it from the exact same format object already
+        // used for width/height keeps rotation self-consistent with everything else this method
+        // derives from the source, instead of trusting a second, separately-parsed metadata path.
+        val rotation = tryOrNull(false) { sourceFormat.getInteger("rotation-degrees") } ?: 0
 
         // Reserve a rough share of the budget for the (untouched) audio track and container
         // overhead, same "leave some wiggle room" idea the image compressor uses.
