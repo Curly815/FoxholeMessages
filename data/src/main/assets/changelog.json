@@ -1,5 +1,21 @@
 [
   {
+    "versionCode": 2253,
+    "versionName": "2.1.0",
+    "added": [
+      "The unread indicator on each conversation is now a number showing how many unread messages there are, instead of just a plain dot"
+    ],
+    "fixed": [
+      "The app closing after receiving several texts in a row - a threading bug in the new unread-count indicator",
+      "MMS videos sending sideways or stretched - the video's own rotation info was wrong and was being applied blindly instead of checked against the actual picture",
+      "MMS video compression now checks the actual output size and automatically retries at a lower bitrate/resolution if it's still too large, instead of trusting a single estimate"
+    ],
+    "improved": [
+      "MMS video quality: audio is now compressed sensibly instead of carried over untouched at a needlessly high bitrate, freeing up more of the size budget for the video itself",
+      "MMS video encoding uses a more efficient video profile and far fewer redundant keyframes, improving picture quality at the same file size"
+    ]
+  },
+  {
     "versionCode": 2252,
     "versionName": "2.0.2",
     "fixed": [

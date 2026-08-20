@@ -1,0 +1,6 @@
+What's new in 2.1.0:
+- Added: unread count on each conversation is now a number, not just a dot
+- Fixed: app closing after receiving several texts in a row
+- Fixed: MMS videos sending sideways/stretched
+- Fixed: video compression now retries automatically if still too large
+- Improved: better MMS video quality (smarter audio compression, more efficient video encoding)
