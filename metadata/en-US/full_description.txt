@@ -1,17 +1,30 @@
-Foxhole Messages is an open source replacement for the stock SMS/MMS app on Android — a modified version of QUIK, itself a revival of QKSMS. No ads, no trackers.
+Foxhole Messages is a full replacement for your phone's stock texting app — open source, built on the QUIK/QKSMS lineage, with no ads, no trackers, and no data collection. It reads your messages so it can show them to you, full stop. Nothing about how you text leaves your device except the messages you're actually sending.
 
-Features:
+Here's what matters most: plenty of messaging apps quietly lock basic stuff — themes, backups, scheduled sends, a decent inbox — behind a subscription or a one-time unlock. Foxhole Messages doesn't, and it never will. Every feature below is included for every person who installs this app, permanently — no "Pro" version hiding around the corner. If you like the app and want to say thanks, there's a Venmo link under Settings → About. All I'm asking for is enough to keep me stocked on energy drinks while I keep improving this thing — no subscription, no nagging popups, nothing held hostage until you pay. Just an honest way to chip in if you feel like it.
 
-- Message Sorting: incoming messages are automatically categorized as Personal, Transactional, or Promotional, with a tabbed inbox to browse each category and a starred tab for messages you flag yourself
-- Link previews: messages containing a URL show a thumbnail, title, and description
-- Scheduled messages: write now, send later
-- Message backup and restore
-- Speech to text and text to speech, built in
-- Message blocking and archiving
-- Voice messages
-- Attachments of any file type
-- Delayed sending
-- OTP message retention: choose how long verification code messages are kept before they're deleted automatically
-- Custom themes, dark mode, and per-conversation notification settings
+WHAT'S INSIDE
 
-Foxhole Messages needs SMS, MMS, and Contacts permissions to work as your default messaging app. It does not collect or share your messages, contacts, or usage data.
+Inbox that organizes itself
+Incoming messages are automatically sorted into Personal, Transactions, and Promotions tabs, so a group chat, a delivery notification, and a marketing blast don't all pile into one list. There's a Starred tab for anything you flag yourself, and you can rename tabs however you like. Move a conversation into a different tab and Foxhole Messages remembers — future messages from that sender land there automatically. Pin, archive, and search across everything.
+
+Nothing disappears by accident
+Delete a message and it goes to Trash, not the void — restore it within 30 days, or clear it yourself if you're sure. Full backup and restore covers both SMS and MMS, attachments included, triggered whenever you decide to run it — never silently in the background.
+
+Smart about the annoying stuff
+Set how long OTP verification codes stick around before auto-deleting, from never to 30 days. Text with iPhone users or anyone on Google Messages? Those awkward "Loved 'hey are you coming'" texts that tapback reactions turn into over plain SMS get recognized and shown as an actual inline reaction on the original message instead. Links get a real preview — thumbnail, title, description — respecting your own link-handling privacy setting. Block unwanted senders, and schedule a message now to send itself later.
+
+Built for actually talking to people
+Send voice messages, attach any file type, dictate texts with speech-to-text, or have messages read aloud. Reply straight from a notification popup, or reply and mark things read from your Wear OS watch.
+
+Made to fit how you use your phone
+Real dark mode and custom themes, not just an inverted color scheme. Pinch-to-zoom the message thread to whatever text size works for your eyes, beyond the built-in size steps. Per-conversation notification settings, so the group chat that never stops doesn't buzz your phone the same way a text from your kid does.
+
+AN HONEST CAVEAT ABOUT VIDEO
+
+Video attachments sent over MMS are capped by your carrier at a tiny size — usually around 1MB, a limit every texting app on Android runs into, not something specific to this one. Foxhole Messages compresses video as intelligently as it can to fit that ceiling, but expect a real, visible drop in quality versus the original clip — that's the protocol's fault, not a bug I can code my way around. Everything else — messaging, backups, sorting, scheduling, every other kind of attachment — is solid and dependable. Video is the one place where "it's MMS's fault" is actually true.
+
+FEEDBACK
+
+Got an idea for something the app should do that it doesn't yet? Leave it in a review. I read every one, and I'll look into whether it's something I can build — no promises it'll happen, but it won't be ignored.
+
+Foxhole Messages needs SMS, MMS, and Contacts permissions to work as your default messaging app, and nothing more. It does not collect, sell, or share your messages, contacts, or usage — with anyone.
