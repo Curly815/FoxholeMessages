@@ -92,7 +92,18 @@ object VideoUtils {
         // own fresh MediaExtractor rather than reusing this one, since a retry needs to re-read
         // the source from the beginning and resetting an already-consumed extractor's read
         // position/track selection correctly is more fragile than just reopening it.
-        val (videoTrack, audioTrack, sourceFormat, sourceWidth, sourceHeight, frameRate, rotation) =
+        //
+        // Deliberately does NOT read/apply the source's rotation metadata at all (earlier
+        // versions of this method did, first via MediaMetadataRetriever, then via this same
+        // extractor's "rotation-degrees" format key - both agreed, so this was never actually an
+        // API-disagreement bug as first suspected). Confirmed via two separate real device-shot
+        // videos: each declared a 90 degree rotation that directly contradicted its own pixel
+        // content - decoding the frames both ways showed the UN-rotated buffer was the correct,
+        // normally-proportioned picture, while applying the declared rotation squished it into an
+        // impossible portrait strip. Since this reproduced identically on two different clips
+        // from the same device, the rotation tag itself is untrustworthy here, not just one bad
+        // file - so this method now always passes the raw decoded orientation through unchanged.
+        val (videoTrack, audioTrack, sourceFormat, sourceWidth, sourceHeight, frameRate) =
                 MediaExtractor().let { extractor ->
                     try {
                         extractor.setDataSource(context, uri, null)
@@ -108,25 +119,9 @@ object VideoUtils {
                         val frameRate =
                                 tryOrNull(false) { sourceFormat.getInteger(MediaFormat.KEY_FRAME_RATE) } ?: 30
 
-                        // Read rotation from this same track format rather than a second,
-                        // independent MediaMetadataRetriever.extractMetadata
-                        // (METADATA_KEY_VIDEO_ROTATION) pass - device testing found a real video
-                        // where those two disagreed: the retriever reported a 90 degree rotation
-                        // that didn't match the source's actual pixel content (confirmed by
-                        // decoding the frames both ways - un-rotated was the correct, normally-
-                        // proportioned picture; rotated squished it into an impossible portrait
-                        // strip). "rotation-degrees" is the same string key MediaFormat.KEY_ROTATION
-                        // wraps (that constant needs API 30, but the key itself works fine down to
-                        // this app's minSdk 23 - it's just not present on every format, hence the
-                        // default), and reading it from the exact same format object already used
-                        // for width/height keeps rotation self-consistent with everything else this
-                        // method derives from the source, instead of trusting a second, separately-
-                        // parsed metadata path.
-                        val rotation = tryOrNull(false) { sourceFormat.getInteger("rotation-degrees") } ?: 0
-
                         VideoSourceInfo(
                                 videoTrack, audioTrack, sourceFormat,
-                                sourceWidth, sourceHeight, frameRate, rotation
+                                sourceWidth, sourceHeight, frameRate
                         )
                     } finally {
                         extractor.release()
@@ -165,7 +160,7 @@ object VideoUtils {
                 attemptExtractor.setDataSource(context, uri, null)
                 transcode(
                         attemptExtractor, videoTrack, audioTrack, sourceFormat,
-                        targetWidth, targetHeight, targetBitrate, frameRate, rotation,
+                        targetWidth, targetHeight, targetBitrate, frameRate,
                         outputFile.absolutePath
                 )
                 bytes = outputFile.readBytes()
@@ -222,8 +217,7 @@ object VideoUtils {
         val sourceFormat: MediaFormat,
         val sourceWidth: Int,
         val sourceHeight: Int,
-        val frameRate: Int,
-        val rotation: Int
+        val frameRate: Int
     )
 
     private fun MediaFormat.mimeStart(prefix: String) =
@@ -238,7 +232,6 @@ object VideoUtils {
         targetHeight: Int,
         targetBitrate: Int,
         frameRate: Int,
-        rotationDegrees: Int,
         outputPath: String
     ) {
         val encoderFormat = MediaFormat.createVideoFormat("video/avc", targetWidth, targetHeight).apply {
@@ -279,8 +272,9 @@ object VideoUtils {
         decoder.configure(sourceVideoFormat, outputSurface.surface, null, 0)
         decoder.start()
 
+        // No rotation hint is written - see the comment on getScaledVideo()'s source-info read
+        // for why this method deliberately never applies the source's declared rotation.
         val muxer = MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-        if (rotationDegrees != 0) muxer.setOrientationHint(rotationDegrees)
 
         var muxerVideoTrack = -1
         var muxerAudioTrack = -1
