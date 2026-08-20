@@ -238,17 +238,24 @@ object VideoUtils {
             setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
             setInteger(MediaFormat.KEY_BIT_RATE, targetBitrate)
             setInteger(MediaFormat.KEY_FRAME_RATE, frameRate)
-            setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
-            // Explicitly request the most widely-supported H.264 profile/level rather than
-            // leaving it to whatever the device's encoder defaults to (often a higher profile
-            // tuned for quality on typical camera resolutions) - on-device testing saw the app
-            // hard-crash when opening a transcoded video in-app, which an unusual/high profile
-            // at these unusually small target resolutions could plausibly produce a technically
-            // malformed-for-this-decoder stream. Baseline/3.1 comfortably covers resolutions
-            // far larger than this method ever targets. If a specific device's encoder can't
-            // configure with this profile/level, configure() throws, which the caller already
-            // treats as "give up and send the original bytes unmodified" - not a crash risk.
-            setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
+            // Keyframes are far larger than regular frames, and these clips are watched
+            // start-to-finish rather than seeked/scrubbed, so there's no need for more than the
+            // one keyframe every encoder already emits at the start. A 1-second interval (the
+            // previous value) meant 6-7 redundant full-frame refreshes on a 7-second clip, all
+            // eating into an already tiny byte budget instead of going toward picture detail.
+            // 3600s is just "effectively never" without risking overflow in the encoder's
+            // internal frame-count math - MMS clips are always far shorter than that.
+            setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 3600)
+            // Main profile rather than Baseline (this method's previous choice): Baseline was a
+            // defensive move against an in-app crash on transcoded video that was, at the time,
+            // unconfirmed to actually be caused by the profile choice - it's since been root-caused
+            // to an unrelated RecyclerView/Realm bug (see git history), so that restriction was
+            // costing real quality for nothing. Main is still comfortably supported by any device
+            // from roughly the last decade+ and typically encodes 10-20% more efficiently than
+            // Baseline at the same bitrate. If a specific device's encoder can't configure with
+            // this profile/level, configure() throws, which the caller already treats as "give up
+            // and send the original bytes unmodified" - not a crash risk.
+            setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileMain)
             setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel31)
         }
         val encoder = MediaCodec.createEncoderByType("video/avc")
