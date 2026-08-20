@@ -105,6 +105,24 @@ class QKApplication : Application(), HasActivityInjector, HasBroadcastReceiverIn
         // configure timber logging
         Timber.plant(Timber.DebugTree(), fileLoggingTree)
 
+        // FileLoggingTree only ever sees what's explicitly logged via Timber - an actual fatal
+        // crash goes straight to the system's default handler and kills the process without
+        // ever being logged, so exported logs never show why the app closed. Hook in a global
+        // handler that logs the crash first (FileLoggingTree writes asynchronously via
+        // Schedulers.io(), so give it a moment to flush before actually dying) and then defers
+        // to the previous default handler so normal crash/ANR reporting still happens.
+        val defaultExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                Timber.e(throwable, "FATAL EXCEPTION on thread ${thread.name}")
+                Thread.sleep(500)
+            } catch (e: Throwable) {
+                // never let the crash handler itself throw
+            } finally {
+                defaultExceptionHandler?.uncaughtException(thread, throwable)
+            }
+        }
+
         // configure emoji compatibility with bundled package
         // (bundled library works with no play-services/gsm os versions)
         EmojiCompat.init(BundledEmojiCompatConfig(this)
