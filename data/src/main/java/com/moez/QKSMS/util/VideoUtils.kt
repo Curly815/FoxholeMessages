@@ -114,19 +114,21 @@ object VideoUtils {
         val bitsPerPixel = targetBitrate.toDouble() / (sourceWidth * sourceHeight * frameRate)
         if (bitsPerPixel < MIN_BITS_PER_PIXEL) {
             val scale = sqrt(bitsPerPixel / MIN_BITS_PER_PIXEL)
-            // Round width to the NEAREST multiple of 16 (not down to it) - some hardware
-            // encoders reject arbitrary dimensions - then derive height from width via the
-            // source's exact aspect ratio, rather than rounding width and height independently.
-            // On-device testing showed still-visible stretching after switching independent
-            // rounding to this derive-from-width approach, because rounding down/truncating
-            // (via `it - it % 16`) can lose up to 15px, and at extreme downscales (eg. a 4K
-            // source to a target around 160-300px) that's a large fraction of the whole
-            // dimension - one observed case truncated a derived 171px height down to 160
-            // (-6.4%), enough to be visibly stretched. Rounding to the nearest 16 instead of
-            // always down halves the worst case and removes the systematic downward bias.
-            fun roundToNearest16(px: Int) = (((px + 8) / 16) * 16).coerceAtLeast(16)
-            targetWidth = roundToNearest16((sourceWidth * scale).roundToInt())
-            targetHeight = roundToNearest16((targetWidth.toDouble() * sourceHeight / sourceWidth).roundToInt())
+            // Round width to the nearest multiple of 16 - hardware encoders commonly require
+            // that alignment on the row stride - then derive height from the ROUNDED width via
+            // the source's exact aspect ratio, only rounding it to the nearest EVEN number
+            // (not 16). Two device tests confirmed 16-aligning height too still left a real,
+            // visible stretch (a 3840x2160 source measured 320x176, ~2.3% off true 16:9) simply
+            // because 16 is a coarse grid at this kind of extreme downscale (4K source down to
+            // a ~160-350px target) - the nearest valid 16-multiple can be several percent off
+            // even with correct nearest-rounding. Encoders need width-stride alignment far more
+            // consistently than height alignment, so relaxing height to just "even" removes
+            // most of the remaining error (in that same case, 320x180 is an exact 16:9 match)
+            // while still avoiding an odd height, which some encoders do reject.
+            fun roundToNearest(px: Int, multiple: Int) =
+                    (((px + multiple / 2) / multiple) * multiple).coerceAtLeast(multiple)
+            targetWidth = roundToNearest((sourceWidth * scale).roundToInt(), 16)
+            targetHeight = roundToNearest((targetWidth.toDouble() * sourceHeight / sourceWidth).roundToInt(), 2)
             targetBitrate = ((videoBudgetBytes * 8) / durationSec).toInt().coerceAtLeast(MIN_VIDEO_BITRATE)
         }
 
@@ -170,6 +172,17 @@ object VideoUtils {
             setInteger(MediaFormat.KEY_BIT_RATE, targetBitrate)
             setInteger(MediaFormat.KEY_FRAME_RATE, frameRate)
             setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+            // Explicitly request the most widely-supported H.264 profile/level rather than
+            // leaving it to whatever the device's encoder defaults to (often a higher profile
+            // tuned for quality on typical camera resolutions) - on-device testing saw the app
+            // hard-crash when opening a transcoded video in-app, which an unusual/high profile
+            // at these unusually small target resolutions could plausibly produce a technically
+            // malformed-for-this-decoder stream. Baseline/3.1 comfortably covers resolutions
+            // far larger than this method ever targets. If a specific device's encoder can't
+            // configure with this profile/level, configure() throws, which the caller already
+            // treats as "give up and send the original bytes unmodified" - not a crash risk.
+            setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
+            setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel31)
         }
         val encoder = MediaCodec.createEncoderByType("video/avc")
         encoder.configure(encoderFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
