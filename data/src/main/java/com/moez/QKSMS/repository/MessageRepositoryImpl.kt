@@ -180,9 +180,16 @@ open class MessageRepositoryImpl @Inject constructor(
     // Same filter as getUnreadMessages(threadId) but a count() rather than findAll(), since this
     // is called once per visible conversation row (to show an actual number instead of just a
     // dot) and only needs the count, not the message objects themselves.
+    //
+    // Deliberately no realm.refresh() here (unlike most other methods in this file) - this is
+    // called from ConversationsAdapter.onBindViewHolder(), i.e. potentially while RecyclerView
+    // is mid-layout. refresh() synchronously flushes pending Realm change notifications on this
+    // thread, including the conversation list's own change listener, which calls
+    // notifyItemRangeChanged() back on the same RecyclerView - a reentrant call RecyclerView
+    // throws on if it's still laying out. A freshly-opened Realm.getDefaultInstance() already
+    // reads the latest committed data, so refresh() was redundant here anyway.
     override fun getUnreadCountForConversation(threadId: Long) =
         Realm.getDefaultInstance().use { realm ->
-            realm.refresh()
             realm.where(Message::class.java)
                 .equalTo("read", false)
                 .equalTo("threadId", threadId)
