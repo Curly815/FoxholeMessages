@@ -56,12 +56,19 @@ import kotlin.math.sqrt
  * Every call site MUST treat a thrown exception as "give up and send the original bytes
  * unmodified" - this is real device-only multimedia code that can't be exercised in CI, so it's
  * written to fail loudly rather than risk producing a corrupt attachment.
+ *
+ * [getScaledVideo] verifies the actual output size and retries at a lower bitrate/resolution if
+ * it's still over [maxBytes], instead of trusting the initial bitrate formula's estimate - mirrors
+ * the shrink-and-retry loop [ImageUtils] already uses for images, since real encoders rarely hit
+ * their target bitrate exactly.
  */
 object VideoUtils {
 
     private const val TIMEOUT_US = 10_000L
     private const val MIN_VIDEO_BITRATE = 250_000 // below this, MediaCodec output gets unreliable
     private const val MIN_BITS_PER_PIXEL = 0.6 // floor before we scale resolution down instead
+    private const val MIN_VIDEO_DIMENSION = 96 // floor before we give up shrinking further
+    private const val MAX_ATTEMPTS = 3 // initial pass + up to 2 shrink-and-retry passes
 
     /**
      * Re-encodes the video at [uri] to fit within [maxBytes], returning the new file's bytes.
@@ -81,42 +88,60 @@ object VideoUtils {
             retriever.release()
         }
 
-        val extractor = MediaExtractor()
-        extractor.setDataSource(context, uri, null)
+        // Only used to read track info/format up front - each transcode attempt below opens its
+        // own fresh MediaExtractor rather than reusing this one, since a retry needs to re-read
+        // the source from the beginning and resetting an already-consumed extractor's read
+        // position/track selection correctly is more fragile than just reopening it.
+        val (videoTrack, audioTrack, sourceFormat, sourceWidth, sourceHeight, frameRate, rotation) =
+                MediaExtractor().let { extractor ->
+                    try {
+                        extractor.setDataSource(context, uri, null)
+                        val videoTrack = (0 until extractor.trackCount)
+                                .firstOrNull { extractor.getTrackFormat(it).mimeStart("video/") }
+                                ?: throw IllegalStateException("no video track")
+                        val audioTrack = (0 until extractor.trackCount)
+                                .firstOrNull { extractor.getTrackFormat(it).mimeStart("audio/") }
 
-        val videoTrack = (0 until extractor.trackCount)
-                .firstOrNull { extractor.getTrackFormat(it).mimeStart("video/") }
-                ?: throw IllegalStateException("no video track")
-        val audioTrack = (0 until extractor.trackCount)
-                .firstOrNull { extractor.getTrackFormat(it).mimeStart("audio/") }
+                        val sourceFormat = extractor.getTrackFormat(videoTrack)
+                        val sourceWidth = sourceFormat.getInteger(MediaFormat.KEY_WIDTH)
+                        val sourceHeight = sourceFormat.getInteger(MediaFormat.KEY_HEIGHT)
+                        val frameRate =
+                                tryOrNull(false) { sourceFormat.getInteger(MediaFormat.KEY_FRAME_RATE) } ?: 30
 
-        val sourceFormat = extractor.getTrackFormat(videoTrack)
-        val sourceWidth = sourceFormat.getInteger(MediaFormat.KEY_WIDTH)
-        val sourceHeight = sourceFormat.getInteger(MediaFormat.KEY_HEIGHT)
-        val frameRate = tryOrNull(false) { sourceFormat.getInteger(MediaFormat.KEY_FRAME_RATE) } ?: 30
+                        // Read rotation from this same track format rather than a second,
+                        // independent MediaMetadataRetriever.extractMetadata
+                        // (METADATA_KEY_VIDEO_ROTATION) pass - device testing found a real video
+                        // where those two disagreed: the retriever reported a 90 degree rotation
+                        // that didn't match the source's actual pixel content (confirmed by
+                        // decoding the frames both ways - un-rotated was the correct, normally-
+                        // proportioned picture; rotated squished it into an impossible portrait
+                        // strip). "rotation-degrees" is the same string key MediaFormat.KEY_ROTATION
+                        // wraps (that constant needs API 30, but the key itself works fine down to
+                        // this app's minSdk 23 - it's just not present on every format, hence the
+                        // default), and reading it from the exact same format object already used
+                        // for width/height keeps rotation self-consistent with everything else this
+                        // method derives from the source, instead of trusting a second, separately-
+                        // parsed metadata path.
+                        val rotation = tryOrNull(false) { sourceFormat.getInteger("rotation-degrees") } ?: 0
 
-        // Read rotation from this same track format rather than a second, independent
-        // MediaMetadataRetriever.extractMetadata(METADATA_KEY_VIDEO_ROTATION) pass - device
-        // testing found a real video where those two disagreed: the retriever reported a 90
-        // degree rotation that didn't match the source's actual pixel content (confirmed by
-        // decoding the frames both ways - un-rotated was the correct, normally-proportioned
-        // picture; rotated squished it into an impossible portrait strip). "rotation-degrees" is
-        // the same string key MediaFormat.KEY_ROTATION wraps (that constant needs API 30, but the
-        // key itself works fine down to this app's minSdk 23 - it's just not present on every
-        // format, hence the default), and reading it from the exact same format object already
-        // used for width/height keeps rotation self-consistent with everything else this method
-        // derives from the source, instead of trusting a second, separately-parsed metadata path.
-        val rotation = tryOrNull(false) { sourceFormat.getInteger("rotation-degrees") } ?: 0
+                        VideoSourceInfo(
+                                videoTrack, audioTrack, sourceFormat,
+                                sourceWidth, sourceHeight, frameRate, rotation
+                        )
+                    } finally {
+                        extractor.release()
+                    }
+                }
 
         // Reserve a rough share of the budget for the (untouched) audio track and container
         // overhead, same "leave some wiggle room" idea the image compressor uses.
         val audioBytesEstimate = if (audioTrack != null) (maxBytes * 0.15).toLong() else 0L
         val videoBudgetBytes = ((maxBytes - audioBytesEstimate) * 0.9).toLong().coerceAtLeast(1)
         val durationSec = durationMs / 1000.0
-        var targetBitrate = ((videoBudgetBytes * 8) / durationSec).toInt().coerceAtLeast(MIN_VIDEO_BITRATE)
 
         var targetWidth = sourceWidth
         var targetHeight = sourceHeight
+        var targetBitrate = ((videoBudgetBytes * 8) / durationSec).toInt().coerceAtLeast(MIN_VIDEO_BITRATE)
 
         // If that bitrate is too low for the source resolution to look decent, scale the
         // resolution down instead of just starving the bitrate - mirrors why the image
@@ -124,43 +149,82 @@ object VideoUtils {
         val bitsPerPixel = targetBitrate.toDouble() / (sourceWidth * sourceHeight * frameRate)
         if (bitsPerPixel < MIN_BITS_PER_PIXEL) {
             val scale = sqrt(bitsPerPixel / MIN_BITS_PER_PIXEL)
-            // Round width to the nearest multiple of 16 - hardware encoders commonly require
-            // that alignment on the row stride - then derive height from the ROUNDED width via
-            // the source's exact aspect ratio, only rounding it to the nearest EVEN number
-            // (not 16). Two device tests confirmed 16-aligning height too still left a real,
-            // visible stretch (a 3840x2160 source measured 320x176, ~2.3% off true 16:9) simply
-            // because 16 is a coarse grid at this kind of extreme downscale (4K source down to
-            // a ~160-350px target) - the nearest valid 16-multiple can be several percent off
-            // even with correct nearest-rounding. Encoders need width-stride alignment far more
-            // consistently than height alignment, so relaxing height to just "even" removes
-            // most of the remaining error (in that same case, 320x180 is an exact 16:9 match)
-            // while still avoiding an odd height, which some encoders do reject.
-            fun roundToNearest(px: Int, multiple: Int) =
-                    (((px + multiple / 2) / multiple) * multiple).coerceAtLeast(multiple)
             targetWidth = roundToNearest((sourceWidth * scale).roundToInt(), 16)
             targetHeight = roundToNearest((targetWidth.toDouble() * sourceHeight / sourceWidth).roundToInt(), 2)
-            targetBitrate = ((videoBudgetBytes * 8) / durationSec).toInt().coerceAtLeast(MIN_VIDEO_BITRATE)
         }
 
-        Timber.d("Transcoding video ${sourceWidth}x$sourceHeight -> " +
-                "${targetWidth}x$targetHeight @ ${targetBitrate / 1000}kbps " +
-                "(budget ${maxBytes / 1024}Kb, duration ${durationSec}s)")
+        var bytes = ByteArray(0)
+        for (attempt in 1..MAX_ATTEMPTS) {
+            Timber.d("Transcoding video (attempt $attempt/$MAX_ATTEMPTS) " +
+                    "${sourceWidth}x$sourceHeight -> ${targetWidth}x$targetHeight @ " +
+                    "${targetBitrate / 1000}kbps (budget ${maxBytes / 1024}Kb, duration ${durationSec}s)")
 
-        val outputFile = File.createTempFile("video_compress", ".mp4", context.cacheDir)
-        try {
-            transcode(
-                    extractor, videoTrack, audioTrack, sourceFormat,
-                    targetWidth, targetHeight, targetBitrate, frameRate, rotation,
-                    outputFile.absolutePath
-            )
-            val bytes = outputFile.readBytes()
-            if (bytes.isEmpty()) throw IllegalStateException("transcoded output was empty")
-            return bytes
-        } finally {
-            extractor.release()
-            outputFile.delete()
+            val outputFile = File.createTempFile("video_compress", ".mp4", context.cacheDir)
+            val attemptExtractor = MediaExtractor()
+            try {
+                attemptExtractor.setDataSource(context, uri, null)
+                transcode(
+                        attemptExtractor, videoTrack, audioTrack, sourceFormat,
+                        targetWidth, targetHeight, targetBitrate, frameRate, rotation,
+                        outputFile.absolutePath
+                )
+                bytes = outputFile.readBytes()
+                if (bytes.isEmpty()) throw IllegalStateException("transcoded output was empty")
+            } finally {
+                attemptExtractor.release()
+                outputFile.delete()
+            }
+
+            val atFloor = targetBitrate <= MIN_VIDEO_BITRATE &&
+                    (targetWidth <= MIN_VIDEO_DIMENSION || targetHeight <= MIN_VIDEO_DIMENSION)
+            if (bytes.size <= maxBytes || attempt == MAX_ATTEMPTS || atFloor) {
+                Timber.d("Transcoded video: ${bytes.size / 1024}Kb " +
+                        "(target was ${maxBytes / 1024}Kb) after $attempt attempt(s)")
+                break
+            }
+
+            // Still too big - the bitrate formula above is only an estimate (real encoders
+            // rarely hit their target bitrate exactly, and short clips especially are dominated
+            // by container/keyframe overhead the formula doesn't account for), so verify and
+            // shrink further instead of trusting a single guess. Prefer cutting bitrate first;
+            // once that's floored, cut resolution instead - endlessly starving bitrate at a
+            // fixed resolution is what MIN_BITS_PER_PIXEL/MIN_VIDEO_BITRATE already guard against
+            // above, so the same guard applies here.
+            if (targetBitrate > MIN_VIDEO_BITRATE) {
+                targetBitrate = (targetBitrate * 0.75).toInt().coerceAtLeast(MIN_VIDEO_BITRATE)
+            } else {
+                val scale = sqrt(0.75)
+                targetWidth = roundToNearest((targetWidth * scale).roundToInt(), 16)
+                        .coerceAtLeast(MIN_VIDEO_DIMENSION)
+                targetHeight = roundToNearest((targetWidth.toDouble() * sourceHeight / sourceWidth).roundToInt(), 2)
+                        .coerceAtLeast(MIN_VIDEO_DIMENSION)
+            }
         }
+        return bytes
     }
+
+    // Round width to the nearest multiple of 16 - hardware encoders commonly require that
+    // alignment on the row stride - then derive height from the ROUNDED width via the source's
+    // exact aspect ratio, only rounding it to the nearest EVEN number (not 16). Two device tests
+    // confirmed 16-aligning height too still left a real, visible stretch (a 3840x2160 source
+    // measured 320x176, ~2.3% off true 16:9) simply because 16 is a coarse grid at this kind of
+    // extreme downscale (4K source down to a ~160-350px target) - the nearest valid 16-multiple
+    // can be several percent off even with correct nearest-rounding. Encoders need width-stride
+    // alignment far more consistently than height alignment, so relaxing height to just "even"
+    // removes most of the remaining error (in that same case, 320x180 is an exact 16:9 match)
+    // while still avoiding an odd height, which some encoders do reject.
+    private fun roundToNearest(px: Int, multiple: Int) =
+            (((px + multiple / 2) / multiple) * multiple).coerceAtLeast(multiple)
+
+    private data class VideoSourceInfo(
+        val videoTrack: Int,
+        val audioTrack: Int?,
+        val sourceFormat: MediaFormat,
+        val sourceWidth: Int,
+        val sourceHeight: Int,
+        val frameRate: Int,
+        val rotation: Int
+    )
 
     private fun MediaFormat.mimeStart(prefix: String) =
             getString(MediaFormat.KEY_MIME)?.startsWith(prefix) == true
