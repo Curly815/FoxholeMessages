@@ -1,6 +1,6 @@
 [
   {
-    "versionCode": 2253,
+    "versionCode": 2254,
     "versionName": "2.1.0",
     "added": [
       "The unread indicator on each conversation is now a number showing how many unread messages there are, instead of just a plain dot"
