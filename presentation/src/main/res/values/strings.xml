@@ -108,6 +108,11 @@
         <item quantity="one">Are you sure you would like to delete this conversation?</item>
         <item quantity="other">Are you sure you would like to delete %d conversations?</item>
     </plurals>
+    <string name="dialog_archive_title">Archive</string>
+    <plurals name="dialog_archive_message">
+        <item quantity="one">Archive this conversation?</item>
+        <item quantity="other">Archive %d conversations?</item>
+    </plurals>
     <plurals name="dialog_delete_chat">
         <item quantity="one">Are you sure you would like to delete this message?</item>
         <item quantity="other">Are you sure you would like to delete %d messages?</item>
@@ -307,6 +312,8 @@
     <string name="settings_delayed_title">Delayed sending</string>
     <string name="settings_swipe_actions">Swipe actions</string>
     <string name="settings_swipe_actions_summary">Configure swipe actions for conversations</string>
+    <string name="settings_confirm_archive_title">Confirm before archiving</string>
+    <string name="settings_confirm_archive_summary">Ask before archiving a conversation from a swipe, to prevent accidental archives</string>
 
     <string name="message_sorting_settings_summary">Auto-categorize messages as Personal, Promotional, or Transactional</string>
     <string name="message_sorting_title">Message Sorting</string>
@@ -530,6 +537,7 @@
     <string name="button_continue">Continue</string>
     <string name="button_cancel">Cancel</string>
     <string name="button_delete">Delete</string>
+    <string name="button_archive">Archive</string>
     <string name="button_save">Save</string>
     <string name="button_stop">Stop</string>
     <string name="button_more">More</string>

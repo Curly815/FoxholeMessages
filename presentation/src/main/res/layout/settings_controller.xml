@@ -160,6 +160,14 @@
             app:title="@string/settings_swipe_actions" />
 
         <dev.octoshrimpy.quik.common.widget.PreferenceView
+            android:id="@+id/confirmArchive"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:summary="@string/settings_confirm_archive_summary"
+            app:title="@string/settings_confirm_archive_title"
+            app:widget="@layout/settings_switch_widget" />
+
+        <dev.octoshrimpy.quik.common.widget.PreferenceView
             android:id="@+id/messageSorting"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -110,6 +110,9 @@ class SettingsPresenter @Inject constructor(
         disposables += prefs.pinchToZoom.asObservable()
                 .subscribe { enabled -> newState { copy(pinchToZoomEnabled = enabled) } }
 
+        disposables += prefs.confirmArchive.asObservable()
+                .subscribe { enabled -> newState { copy(confirmArchiveEnabled = enabled) } }
+
         disposables += prefs.systemFont.asObservable()
             .subscribe { enabled -> newState { copy(systemFontEnabled = enabled) } }
 
@@ -192,6 +195,8 @@ class SettingsPresenter @Inject constructor(
                         R.id.textSize -> view.showTextSizePicker()
 
                         R.id.pinchToZoom -> prefs.pinchToZoom.set(!prefs.pinchToZoom.get())
+
+                        R.id.confirmArchive -> prefs.confirmArchive.set(!prefs.confirmArchive.get())
 
                         R.id.autoColor -> {
                             prefs.autoColor.set(!prefs.autoColor.get())

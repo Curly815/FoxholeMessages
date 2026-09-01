@@ -39,6 +39,7 @@ data class SettingsState(
     val textSizeSummary: String = "",
     val textSizeId: Int = Preferences.TEXT_SIZE_NORMAL,
     val pinchToZoomEnabled: Boolean = false,
+    val confirmArchiveEnabled: Boolean = true,
     val systemFontEnabled: Boolean = false,
     val showStt: Boolean = true,
     val showSttOffsetX: Float = Float.MIN_VALUE,

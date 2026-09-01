@@ -551,6 +551,16 @@ class MainViewModel @Inject constructor(
                     view.clearSelection()
                 }
 
+        // Archive the conversation (after confirmation, when "Confirm before archiving" is on)
+        view.confirmArchiveIntent
+                .autoDisposable(view.scope())
+                .subscribe { conversations ->
+                    markArchived.execute(conversations.toList()) {
+                        lastArchivedThreadIds = conversations.toList()
+                        view.showArchivedSnackbar(conversations.size, true)
+                    }
+                }
+
         view.renameConversationIntent
             .withLatestFrom(view.conversationsSelectedIntent) { newConversationName, selectedConversationIds ->
                 Pair(newConversationName, selectedConversationIds.first())
@@ -594,9 +604,13 @@ class MainViewModel @Inject constructor(
                         else prefs.swipeLeft.get()
                     when (action) {
                         Preferences.SWIPE_ACTION_ARCHIVE ->
-                            markArchived.execute(listOf(threadId)) {
-                                lastArchivedThreadIds = listOf(threadId)
-                                view.showArchivedSnackbar(1, true)
+                            if (prefs.confirmArchive.get()) {
+                                view.showArchiveDialog(listOf(threadId))
+                            } else {
+                                markArchived.execute(listOf(threadId)) {
+                                    lastArchivedThreadIds = listOf(threadId)
+                                    view.showArchivedSnackbar(1, true)
+                                }
                             }
                         Preferences.SWIPE_ACTION_DELETE ->
                             view.showDeleteDialog(listOf(threadId))

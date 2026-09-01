@@ -43,7 +43,7 @@ import kotlin.math.min
 class ConversationItemTouchCallback @Inject constructor(
     colors: Colors,
     disposables: CompositeDisposable,
-    prefs: Preferences,
+    private val prefs: Preferences,
     private val context: Context
 ) : ItemTouchHelper.SimpleCallback(0, 0) {
 
@@ -138,9 +138,15 @@ class ConversationItemTouchCallback @Inject constructor(
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
         swipes.onNext(Pair(viewHolder.itemId, direction))
 
-        // This will trigger the animation back to neutral state
+        // This will trigger the animation back to neutral state. Archive is normally exempt
+        // since the swiped-away conversation disappears from the list on its own once actually
+        // archived (via the underlying Realm query, not this animation) - but when "Confirm
+        // before archiving" is on, the archive doesn't happen immediately (the confirmation
+        // dialog decides that), so the row needs to snap back like every other swipe action does
+        // while that dialog is showing.
         val action = if (direction == ItemTouchHelper.RIGHT) rightAction else leftAction
-        if (action != Preferences.SWIPE_ACTION_ARCHIVE) {
+        val archivingImmediately = action == Preferences.SWIPE_ACTION_ARCHIVE && !prefs.confirmArchive.get()
+        if (!archivingImmediately) {
             adapter?.notifyItemChanged(viewHolder.adapterPosition)
         }
     }

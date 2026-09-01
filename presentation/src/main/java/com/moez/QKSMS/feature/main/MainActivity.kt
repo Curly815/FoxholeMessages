@@ -125,6 +125,7 @@ class MainActivity : QkThemedActivity(), MainView {
         Observable.merge(allConversationsAdapters.map { it.selectionChanges })
     }
     override val confirmDeleteIntent: Subject<List<Long>> = PublishSubject.create()
+    override val confirmArchiveIntent: Subject<List<Long>> = PublishSubject.create()
     override val renameConversationIntent: Subject<String> = PublishSubject.create()
     override val moveToIntent: Subject<String> = PublishSubject.create()
     override val swipeConversationIntent by lazy {
@@ -529,6 +530,21 @@ class MainActivity : QkThemedActivity(), MainView {
                 )
             )
             .setPositiveButton(R.string.button_delete) { _, _ -> confirmDeleteIntent.onNext(conversations) }
+            .setNegativeButton(R.string.button_cancel, null)
+            .show()
+    }
+
+    override fun showArchiveDialog(conversations: List<Long>) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_archive_title)
+            .setMessage(
+                resources.getQuantityString(
+                    R.plurals.dialog_archive_message,
+                    conversations.size,
+                    conversations.size
+                )
+            )
+            .setPositiveButton(R.string.button_archive) { _, _ -> confirmArchiveIntent.onNext(conversations) }
             .setNegativeButton(R.string.button_cancel, null)
             .show()
     }

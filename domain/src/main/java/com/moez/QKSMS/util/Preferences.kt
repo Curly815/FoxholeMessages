@@ -130,6 +130,10 @@ class Preferences @Inject constructor(
     val sendDelay = rxPrefs.getInteger("sendDelay", SEND_DELAY_NONE)
     val swipeRight = rxPrefs.getInteger("swipeRight", SWIPE_ACTION_ARCHIVE)
     val swipeLeft = rxPrefs.getInteger("swipeLeft", SWIPE_ACTION_ARCHIVE)
+    // Both swipe directions default to Archive, so a stray/accidental swipe archives a
+    // conversation immediately with no prompt today - defaults to true (on) since this is
+    // specifically meant to prevent that accident, not an opt-in convenience.
+    val confirmArchive = rxPrefs.getBoolean("confirmArchive", true)
     val autoEmoji = rxPrefs.getBoolean("autoEmoji", true)
     val delivery = rxPrefs.getBoolean("delivery", false)
     val signature = rxPrefs.getString("signature", "")
