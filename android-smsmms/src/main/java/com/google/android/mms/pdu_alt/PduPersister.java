@@ -428,10 +428,18 @@ public class PduPersister {
 
                 // For images/audio/video, we won't keep their data in Part
                 // because their renderer accept Uri as source.
+                // Not calling ContentType.isImageType/isAudioType/isVideoType(): on some
+                // devices the OS ships its own internal com.google.android.mms.ContentType
+                // class in framework.jar with the same fully-qualified name as this app's
+                // vendored one, and parent-first classloader delegation makes these calls
+                // resolve to the framework's (incompatible) version, throwing
+                // NoSuchMethodError. Inlined equivalents avoid touching that class at all.
                 String type = toIsoString(contentType);
-                if (!ContentType.isImageType(type)
-                        && !ContentType.isAudioType(type)
-                        && !ContentType.isVideoType(type)) {
+                boolean isMediaType = type != null
+                        && (type.startsWith("image/")
+                                || type.startsWith("audio/")
+                                || type.startsWith("video/"));
+                if (!isMediaType) {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     InputStream is = null;
 

@@ -23,11 +23,19 @@ import dev.octoshrimpy.quik.model.MmsPart
 
 fun MmsPart.isSmil() = ContentType.APP_SMIL.lowercase() == type.lowercase()
 
-fun MmsPart.isImage() = ContentType.isImageType(type.lowercase())
+// Deliberately not calling ContentType.isImageType/isVideoType/isAudioType(): on some
+// devices the OS ships its own internal com.google.android.mms.ContentType class in
+// framework.jar with the exact same fully-qualified name as this app's vendored one, and
+// due to parent-first classloader delegation the app's calls resolve to the framework's
+// (different, incompatible) version instead of the app's own, throwing NoSuchMethodError.
+// The String constants (APP_SMIL/TEXT_PLAIN/TEXT_VCARD below) are safe since Kotlin inlines
+// compile-time-constant Java static final fields at compile time, never touching the class
+// at runtime — only the method calls are affected, so only those are reimplemented inline.
+fun MmsPart.isImage() = type.lowercase().startsWith("image/")
 
-fun MmsPart.isVideo() = ContentType.isVideoType(type.lowercase())
+fun MmsPart.isVideo() = type.lowercase().startsWith("video/")
 
-fun MmsPart.isAudio() = ContentType.isAudioType(type.lowercase())
+fun MmsPart.isAudio() = type.lowercase().startsWith("audio/")
 
 fun MmsPart.isText() = ContentType.TEXT_PLAIN.lowercase() == type.lowercase()
 

@@ -64,17 +64,23 @@ public class SmilHelper {
                         ELEMENT_TAG_TEXT, document, part.generateLocation());
                 par.appendChild(textElement);
                 hasText = true;
-            } else if (ContentType.isImageType(contentType)) {
+                // Not calling ContentType.isImageType/isVideoType/isAudioType(): on some
+                // devices the OS ships its own internal com.google.android.mms.ContentType
+                // class in framework.jar with the same fully-qualified name as this app's
+                // vendored one, and parent-first classloader delegation makes these calls
+                // resolve to the framework's (incompatible) version, throwing
+                // NoSuchMethodError. Inlined startsWith checks avoid touching that class.
+            } else if (contentType.startsWith("image/")) {
                 SMILMediaElement imageElement = createMediaElement(
                         ELEMENT_TAG_IMAGE, document, part.generateLocation());
                 par.appendChild(imageElement);
                 hasMedia = true;
-            } else if (ContentType.isVideoType(contentType)) {
+            } else if (contentType.startsWith("video/")) {
                 SMILMediaElement videoElement = createMediaElement(
                         ELEMENT_TAG_VIDEO, document, part.generateLocation());
                 par.appendChild(videoElement);
                 hasMedia = true;
-            } else if (ContentType.isAudioType(contentType)) {
+            } else if (contentType.startsWith("audio/")) {
                 SMILMediaElement audioElement = createMediaElement(
                         ELEMENT_TAG_AUDIO, document, part.generateLocation());
                 par.appendChild(audioElement);
