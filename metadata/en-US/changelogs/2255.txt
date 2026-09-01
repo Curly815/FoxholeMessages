@@ -1,0 +1,3 @@
+What's new in 2.2.0:
+- Added: "Confirm before archiving" setting (on by default) to prevent accidentally archiving a conversation from a stray swipe
+- Improved: release builds are now properly obfuscated/shrunk again, addressing a Google Play compliance flag

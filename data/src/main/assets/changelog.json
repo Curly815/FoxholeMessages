@@ -1,5 +1,15 @@
 [
   {
+    "versionCode": 2255,
+    "versionName": "2.2.0",
+    "added": [
+      "Confirm before archiving: a new setting (on by default) that asks before archiving a conversation from a swipe, to prevent accidentally archiving one from a stray swipe"
+    ],
+    "improved": [
+      "The app is now properly obfuscated/shrunk in release builds again - a leftover blanket exemption meant it was shipping essentially unobfuscated, flagged by Google Play as a compliance risk"
+    ]
+  },
+  {
     "versionCode": 2254,
     "versionName": "2.1.0",
     "added": [
