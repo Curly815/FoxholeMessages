@@ -149,6 +149,14 @@ class ContactRepositoryImpl @Inject constructor(
     }
 
     override fun isContact(address: String): Boolean {
+        // A blank address appends nothing to the lookup path, producing a malformed URI
+        // ("content://com.android.contacts/phone_lookup/") that the contacts provider rejects with
+        // an IllegalArgumentException rather than an empty result. MMS messages routinely carry a
+        // blank address, so this has to be handled here rather than at every call site.
+        if (address.isBlank()) {
+            return false
+        }
+
         val uri : Uri
         if (address.contains('@')) {
             uri = Uri.withAppendedPath(Email.CONTENT_FILTER_URI, Uri.encode(address))

@@ -34,11 +34,24 @@ class MessageCategoryBackfill @Inject constructor(
 ) {
 
     fun run(onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }): Int {
+        val categorizer = messageCategorizer.bulkCategorizer()
+        var failures = 0
+
+        // Per-message isolation, matching what ReceiveSmsWorker already does on the live path: one
+        // message that can't be classified must not abandon the whole run, or a single bad row
+        // leaves every remaining message uncategorized and every conversation stuck in Personal.
         val total = messageRepo.categorizeUnclassifiedMessages(
-            categorize = { address, body -> messageCategorizer.categorize(address, body).name },
+            categorize = { address, body ->
+                try {
+                    categorizer(address, body).name
+                } catch (e: Exception) {
+                    failures++
+                    Category.UNCLASSIFIED.name
+                }
+            },
             onProgress = onProgress
         )
-        Timber.d("Categorized $total messages")
+        Timber.d("Categorized $total messages ($failures failed, left unclassified)")
 
         // Live receipt (ReceiveSmsWorker/ReceiveMmsWorker) tags isOtp as each message arrives, but
         // this backfill only ever set category - any message that got its category here rather

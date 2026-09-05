@@ -37,26 +37,71 @@ class MessageCategorizer @Inject constructor(
     private val classifier: MessageClassifier
 ) {
 
-    fun categorize(address: String, body: String): Category {
-        if (trustedSenderRepo.isTrusted(address)) {
+    fun categorize(address: String, body: String): Category = categorize(
+        body,
+        isTrusted = { trustedSenderRepo.isTrusted(address) },
+        rule = { ruleOf(address) },
+        isContact = { contactsRepo.isContact(address) }
+    )
+
+    /**
+     * Returns a categorize function with the per-address lookups memoized, for classifying a large
+     * batch at once. Only the body-dependent keyword classification then runs per message; the
+     * sender lookups - one of which is a cross-process query to the contacts provider - run once
+     * per distinct address instead of once per message. That matters because a whole thread's
+     * worth of messages share one address, so a backfill over a full history would otherwise
+     * repeat the same provider query thousands of times.
+     *
+     * The memo lives only as long as the returned function, so it cannot go stale against contact
+     * or rule changes the way caching on this shared instance would.
+     */
+    fun bulkCategorizer(): (address: String, body: String) -> Category {
+        val trusted = HashMap<String, Boolean>()
+        val rules = HashMap<String, Category?>()
+        val contacts = HashMap<String, Boolean>()
+
+        return { address, body ->
+            categorize(
+                body,
+                isTrusted = { trusted.getOrPut(address) { trustedSenderRepo.isTrusted(address) } },
+                rule = {
+                    if (rules.containsKey(address)) rules[address]
+                    else ruleOf(address).also { rules[address] = it }
+                },
+                isContact = { contacts.getOrPut(address) { contactsRepo.isContact(address) } }
+            )
+        }
+    }
+
+    // Lookups stay behind lambdas so the short-circuits hold: a trusted sender never triggers a
+    // rule or contacts lookup, and a sender with a rule never triggers a contacts lookup.
+    private inline fun categorize(
+        body: String,
+        isTrusted: () -> Boolean,
+        rule: () -> Category?,
+        isContact: () -> Boolean
+    ): Category {
+        if (isTrusted()) {
             return Category.PERSONAL
         }
 
-        val rule = senderRuleRepo.getRule(address)
-        if (rule != null) {
-            return try {
-                Category.valueOf(rule.category)
-            } catch (e: IllegalArgumentException) {
-                Category.UNCLASSIFIED
-            }
-        }
+        rule()?.let { return it }
 
         val category = classifier.classify(body)
-        return if (contactsRepo.isContact(address) && category != Category.TRANSACTIONAL) {
+        return if (isContact() && category != Category.TRANSACTIONAL) {
             Category.PERSONAL
         } else {
             category
         }
     }
+
+    private fun ruleOf(address: String): Category? =
+        senderRuleRepo.getRule(address)?.let { rule ->
+            try {
+                Category.valueOf(rule.category)
+            } catch (e: IllegalArgumentException) {
+                Category.UNCLASSIFIED
+            }
+        }
 
 }

@@ -1252,10 +1252,15 @@ open class MessageRepositoryImpl @Inject constructor(
         var processed = 0
 
         pending.chunked(500).forEach { chunk ->
+            // Categorizing reaches the contacts provider, so resolve the whole chunk before
+            // opening the write transaction rather than holding Realm's write lock across
+            // cross-process queries.
+            val categorized = chunk.map { message ->
+                message to categorize(message.address, message.getText())
+            }
+
             realm.executeTransaction {
-                chunk.forEach { message ->
-                    message.category = categorize(message.address, message.getText())
-                }
+                categorized.forEach { (message, category) -> message.category = category }
             }
 
             processed += chunk.size
