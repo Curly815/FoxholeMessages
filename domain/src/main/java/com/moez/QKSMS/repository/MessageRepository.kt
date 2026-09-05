@@ -131,15 +131,19 @@ interface MessageRepository {
 
     fun getUnclassifiedMessages(): RealmResults<Message>
 
-    fun getMessagesMissingOtpTag(): RealmResults<Message>
+    /**
+     * Runs [isOtp] over the body of every message not already tagged as an OTP, tagging the ones
+     * that match, and returns how many were tagged. Done in one pass on a single Realm instance
+     * rather than by handing back ids for the caller to re-fetch one at a time - the untagged set
+     * is effectively the whole message history, so a per-message lookup never finishes.
+     */
+    fun tagOtpMessages(isOtp: (String) -> Boolean): Int
 
     fun updateMessageCategory(messageId: Long, category: String)
 
     fun updateMessageCategories(categories: Map<Long, String>)
 
     fun updateMessageOtp(messageId: Long, isOtp: Boolean)
-
-    fun updateMessageOtps(messageIds: Set<Long>)
 
     fun setStarred(messageId: Long, starred: Boolean)
 }

@@ -1242,10 +1242,19 @@ open class MessageRepositoryImpl @Inject constructor(
             .isNull("category")
             .findAll()
 
-    override fun getMessagesMissingOtpTag(): RealmResults<Message> =
-        Realm.getDefaultInstance().where(Message::class.java)
-            .equalTo("isOtp", false)
-            .findAll()
+    override fun tagOtpMessages(isOtp: (String) -> Boolean): Int =
+        Realm.getDefaultInstance().use { realm ->
+            val matches = realm.where(Message::class.java)
+                .equalTo("isOtp", false)
+                .findAll()
+                .filter { isOtp(it.getText()) }
+
+            if (matches.isNotEmpty()) {
+                realm.executeTransaction { matches.forEach { message -> message.isOtp = true } }
+            }
+
+            matches.size
+        }
 
     override fun updateMessageCategory(messageId: Long, category: String) {
         Realm.getDefaultInstance().use { realm ->
@@ -1278,19 +1287,6 @@ open class MessageRepositoryImpl @Inject constructor(
                     .equalTo("id", messageId)
                     .findFirst()
                     ?.isOtp = isOtp
-            }
-        }
-    }
-
-    override fun updateMessageOtps(messageIds: Set<Long>) {
-        Realm.getDefaultInstance().use { realm ->
-            realm.executeTransaction {
-                messageIds.forEach { messageId ->
-                    realm.where(Message::class.java)
-                        .equalTo("id", messageId)
-                        .findFirst()
-                        ?.isOtp = true
-                }
             }
         }
     }

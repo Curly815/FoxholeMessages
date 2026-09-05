@@ -19,6 +19,7 @@
 package dev.octoshrimpy.quik.classifier
 
 import dev.octoshrimpy.quik.repository.MessageRepository
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -34,13 +35,7 @@ class MessageCategoryBackfill @Inject constructor(
 
     fun run(onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }): Int {
         val messageIds = messageRepo.getUnclassifiedMessages().map { it.id }
-        // Live receipt (ReceiveSmsWorker/ReceiveMmsWorker) tags isOtp as each message arrives,
-        // but this backfill previously only ever set category - any message that got its
-        // category from a backfill run rather than live receipt never had isOtp checked at all,
-        // so it's permanently invisible to OTP retention regardless of the retention setting.
-        val otpCandidateIds = messageRepo.getMessagesMissingOtpTag().map { it.id }
-        val total = messageIds.size + otpCandidateIds.size
-        if (total == 0) return 0
+        val total = messageIds.size
 
         var processed = 0
         messageIds.chunked(500).forEach { chunk ->
@@ -57,21 +52,16 @@ class MessageCategoryBackfill @Inject constructor(
             processed += chunk.size
             onProgress(processed, total)
         }
+        Timber.d("Categorized $total messages")
 
-        otpCandidateIds.chunked(500).forEach { chunk ->
-            val otpMessageIds = chunk.filter { messageId ->
-                messageRepo.getMessage(messageId)?.let { otpDetector.isOtp(it.getText()) } ?: false
-            }.toSet()
+        // Live receipt (ReceiveSmsWorker/ReceiveMmsWorker) tags isOtp as each message arrives, but
+        // this backfill only ever set category - any message that got its category here rather
+        // than from live receipt never had isOtp checked at all, leaving it permanently invisible
+        // to OTP retention regardless of the retention setting.
+        val tagged = messageRepo.tagOtpMessages(otpDetector::isOtp)
+        Timber.d("Tagged $tagged previously-unchecked messages as OTPs")
 
-            if (otpMessageIds.isNotEmpty()) {
-                messageRepo.updateMessageOtps(otpMessageIds)
-            }
-
-            processed += chunk.size
-            onProgress(processed, total)
-        }
-
-        return total
+        return total + tagged
     }
 
 }
