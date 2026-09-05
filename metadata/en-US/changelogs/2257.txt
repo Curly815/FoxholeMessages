@@ -1,0 +1,5 @@
+What's new in 2.2.2:
+- Fixed: "Sort existing messages" doing nothing, leaving every conversation in the Personal tab
+- Fixed: OTP message retention never deleting old verification codes
+- Improved: sorting existing messages is dramatically faster
+- Improved: release builds are now properly optimized and obfuscated

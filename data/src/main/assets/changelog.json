@@ -1,5 +1,18 @@
 [
   {
+    "versionCode": 2257,
+    "versionName": "2.2.2",
+    "fixed": [
+      "\"Sort existing messages\" doing nothing - it stopped at the first message with a blank sender, so no conversations were sorted and everything stayed in the Personal tab (most noticeable after re-syncing messages)",
+      "OTP message retention never deleting old verification codes, even with a retention period selected - messages sorted before the feature existed were never checked for being OTPs in the first place",
+      "\"Sort existing messages\" being ignored entirely if a previous run had been interrupted"
+    ],
+    "improved": [
+      "Sorting existing messages is dramatically faster - it now looks up each sender once instead of once per message",
+      "Release builds are now properly optimized and obfuscated, addressing a Google Play requirement"
+    ]
+  },
+  {
     "versionCode": 2256,
     "versionName": "2.2.1",
     "fixed": [
