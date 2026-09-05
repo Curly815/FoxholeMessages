@@ -48,8 +48,13 @@ class ClassifyExistingMessagesWorker(appContext: Context, workerParams: WorkerPa
                 .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                 .build()
 
+            // REPLACE, not KEEP: KEEP silently discards the new request whenever a previous one
+            // under this name is still unfinished, and a run that was interrupted (or whose stored
+            // worker class no longer resolves after an obfuscated rebuild) stays unfinished
+            // indefinitely - which makes the button permanently dead with no feedback at all. This
+            // is explicitly user-initiated, so the newest request should always be the one that runs.
             WorkManager.getInstance(context)
-                .enqueueUniqueWork(WORKER_TAG, ExistingWorkPolicy.KEEP, request)
+                .enqueueUniqueWork(WORKER_TAG, ExistingWorkPolicy.REPLACE, request)
         }
     }
 
@@ -58,29 +63,41 @@ class ClassifyExistingMessagesWorker(appContext: Context, workerParams: WorkerPa
     @Inject lateinit var notificationManager: NotificationManager
     @Inject lateinit var prefs: Preferences
 
-    override fun doWork(): Result {
+    // Everything here is wrapped so failures reach the file log. WorkManager swallows exceptions
+    // thrown out of doWork() into its own logcat output, which is invisible to anyone diagnosing
+    // this from a device - it looks identical to the worker simply never finishing.
+    override fun doWork(): Result = try {
         Timber.v("started")
 
         val notificationManagerCompat = NotificationManagerCompat.from(applicationContext)
+
+        Timber.v("running backfill")
         val total = backfill.run()
 
         if (total > 0) {
             notificationManagerCompat.cancel(NOTIFICATION_ID)
-            Timber.v("finished. classified $total messages")
+            Timber.v("backfill finished. processed $total messages")
         } else {
-            Timber.v("no unclassified messages")
+            Timber.v("backfill finished. nothing to process")
         }
 
         // The backfill can newly tag messages as OTPs that were never checked before, but OTP
         // retention otherwise only runs on its own daily schedule - so without this, asking for a
         // re-sort appears to do nothing at all for up to a day. Run synchronously rather than via
         // execute(), which subscribes asynchronously and would be cut off when doWork() returns.
-        Timber.v("applying otp retention to newly tagged messages")
-        deleteOldOtps.buildObservable(Unit).blockingSubscribe({}, Timber::w)
+        Timber.v("applying otp retention (retention set to ${prefs.otpRetentionDays.get()} days)")
+        deleteOldOtps.buildObservable(Unit).blockingSubscribe(
+            {},
+            { error -> Timber.e(error, "otp retention failed") }
+        )
 
         prefs.initialClassificationDone.set(true)
 
-        return Result.success()
+        Timber.v("finished")
+        Result.success()
+    } catch (e: Throwable) {
+        Timber.e(e, "failed")
+        Result.failure()
     }
 
     override fun getForegroundInfo(): ForegroundInfo =
