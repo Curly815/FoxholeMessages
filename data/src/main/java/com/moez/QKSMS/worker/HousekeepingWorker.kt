@@ -35,7 +35,10 @@ import javax.inject.Inject
 class HousekeepingWorker(appContext: Context, workerParams: WorkerParameters)
 : Worker(appContext, workerParams) {
     companion object {
-        private val WORKER_TAG: String = HousekeepingWorker::class.java.simpleName
+        // Deliberately a literal rather than simpleName: this is the unique-work name WorkManager
+        // persists, so deriving it from a class name that R8 renames would silently orphan work
+        // scheduled by a previous build and register a duplicate alongside it.
+        private const val WORKER_TAG: String = "HousekeepingWorker"
 
         fun register(context: Context) {
             // don't check return value because, well, we can't do much about a failure

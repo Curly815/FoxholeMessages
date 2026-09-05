@@ -27,6 +27,7 @@ import dev.octoshrimpy.quik.blocking.BlockingClient
 import dev.octoshrimpy.quik.classifier.MessageCategoryBackfill
 import dev.octoshrimpy.quik.classifier.MessageCategorizer
 import dev.octoshrimpy.quik.classifier.OtpDetector
+import dev.octoshrimpy.quik.interactor.DeleteOldOtps
 import dev.octoshrimpy.quik.interactor.UpdateBadge
 import dev.octoshrimpy.quik.manager.ActiveConversationManager
 import dev.octoshrimpy.quik.manager.NotificationManager
@@ -56,6 +57,7 @@ class InjectionWorkerFactory @Inject constructor(
     private val messageCategorizer: MessageCategorizer,
     private val otpDetector: OtpDetector,
     private val messageCategoryBackfill: MessageCategoryBackfill,
+    private val deleteOldOtps: DeleteOldOtps,
 
 ) : WorkerFactory() {
     override fun createWorker(
@@ -102,6 +104,7 @@ class InjectionWorkerFactory @Inject constructor(
             }
             is ClassifyExistingMessagesWorker -> {
                 instance.backfill = messageCategoryBackfill
+                instance.deleteOldOtps = deleteOldOtps
                 instance.notificationManager = notificationManager
                 instance.prefs = prefs
             }

@@ -28,6 +28,7 @@ import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import dev.octoshrimpy.quik.classifier.MessageCategoryBackfill
+import dev.octoshrimpy.quik.interactor.DeleteOldOtps
 import dev.octoshrimpy.quik.manager.NotificationManager
 import dev.octoshrimpy.quik.util.Preferences
 import timber.log.Timber
@@ -38,7 +39,8 @@ class ClassifyExistingMessagesWorker(appContext: Context, workerParams: WorkerPa
 
     companion object {
         private const val NOTIFICATION_ID = 4000
-        private val WORKER_TAG = ClassifyExistingMessagesWorker::class.java.simpleName
+        // Literal rather than simpleName - see HousekeepingWorker for why.
+        private const val WORKER_TAG = "ClassifyExistingMessagesWorker"
 
         fun trigger(context: Context) {
             val request = OneTimeWorkRequest.Builder(ClassifyExistingMessagesWorker::class.java)
@@ -52,6 +54,7 @@ class ClassifyExistingMessagesWorker(appContext: Context, workerParams: WorkerPa
     }
 
     @Inject lateinit var backfill: MessageCategoryBackfill
+    @Inject lateinit var deleteOldOtps: DeleteOldOtps
     @Inject lateinit var notificationManager: NotificationManager
     @Inject lateinit var prefs: Preferences
 
@@ -67,6 +70,13 @@ class ClassifyExistingMessagesWorker(appContext: Context, workerParams: WorkerPa
         } else {
             Timber.v("no unclassified messages")
         }
+
+        // The backfill can newly tag messages as OTPs that were never checked before, but OTP
+        // retention otherwise only runs on its own daily schedule - so without this, asking for a
+        // re-sort appears to do nothing at all for up to a day. Run synchronously rather than via
+        // execute(), which subscribes asynchronously and would be cut off when doWork() returns.
+        Timber.v("applying otp retention to newly tagged messages")
+        deleteOldOtps.buildObservable(Unit).blockingSubscribe({}, Timber::w)
 
         prefs.initialClassificationDone.set(true)
 

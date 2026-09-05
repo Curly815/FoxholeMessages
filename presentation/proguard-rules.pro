@@ -132,6 +132,16 @@
 #   Realm models are the one case genuinely worth an explicit safety net.
 -keep class dev.octoshrimpy.quik.model.** { *; }
 
+# InjectionWorkerFactory rebuilds Workers with Class.forName(workerClassName), using the class
+# name WorkManager persisted in its own database back when the work was enqueued. That makes these
+# a genuine reflection-by-name dependency, and one that has to stay stable across app updates too:
+# an obfuscated name that shifts between builds orphans work the previous version already
+# scheduled, which then fails to reconstruct forever. Only a handful of classes, so keeping them
+# (plus the exact constructor the factory reflects on) costs almost nothing in coverage.
+-keep class * extends androidx.work.Worker {
+    <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+
 # The photoview library's zoom levels are only configurable through package-private setters that
 # reject our target values (see GalleryPagerAdapter's onCreateViewHolder) - working around that
 # means writing directly to these private fields via reflection, which needs their exact names to
