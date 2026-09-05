@@ -104,18 +104,19 @@
     <init>(...);
     <fields>;
 }
-# Dagger
-# This is to allow the restore functionality to work
--keep class dagger.** { *; }
--keep class * extends dagger.Module { *; }
--keep class * extends dagger.Component { *; }
--keep class * extends dagger.Subcomponent { *; }
--keep class * {
-    @dagger.Provides <methods>;
-}
--keep class io.reactivex.** { *; }
--keep class io.reactivex.subjects.** { *; }
--keep class androidx.activity.result.** { *; }
+# Dagger, RxJava2, and androidx.activity.result were all previously blanket-kept here (`-keep
+# class dagger.** { *; }`, `-keep class io.reactivex.** { *; }`, etc.) alongside the whole-app
+# keep removed above - same over-caution, same effect: these are huge dependencies used
+# throughout the app, so keeping them in full was a major contributor to the "Obfuscation (19%)"
+# vitals warning staying below Play's 25% threshold even after the whole-app keep was removed.
+#
+# None of them actually need it. Dagger 2 (unlike reflection-based DI frameworks) resolves
+# everything at compile time into generated code that's referenced directly - DaggerAppComponent
+# is called by name in AppComponentManager.kt, and the generated Factory classes call @Provides
+# methods and Module/Component constructors directly, not via reflection - so R8's normal
+# reachability analysis keeps exactly what's used without any help. RxJava2 and
+# androidx.activity.result (ActivityResultContracts, referenced directly wherever
+# registerForActivityResult is used) are the same story: ordinary compiled calls, no reflection.
 
 # This app used to blanket-keep its entire own package (`-keep class dev.octoshrimpy.quik.** { *; }`)
 # alongside a project-wide -dontobfuscate, which together left the app essentially unobfuscated and
