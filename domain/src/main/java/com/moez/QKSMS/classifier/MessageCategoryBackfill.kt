@@ -22,17 +22,24 @@ import dev.octoshrimpy.quik.repository.MessageRepository
 import javax.inject.Inject
 
 /**
- * Classifies every message that doesn't have a category yet (in batches of 500), for when the
- * user turns on auto-sort after already having messages, or re-runs it manually.
+ * Classifies every message that doesn't have a category yet, and separately tags any message
+ * that looks like an OTP but was never checked (in batches of 500), for when the user turns on
+ * auto-sort after already having messages, or re-runs it manually.
  */
 class MessageCategoryBackfill @Inject constructor(
     private val messageRepo: MessageRepository,
-    private val messageCategorizer: MessageCategorizer
+    private val messageCategorizer: MessageCategorizer,
+    private val otpDetector: OtpDetector
 ) {
 
     fun run(onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }): Int {
         val messageIds = messageRepo.getUnclassifiedMessages().map { it.id }
-        val total = messageIds.size
+        // Live receipt (ReceiveSmsWorker/ReceiveMmsWorker) tags isOtp as each message arrives,
+        // but this backfill previously only ever set category - any message that got its
+        // category from a backfill run rather than live receipt never had isOtp checked at all,
+        // so it's permanently invisible to OTP retention regardless of the retention setting.
+        val otpCandidateIds = messageRepo.getMessagesMissingOtpTag().map { it.id }
+        val total = messageIds.size + otpCandidateIds.size
         if (total == 0) return 0
 
         var processed = 0
@@ -45,6 +52,19 @@ class MessageCategoryBackfill @Inject constructor(
 
             if (categories.isNotEmpty()) {
                 messageRepo.updateMessageCategories(categories)
+            }
+
+            processed += chunk.size
+            onProgress(processed, total)
+        }
+
+        otpCandidateIds.chunked(500).forEach { chunk ->
+            val otpMessageIds = chunk.filter { messageId ->
+                messageRepo.getMessage(messageId)?.let { otpDetector.isOtp(it.getText()) } ?: false
+            }.toSet()
+
+            if (otpMessageIds.isNotEmpty()) {
+                messageRepo.updateMessageOtps(otpMessageIds)
             }
 
             processed += chunk.size

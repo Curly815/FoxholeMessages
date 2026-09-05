@@ -131,11 +131,15 @@ interface MessageRepository {
 
     fun getUnclassifiedMessages(): RealmResults<Message>
 
+    fun getMessagesMissingOtpTag(): RealmResults<Message>
+
     fun updateMessageCategory(messageId: Long, category: String)
 
     fun updateMessageCategories(categories: Map<Long, String>)
 
     fun updateMessageOtp(messageId: Long, isOtp: Boolean)
+
+    fun updateMessageOtps(messageIds: Set<Long>)
 
     fun setStarred(messageId: Long, starred: Boolean)
 }
