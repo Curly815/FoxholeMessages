@@ -34,24 +34,10 @@ class MessageCategoryBackfill @Inject constructor(
 ) {
 
     fun run(onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }): Int {
-        val messageIds = messageRepo.getUnclassifiedMessages().map { it.id }
-        val total = messageIds.size
-
-        var processed = 0
-        messageIds.chunked(500).forEach { chunk ->
-            val categories = chunk.mapNotNull { messageId ->
-                messageRepo.getMessage(messageId)?.let { message ->
-                    messageId to messageCategorizer.categorize(message.address, message.getText()).name
-                }
-            }.toMap()
-
-            if (categories.isNotEmpty()) {
-                messageRepo.updateMessageCategories(categories)
-            }
-
-            processed += chunk.size
-            onProgress(processed, total)
-        }
+        val total = messageRepo.categorizeUnclassifiedMessages(
+            categorize = { address, body -> messageCategorizer.categorize(address, body).name },
+            onProgress = onProgress
+        )
         Timber.d("Categorized $total messages")
 
         // Live receipt (ReceiveSmsWorker/ReceiveMmsWorker) tags isOtp as each message arrives, but

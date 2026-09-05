@@ -129,7 +129,16 @@ interface MessageRepository {
 
     fun markAsSendingNow(messageId: Long)
 
-    fun getUnclassifiedMessages(): RealmResults<Message>
+    /**
+     * Runs [categorize] over every message that has no category yet, writing the result back, and
+     * returns how many were processed. Like [tagOtpMessages] this is one pass on a single Realm
+     * instance: re-syncing messages clears every category at once, so the pending set is the whole
+     * message history and a per-message lookup never finishes.
+     */
+    fun categorizeUnclassifiedMessages(
+        categorize: (address: String, body: String) -> String,
+        onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }
+    ): Int
 
     /**
      * Runs [isOtp] over the body of every message not already tagged as an OTP, tagging the ones
@@ -140,8 +149,6 @@ interface MessageRepository {
     fun tagOtpMessages(isOtp: (String) -> Boolean): Int
 
     fun updateMessageCategory(messageId: Long, category: String)
-
-    fun updateMessageCategories(categories: Map<Long, String>)
 
     fun updateMessageOtp(messageId: Long, isOtp: Boolean)
 

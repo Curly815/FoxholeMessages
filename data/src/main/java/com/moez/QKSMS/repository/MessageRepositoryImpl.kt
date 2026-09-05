@@ -1237,10 +1237,33 @@ open class MessageRepositoryImpl @Inject constructor(
         return sha256(signatureString)
     }
 
-    override fun getUnclassifiedMessages(): RealmResults<Message> =
-        Realm.getDefaultInstance().where(Message::class.java)
+    override fun categorizeUnclassifiedMessages(
+        categorize: (address: String, body: String) -> String,
+        onProgress: (processed: Int, total: Int) -> Unit
+    ): Int = Realm.getDefaultInstance().use { realm ->
+        // toList() up front: the query is live, so writing a category back would drop the message
+        // out from under the iteration.
+        val pending = realm.where(Message::class.java)
             .isNull("category")
             .findAll()
+            .toList()
+
+        val total = pending.size
+        var processed = 0
+
+        pending.chunked(500).forEach { chunk ->
+            realm.executeTransaction {
+                chunk.forEach { message ->
+                    message.category = categorize(message.address, message.getText())
+                }
+            }
+
+            processed += chunk.size
+            onProgress(processed, total)
+        }
+
+        total
+    }
 
     override fun tagOtpMessages(isOtp: (String) -> Boolean): Int =
         Realm.getDefaultInstance().use { realm ->
@@ -1263,19 +1286,6 @@ open class MessageRepositoryImpl @Inject constructor(
                     .equalTo("id", messageId)
                     .findFirst()
                     ?.category = category
-            }
-        }
-    }
-
-    override fun updateMessageCategories(categories: Map<Long, String>) {
-        Realm.getDefaultInstance().use { realm ->
-            realm.executeTransaction {
-                categories.forEach { (messageId, category) ->
-                    realm.where(Message::class.java)
-                        .equalTo("id", messageId)
-                        .findFirst()
-                        ?.category = category
-                }
             }
         }
     }
