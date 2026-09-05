@@ -121,6 +121,17 @@ jobs:
       - name: Build signed release APK and app bundle
         run: ./gradlew clean assembleRelease assembleFdroid bundleRelease
 
+      - name: Report obfuscation coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapping=presentation/build/outputs/mapping/release/mapping.txt
+          if [[ ! -f "$mapping" ]]; then
+            echo "::warning title=No mapping file::${mapping} not found - release build was not minified."
+            exit 0
+          fi
+          python3 .github/scripts/obfuscation_report.py "$mapping" | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Locate release artifact
         id: release_artifact
         shell: bash
