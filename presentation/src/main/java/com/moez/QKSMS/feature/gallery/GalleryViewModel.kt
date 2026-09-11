@@ -33,6 +33,7 @@ import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
 import io.reactivex.Flowable
 import io.reactivex.rxkotlin.plusAssign
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -51,7 +52,12 @@ class GalleryViewModel @Inject constructor(
         disposables += Flowable.just(partId)
                 .mapNotNull(messageRepo::getMessageForPart)
                 .doOnNext { message ->
-                    newState { copy(parts = messageRepo.getMediaPartsForMessage(message.id)) }
+                    // An empty result here shows as a black screen with no counter and no crash,
+                    // so log the join keys - otherwise there's nothing to diagnose it from
+                    Timber.v("opening part $partId of message id=${message.id} contentId=${message.contentId}")
+                    newState {
+                        copy(parts = messageRepo.getMediaPartsForMessage(message.id, message.contentId))
+                    }
                 }
                 .doOnNext { message ->
                     newState {

@@ -220,10 +220,15 @@ open class MessageRepositoryImpl @Inject constructor(
     // Ascending, unlike getPartsForConversation above: the pager advances through this list as the
     // user swipes left, so it has to run in the same direction the attachments do. Queries
     // messageId directly for the same reason getPartsForMessage below does.
-    override fun getMediaPartsForMessage(messageId: Long): RealmResults<MmsPart> =
+    override fun getMediaPartsForMessage(messageId: Long, contentId: Long): RealmResults<MmsPart> =
         Realm.getDefaultInstance()
             .where(MmsPart::class.java)
-            .equalTo("messageId", messageId)
+            // Either linkage - see the interface for why neither is trustworthy on its own
+            .beginGroup()
+            .equalTo("messages.id", messageId)
+            .or()
+            .equalTo("messageId", contentId)
+            .endGroup()
             .beginGroup()
             .contains("type", "image/")
             .or()

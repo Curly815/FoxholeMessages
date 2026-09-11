@@ -68,8 +68,14 @@ interface MessageRepository {
      * message's attachments and no further; [getPartsForConversation] spans the whole thread and
      * sorts newest-first, which is right for the Conversation Details grid but would otherwise let
      * the viewer swipe off into unrelated messages, backwards.
+     *
+     * Takes both ids because the two ways a part links back to its message use different ones, and
+     * neither is reliable alone: MmsPart.messageId holds the *provider's* message id (Mms.Part
+     * .MSG_ID), which is Message.contentId rather than Message.id, while the parts relationship
+     * has been seen coming back empty for a message whose MmsPart row provably existed. Matching
+     * on either covers both.
      */
-    fun getMediaPartsForMessage(messageId: Long): RealmResults<MmsPart>
+    fun getMediaPartsForMessage(messageId: Long, contentId: Long): RealmResults<MmsPart>
 
     // Queries MmsPart by its own messageId field directly, rather than via Message.parts -
     // that RealmList forward-link was found (via device log) to sometimes be empty even when
