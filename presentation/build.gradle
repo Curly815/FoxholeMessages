@@ -64,6 +64,15 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
+
+            // Realm ships native .so libraries, and without symbols a native crash or ANR shows
+            // up in Play Console's Android vitals as raw addresses instead of function names.
+            // AGP generates these and embeds them in the bundle, so Play picks them up on upload
+            // with nothing to attach by hand. FULL rather than SYMBOL_TABLE to get line numbers
+            // as well as names - it only grows the uploaded bundle, never the user's download.
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
         }
         debug {
             applicationIdSuffix ".debug"

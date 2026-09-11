@@ -77,11 +77,16 @@ interface MessageRepository {
      */
     fun getMediaPartsForMessage(messageId: Long, contentId: Long): RealmResults<MmsPart>
 
-    // Queries MmsPart by its own messageId field directly, rather than via Message.parts -
-    // that RealmList forward-link was found (via device log) to sometimes be empty even when
-    // MmsPart rows with a matching messageId genuinely exist, so anything that needs a
-    // message's actual parts reliably should use this instead of Message.parts.
-    fun getPartsForMessage(messageId: Long): RealmResults<MmsPart>
+    /**
+     * Every part of a single message - unlike [getMediaPartsForMessage], which keeps only the
+     * image/video ones. Callers deciding what a message *is* need the text and SMIL parts too.
+     *
+     * Takes both ids for the same reason [getMediaPartsForMessage] does: MmsPart.messageId holds
+     * the provider's message id, which is Message.contentId and not Message.id, while the parts
+     * relationship has been seen empty for a message whose MmsPart row provably existed. Passing
+     * Message.id alone here silently matched nothing.
+     */
+    fun getPartsForMessage(messageId: Long, contentId: Long): RealmResults<MmsPart>
 
     fun savePart(id: Long): Uri?
 

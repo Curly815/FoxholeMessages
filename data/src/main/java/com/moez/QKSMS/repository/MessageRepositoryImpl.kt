@@ -237,16 +237,17 @@ open class MessageRepositoryImpl @Inject constructor(
             .sort("id", Sort.ASCENDING)
             .findAllAsync()
 
-    // Queries MmsPart.messageId directly rather than through Message.parts (a RealmList
-    // forward-link) or the "messages.threadId" backlink used by getPartsForConversation above -
-    // a device log showed Message.parts coming back empty for a message whose MmsPart row (with
-    // a matching messageId) provably existed, so anything that needs one message's actual parts
-    // reliably queries the field directly instead of trusting that relationship. findAll() (not
-    // findAllAsync()) since callers need the result immediately, not on the next event loop tick.
-    override fun getPartsForMessage(messageId: Long): RealmResults<MmsPart> =
+    // Matches on either linkage - see the interface for why neither is trustworthy on its own.
+    // findAll() (not findAllAsync()) since callers need the result immediately, not on the next
+    // event loop tick.
+    override fun getPartsForMessage(messageId: Long, contentId: Long): RealmResults<MmsPart> =
         Realm.getDefaultInstance()
             .where(MmsPart::class.java)
-            .equalTo("messageId", messageId)
+            .beginGroup()
+            .equalTo("messages.id", messageId)
+            .or()
+            .equalTo("messageId", contentId)
+            .endGroup()
             .findAll()
 
     override fun savePart(id: Long): Uri? {
