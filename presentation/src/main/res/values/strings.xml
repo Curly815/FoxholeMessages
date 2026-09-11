@@ -162,6 +162,8 @@
     <string name="compose_menu_previous">Previous</string>
     <string name="compose_menu_next">Next</string>
     <string name="compose_menu_clear">Clear</string>
+    <string name="compose_menu_search">Search</string>
+    <string name="compose_search_hint">Search this conversation</string>
     <string name="compose_details_title">Message details</string>
     <string name="compose_reactions_title">Reactions</string>
     <string name="compose_details_type">Type: %s</string>
@@ -221,6 +223,7 @@
     <string name="info_delete">Delete conversation</string>
 
     <string name="gallery_error">Couldn\'t load media</string>
+    <string name="gallery_counter" translatable="false">%1$d/%2$d</string>
     <string name="gallery_toast_saved">Saved to gallery</string>
     <plurals name="gallery_toast_saved_all">
         <item quantity="one">Saved %d picture to gallery</item>

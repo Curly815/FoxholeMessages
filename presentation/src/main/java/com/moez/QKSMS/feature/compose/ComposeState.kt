@@ -34,6 +34,10 @@ data class ComposeState(
     val conversationtitle: String = "",
     val loading: Boolean = false,
     val query: String = "",
+    // Whether the in-thread search bar is open. Distinct from query being non-empty: the bar stays
+    // open (and focused) while the field is empty, and a thread opened from the conversation list's
+    // search arrives with a query already set but no bar shown.
+    val searching: Boolean = false,
     val searchSelectionId: Long = -1,
     val searchSelectionPosition: Int = 0,
     val searchResults: Int = 0,

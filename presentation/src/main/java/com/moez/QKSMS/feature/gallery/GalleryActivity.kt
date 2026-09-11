@@ -95,6 +95,14 @@ class GalleryActivity : QkActivity(), GalleryView {
                 ?.let(dateFormatter::getDetailedTimestamp)
         binding.toolbarSubtitle.isVisible = binding.toolbarTitle.text.isNotBlank()
 
+        // Only worth showing when the message actually holds more than one attachment - "1/1"
+        // just clutters the toolbar
+        val count = pagerAdapter.itemCount
+        binding.toolbarCounter.isVisible = count > 1
+        if (count > 1) {
+            binding.toolbarCounter.text = getString(R.string.gallery_counter, position + 1, count)
+        }
+
         currentPart = pagerAdapter.getItem(position)
         invalidateOptionsMenu()
 

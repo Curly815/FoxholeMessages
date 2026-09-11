@@ -217,6 +217,21 @@ open class MessageRepositoryImpl @Inject constructor(
             .sort("id", Sort.DESCENDING)
             .findAllAsync()
 
+    // Ascending, unlike getPartsForConversation above: the pager advances through this list as the
+    // user swipes left, so it has to run in the same direction the attachments do. Queries
+    // messageId directly for the same reason getPartsForMessage below does.
+    override fun getMediaPartsForMessage(messageId: Long): RealmResults<MmsPart> =
+        Realm.getDefaultInstance()
+            .where(MmsPart::class.java)
+            .equalTo("messageId", messageId)
+            .beginGroup()
+            .contains("type", "image/")
+            .or()
+            .contains("type", "video/")
+            .endGroup()
+            .sort("id", Sort.ASCENDING)
+            .findAllAsync()
+
     // Queries MmsPart.messageId directly rather than through Message.parts (a RealmList
     // forward-link) or the "messages.threadId" backlink used by getPartsForConversation above -
     // a device log showed Message.parts coming back empty for a message whose MmsPart row (with

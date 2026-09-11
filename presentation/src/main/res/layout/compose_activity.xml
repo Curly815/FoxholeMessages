@@ -53,10 +53,12 @@
         app:layout_constraintTop_toBottomOf="@id/sendAsGroupBackground"
         tools:visibility="visible">
 
+        <!-- 64dp, down from 78dp (~18% smaller). Well clear of the 48dp minimum touch target,
+             and the inner icon is match_parent so it tracks this automatically. -->
         <ImageView
             android:id="@+id/speechToTextIconBorder"
-            android:layout_width="78dp"
-            android:layout_height="78dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:background="@drawable/circle"
             android:padding="6dp"
             tools:backgroundTint="@color/tools_theme"
@@ -406,6 +408,30 @@
                 android:visibility="gone"
                 app:textSize="secondary"
                 tools:text="3 of 9 results" />
+
+            <!-- Deliberately identical to the conversation list's toolbarSearch (main_activity.xml):
+                 same style, background, tint, height and padding, so in-thread search looks like
+                 the search the user already knows rather than a second, different-looking one. -->
+            <dev.octoshrimpy.quik.common.widget.QkEditText
+                android:id="@+id/toolbarSearch"
+                style="@style/ToolbarText"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
+                android:minHeight="40dp"
+                android:background="@drawable/rounded_rectangle_24dp"
+                android:backgroundTint="?attr/bubbleColor"
+                android:hint="@string/compose_search_hint"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColorHint="?android:attr/textColorTertiary"
+                android:visibility="gone"
+                app:textSize="primary"
+                tools:textSize="16sp"
+                tools:visibility="visible" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/chips"

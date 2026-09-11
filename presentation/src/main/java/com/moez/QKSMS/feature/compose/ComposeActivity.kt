@@ -54,6 +54,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.material.snackbar.Snackbar
@@ -146,6 +147,7 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     override val clearCurrentMessageIntent: Subject<Boolean> = PublishSubject.create()
     override val messageLinkAskIntent: Subject<Uri> by lazy { messageAdapter.messageLinkClicks }
     override val reactionClickIntent: Subject<Long> by lazy { messageAdapter.reactionClicks }
+    override val queryChangedIntent by lazy { binding.toolbarSearch.textChanges() }
     override val speechRecogniserIntent by lazy { binding.speechToTextIcon.clicks() }
     override val shadeIntent by lazy { binding.shadeBackground.clicks() }
     override val recordAudioStartStopRecording: Subject<Boolean> = PublishSubject.create()
@@ -168,6 +170,11 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     private val viewModel by lazy { ViewModelProviders.of(this, viewModelFactory)[ComposeViewModel::class.java] }
 
     private var cameraDestination: Uri? = null
+
+    // Tracked here rather than read off the state each render, so opening/closing the search bar is
+    // handled once on the transition instead of on every unrelated state emission
+    private var searchBarVisible = false
+    private var preSearchScrollPosition: Int? = null
 
     private fun getSeekBarUpdater(): ObservableSubscribeProxy<Long> {
         return Observable.interval(500, TimeUnit.MILLISECONDS)
@@ -451,7 +458,26 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
         binding.toolbarSubtitle.text = getString(R.string.compose_subtitle_results, state.searchSelectionPosition,
             state.searchResults)
 
-        binding.toolbarTitle.setVisible(!state.editingMode)
+        // Opening the search bar remembers where the thread was sitting, so closing it puts the
+        // user back there rather than wherever the last match happened to be
+        if (state.searching != searchBarVisible) {
+            searchBarVisible = state.searching
+            if (state.searching) {
+                preSearchScrollPosition = (binding.messageList.layoutManager as? LinearLayoutManager)
+                        ?.findFirstVisibleItemPosition()
+                        ?.takeIf { it != RecyclerView.NO_POSITION }
+                binding.toolbarSearch.requestFocus()
+                binding.toolbarSearch.showKeyboard()
+            } else {
+                binding.toolbarSearch.text = null
+                binding.toolbarSearch.hideKeyboard()
+                preSearchScrollPosition?.let(binding.messageList::scrollToPosition)
+                preSearchScrollPosition = null
+            }
+        }
+        binding.toolbarSearch.setVisible(state.searching)
+
+        binding.toolbarTitle.setVisible(!state.editingMode && !state.searching)
         binding.chips.setVisible(state.editingMode)
         binding.composeBar.setVisible(!state.loading)
 
@@ -475,6 +501,8 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
         binding.toolbar.menu.findItem(R.id.delete)?.isVisible = !state.editingMode && ((state.selectedMessages > 0) || state.canSend)
         binding.toolbar.menu.findItem(R.id.forward)?.isVisible = !state.editingMode && state.selectedMessages == 1
         binding.toolbar.menu.findItem(R.id.show_status)?.isVisible = !state.editingMode && state.selectedMessages > 0
+        binding.toolbar.menu.findItem(R.id.search)?.isVisible = !state.editingMode && state.selectedMessages == 0
+                && !state.searching && state.query.isEmpty()
         binding.toolbar.menu.findItem(R.id.previous)?.isVisible = state.selectedMessages == 0 && state.query.isNotEmpty()
         binding.toolbar.menu.findItem(R.id.next)?.isVisible = state.selectedMessages == 0 && state.query.isNotEmpty()
         binding.toolbar.menu.findItem(R.id.clear)?.isVisible = state.selectedMessages == 0 && state.query.isNotEmpty()

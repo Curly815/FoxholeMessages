@@ -46,13 +46,16 @@ class GalleryViewModel @Inject constructor(
     private val permissions: PermissionManager
 ) : QkViewModel<GalleryView, GalleryState>(GalleryState()) {
     init {
+        // Paged over the tapped message's own attachments, not the whole thread's - swiping should
+        // run to the end of this message and stop, rather than continuing into unrelated messages.
         disposables += Flowable.just(partId)
                 .mapNotNull(messageRepo::getMessageForPart)
-                .mapNotNull { message -> message.threadId }
-                .doOnNext { threadId -> newState { copy(parts = messageRepo.getPartsForConversation(threadId)) } }
-                .doOnNext { threadId ->
+                .doOnNext { message ->
+                    newState { copy(parts = messageRepo.getMediaPartsForMessage(message.id)) }
+                }
+                .doOnNext { message ->
                     newState {
-                        copy(title = conversationRepo.getConversation(threadId)?.getTitle())
+                        copy(title = conversationRepo.getConversation(message.threadId)?.getTitle())
                     }
                 }
                 .subscribe()

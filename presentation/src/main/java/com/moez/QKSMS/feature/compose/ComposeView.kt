@@ -58,6 +58,7 @@ interface ComposeView : QkView<ComposeState> {
     val resendIntent: Subject<Long>
     val attachmentDeletedIntent: Subject<Attachment>
     val textChangedIntent: Observable<CharSequence>
+    val queryChangedIntent: Observable<CharSequence>
     val attachIntent: Observable<Unit>
     val cameraIntent: Observable<*>
     val attachAnyFileIntent: Observable<*>

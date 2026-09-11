@@ -62,6 +62,15 @@ interface MessageRepository {
 
     fun getPartsForConversation(threadId: Long): RealmResults<MmsPart>
 
+    /**
+     * The image/video parts of a single message, oldest id first - i.e. the order the attachments
+     * were actually added. Used by the full-screen viewer, which pages through exactly the tapped
+     * message's attachments and no further; [getPartsForConversation] spans the whole thread and
+     * sorts newest-first, which is right for the Conversation Details grid but would otherwise let
+     * the viewer swipe off into unrelated messages, backwards.
+     */
+    fun getMediaPartsForMessage(messageId: Long): RealmResults<MmsPart>
+
     // Queries MmsPart by its own messageId field directly, rather than via Message.parts -
     // that RealmList forward-link was found (via device log) to sometimes be empty even when
     // MmsPart rows with a matching messageId genuinely exist, so anything that needs a

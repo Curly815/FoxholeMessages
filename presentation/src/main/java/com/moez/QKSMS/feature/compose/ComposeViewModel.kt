@@ -84,6 +84,7 @@ import dev.octoshrimpy.quik.util.Constants.Companion.SAVED_MESSAGE_TEXT_FILE_PRE
 import dev.octoshrimpy.quik.util.tryOrNull
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
+import java.util.concurrent.TimeUnit
 import io.reactivex.rxkotlin.Observables
 import io.reactivex.rxkotlin.plusAssign
 import io.reactivex.rxkotlin.withLatestFrom
@@ -244,14 +245,20 @@ class ComposeViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .subscribe { title -> newState { copy(conversationtitle = title) } }
 
-        disposables += conversation
-                .map { conversation -> conversation.id }
-                .distinctUntilChanged()
-                .withLatestFrom(state) { id, state -> messageRepo.getMessages(id, state.query) }
-                .switchMap { messages -> messages.asObservable() }
-                .takeUntil(state.map { it.query }.filter { it.isEmpty() })
-                .filter { messages -> messages.isLoaded }
-                .filter { messages -> messages.isValid }
+        // Re-runs whenever the query changes, rather than reading it once at subscribe time. It
+        // used to take the query from the launch intent and then terminate as soon as the query
+        // emptied, which was enough when the only way in was tapping a result on the conversation
+        // list - but the in-thread search bar lets the query change repeatedly.
+        disposables += Observables.combineLatest(
+                    conversation.map { conversation -> conversation.id }.distinctUntilChanged(),
+                    state.map { it.query }.distinctUntilChanged()
+                ) { id, query -> id to query }
+                .switchMap<List<Message>> { (id, query) ->
+                    if (query.isEmpty()) Observable.just(emptyList())
+                    else messageRepo.getMessages(id, query).asObservable()
+                            .filter { messages -> messages.isLoaded }
+                            .filter { messages -> messages.isValid }
+                }
                 .subscribe(searchResults::onNext)
 
         // on conversation change/init, work out how many non-me participants of the conversation
@@ -571,11 +578,31 @@ class ComposeViewModel @Inject constructor(
                 .autoDisposable(view.scope())
                 .subscribe(searchSelection)
 
-        // Clear the search
+        // Open the in-thread search bar
+        view.optionsItemIntent
+                .filter { it == R.id.search }
+                .autoDisposable(view.scope())
+                .subscribe { newState { copy(searching = true) } }
+
+        // Search as the user types. Debounced the same way the conversation list's search is, so a
+        // fast typist doesn't kick off a Realm query per keystroke.
+        view.queryChangedIntent
+                .debounce(200, TimeUnit.MILLISECONDS)
+                .observeOn(AndroidSchedulers.mainThread())
+                .map { query -> query.trim().toString() }
+                .distinctUntilChanged()
+                .autoDisposable(view.scope())
+                .subscribe { query -> newState { copy(query = query) } }
+
+        // Clear the search. Resets the selection through the subject as well as the state - the
+        // state field alone would leave the old match highlighted the next time results arrive.
         view.optionsItemIntent
                 .filter { it == R.id.clear }
                 .autoDisposable(view.scope())
-                .subscribe { newState { copy(query = "", searchSelectionId = -1) } }
+                .subscribe {
+                    searchSelection.onNext(-1)
+                    newState { copy(query = "", searching = false, searchSelectionId = -1) }
+                }
 
         // message part context menu item selected - save
         view.contextItemIntent
@@ -1354,6 +1381,11 @@ class ComposeViewModel @Inject constructor(
                 .withLatestFrom(state) { _, state ->
                     when {
                         state.selectedMessages > 0 -> view.clearSelection()
+                        // Back closes the search bar first rather than leaving the thread outright
+                        state.searching || state.query.isNotEmpty() -> {
+                            searchSelection.onNext(-1)
+                            newState { copy(query = "", searching = false, searchSelectionId = -1) }
+                        }
                         else -> newState { copy(hasError = true) }
                     }
                 }
