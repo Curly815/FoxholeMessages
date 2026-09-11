@@ -278,13 +278,24 @@ class ComposeViewModel @Inject constructor(
                 newState { copy(validRecipientNumbers = validRecipientNumbers) }
             }
 
+        // Ends in an explicit Unit because combineLatest rejects a null from its combiner, and
+        // every branch here is an expression: lastOrNull()?.let { } evaluates to null on an empty
+        // result set, which used to be unreachable only because searchResults was never fed an
+        // empty list.
         disposables += Observables.combineLatest(searchSelection, searchResults) { selected, messages ->
-            if (selected == -1L) {
-                messages.lastOrNull()?.let { message -> searchSelection.onNext(message.id) }
-            } else {
-                val position = messages.indexOfFirst { it.id == selected } + 1
-                newState { copy(searchSelectionPosition = position, searchResults = messages.size) }
+            when {
+                messages.isEmpty() ->
+                    newState { copy(searchSelectionPosition = 0, searchResults = 0) }
+
+                selected == -1L ->
+                    messages.lastOrNull()?.let { message -> searchSelection.onNext(message.id) }
+
+                else -> {
+                    val position = messages.indexOfFirst { it.id == selected } + 1
+                    newState { copy(searchSelectionPosition = position, searchResults = messages.size) }
+                }
             }
+            Unit
         }.subscribe()
 
         val latestSubId = messages
