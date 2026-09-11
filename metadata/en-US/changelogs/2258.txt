@@ -1,0 +1,7 @@
+What's new in 2.3.0:
+- Added: search within a conversation, with match stepping and a match count
+- Added: a photo counter when viewing attachments full-screen
+- Fixed: the photo viewer swiping into unrelated messages, and swiping backwards
+- Fixed: "Save all" saving only one photo instead of the whole group
+- Fixed: per-category notification settings having no effect
+- Fixed: trashed messages still appearing in notifications

@@ -1,5 +1,22 @@
 [
   {
+    "versionCode": 2258,
+    "versionName": "2.3.0",
+    "added": [
+      "Search within a conversation - tap the search icon in a thread to find messages in it, step through the matches, and see how many there are",
+      "A photo counter (\"3/9\") when viewing an attachment full-screen, so you can see where you are in a message's photos"
+    ],
+    "fixed": [
+      "Viewing a photo full-screen let you swipe on into photos from completely unrelated messages, and swiped through them backwards - it now stays within the message you tapped, and swiping left moves forward",
+      "\"Save all\" only ever saving the one photo you long-pressed instead of the whole group",
+      "The per-category notification settings (Message Sorting) doing nothing at all - turning notifications or previews off for a category now actually takes effect",
+      "Messages moved to Trash could still show up in a notification"
+    ],
+    "improved": [
+      "The speech-to-text button is less oversized"
+    ]
+  },
+  {
     "versionCode": 2257,
     "versionName": "2.2.2",
     "fixed": [
