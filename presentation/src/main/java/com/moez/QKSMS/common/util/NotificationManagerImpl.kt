@@ -56,6 +56,8 @@ import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
 import dev.octoshrimpy.quik.util.GlideApp
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
+import dev.octoshrimpy.quik.classifier.Category
+import dev.octoshrimpy.quik.model.Conversation
 import dev.octoshrimpy.quik.util.Preferences
 import dev.octoshrimpy.quik.util.tryOrNull
 import timber.log.Timber
@@ -142,6 +144,16 @@ class NotificationManagerImpl @Inject constructor(
         }
 
         val conversation = conversationRepo.getConversation(threadId) ?: return
+
+        // Category-level notification settings (Settings > Message Sorting > the per-category
+        // notification screens). These were stored but never consulted until now. The more
+        // restrictive of the two wins: switching a category off can't be undone by a conversation
+        // sitting at its default.
+        val category = categoryOf(conversation)
+        if (!prefs.categoryNotifications(category).get()) {
+            return
+        }
+
         val lastRecipient = conversation.lastMessage?.let { lastMessage ->
             conversation.recipients.find { recipient ->
                 phoneNumberUtils.compare(recipient.address, lastMessage.address)
@@ -249,8 +261,13 @@ class NotificationManagerImpl @Inject constructor(
                 }
                 ?.let { futureGet -> tryOrNull(false) { futureGet.get() } }
 
-        // Bind the notification contents based on the notification preview mode
-        when (prefs.notificationPreviews(threadId).get()) {
+        // Bind the notification contents based on the notification preview mode, with the
+        // category's preview setting able to force content off but never back on
+        val previewMode = when {
+            prefs.categoryPreviews(category).get() -> prefs.notificationPreviews(threadId).get()
+            else -> Preferences.NOTIFICATION_PREVIEWS_NONE
+        }
+        when (previewMode) {
             Preferences.NOTIFICATION_PREVIEWS_ALL -> {
                 notification
                         .setLargeIcon(avatar)
@@ -547,6 +564,21 @@ class NotificationManagerImpl @Inject constructor(
      * If a notification channel for the conversation exists, use the id for that. Otherwise return
      * the default channel id
      */
+    /**
+     * Which category a conversation counts as, resolved the same way the inbox tabs do it (see
+     * ConversationRepositoryImpl.getConversationsByCategoryBase): a manual override wins, otherwise
+     * the last message's category, and anything that isn't transactional or promotional is
+     * personal. Kept deliberately identical so a conversation can't sit under one tab while its
+     * notifications follow another category's settings.
+     */
+    private fun categoryOf(conversation: Conversation): String {
+        conversation.categoryOverride?.takeIf { it.isNotEmpty() }?.let { return it }
+
+        return conversation.lastMessage?.category
+                ?.takeIf { it == Category.TRANSACTIONAL.name || it == Category.PROMOTIONAL.name }
+                ?: Category.PERSONAL.name
+    }
+
     private fun getChannelIdForNotification(threadId: Long): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             return getNotificationChannel(threadId)?.id ?: DEFAULT_CHANNEL_ID

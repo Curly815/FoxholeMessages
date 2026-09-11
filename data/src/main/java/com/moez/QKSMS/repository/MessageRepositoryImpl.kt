@@ -153,6 +153,9 @@ open class MessageRepositoryImpl @Inject constructor(
         Realm.getDefaultInstance()
             .where(Message::class.java)
             .equalTo("threadId", threadId)
+            // Trashed messages are excluded here for the same reason as the unread queries above -
+            // this feeds quick-reply and notification content
+            .isNull("deletedAt")
             .beginGroup()
             .beginGroup()
             .equalTo("type", TYPE_SMS)
@@ -290,6 +293,8 @@ open class MessageRepositoryImpl @Inject constructor(
         return uri
     }
 
+    // isNull("deletedAt") on both: these drive notification contents, and a message the user has
+    // already moved to Trash shouldn't reappear in a notification afterwards
     override fun getUnreadUnseenMessages(threadId: Long): RealmResults<Message> =
         Realm.getDefaultInstance()
             .also { it.refresh() }
@@ -297,6 +302,7 @@ open class MessageRepositoryImpl @Inject constructor(
             .equalTo("seen", false)
             .equalTo("read", false)
             .equalTo("threadId", threadId)
+            .isNull("deletedAt")
             .sort("date")
             .findAll()
 
@@ -305,6 +311,7 @@ open class MessageRepositoryImpl @Inject constructor(
             .where(Message::class.java)
             .equalTo("read", false)
             .equalTo("threadId", threadId)
+            .isNull("deletedAt")
             .sort("date")
             .findAll()
 
