@@ -1023,3 +1023,176 @@ false` so it lands as a draft release rather than touching the
 existing public `v1.3.0` tag/release — the `.aab` was pulled from
 that run's `build-artifacts` CI artifact, same as always, and the
 draft can be discarded.
+
+## v2.x — Play Store release, obfuscation, and the traps found along the way
+
+The app is live on Google Play as of the 2.x line. Current shipped
+version is **`versionCode 2257` / `versionName '2.2.2'`**. Everything
+between 1.3.2 and here was released through the normal process above;
+what follows is the part worth carrying forward, not a changelog.
+
+### Obfuscation / R8 — why `proguard-rules.pro` looks the way it does
+
+Play Console's Android vitals flagged "App optimization is below our
+threshold — Obfuscation (1%)" with a **Feb 2027 deadline**. Root cause
+was in `presentation/proguard-rules.pro`: a project-wide
+`-dontobfuscate` plus a blanket `-keep class dev.octoshrimpy.quik.**
+{ *; }`, which together meant R8 renamed essentially nothing
+regardless of `minifyEnabled true`. Removing those took Play's number
+1% → 19%, still under its 25% bar. A second pass removed three more
+blanket keeps — `dagger.**`, `io.reactivex.**`,
+`androidx.activity.result.**` — none of which were needed (Dagger 2
+resolves at compile time into directly-referenced generated code;
+RxJava and ActivityResultContracts are ordinary compiled calls, not
+reflection). That took coverage to **93.5%**.
+
+**Don't guess at this number again.** `.github/scripts/obfuscation_report.py`
+computes it from R8's own `mapping.txt` during every release build and
+writes it to the Actions job summary, along with a table of which
+packages still hold unrenamed classes. Play's exact methodology isn't
+published so their figure won't match exactly, but it makes the effect
+of a keep-rule change visible in five minutes instead of a release
+cycle.
+
+Rules that must **stay**, each for a real reflection dependency:
+- `dev.octoshrimpy.quik.model.**` — Realm reflects on model classes by
+  exact name.
+- `PhotoViewAttacher`'s private scale fields — `GalleryPagerAdapter`
+  writes them reflectively to get around the library's public setter.
+- **`* extends androidx.work.Worker` plus its `(Context,
+  WorkerParameters)` constructor** — `InjectionWorkerFactory` rebuilds
+  every Worker via `Class.forName(workerClassName)`, using the name
+  **WorkManager persisted in its own database when the work was
+  enqueued**. Renaming Workers orphans any work a previous version
+  scheduled: its stored class name no longer resolves and that work
+  fails forever. This was found the hard way — removing the blanket
+  keep silently broke background work.
+
+### WorkManager traps (all three cost a full diagnostic cycle each)
+
+1. **`doWork()` exceptions are invisible.** WorkManager catches
+   anything thrown out of `doWork()` into its own logcat output, which
+   nobody capturing the in-app file log ever sees. A worker that
+   crashed instantly and one that hung forever produce **byte-identical
+   logs** — "started", then silence. Wrap `doWork()` in try/catch with
+   `Timber.e`. `ClassifyExistingMessagesWorker` does this now; do the
+   same in any new Worker.
+2. **`ExistingWorkPolicy.KEEP` silently discards new requests** while a
+   previous run under the same unique name is unfinished — and an
+   interrupted run stays unfinished indefinitely. One early hang left
+   "Sort existing messages" permanently dead: every subsequent tap, on
+   every subsequent build, was dropped before reaching any worker code.
+   User-initiated work should use `REPLACE`.
+3. **Never derive a unique-work name from `class.simpleName`** — R8
+   renames it, WorkManager persists it, and the name then changes
+   between builds, orphaning already-scheduled work and registering a
+   duplicate beside it. `HousekeepingWorker`/`ClassifyExistingMessagesWorker`
+   use string literals for exactly this reason.
+
+### Realm performance rule for anything batch-shaped
+
+`MessageRepositoryImpl.getMessage(id)` opens a **fresh Realm instance
+and calls `refresh()` on every single call**. That's fine one at a
+time and catastrophic in a loop. The message-sorting backfill looked
+up each pending message individually; over a full history it ground on
+until WorkManager killed the worker, with no error — which is what
+made "Sort existing messages" appear to do nothing across several
+builds. Anything that touches a large set must do one query on one
+Realm instance and write back in batched transactions, the way
+`categorizeUnclassifiedMessages` / `tagOtpMessages` now do. Snapshot
+with `.toList()` before writing: Realm queries are live, so writing the
+field you filtered on drops rows out from under the iteration.
+
+Related: resolve per-address lookups **once per address, not once per
+message** (`MessageCategorizer.bulkCategorizer()`). `categorize()`
+issues a cross-process contacts query, and every message in a thread
+shares one address.
+
+### Framework class collisions — `com.google.android.mms.ContentType`
+
+`android-smsmms/` vendors its own `com.google.android.mms.ContentType`,
+and **some OEM Android builds ship an internal class with that exact
+fully-qualified name in `framework.jar`**. Parent-first classloader
+delegation resolves calls to the framework's incompatible copy, giving
+`NoSuchMethodError` at runtime on those devices only. This crashed the
+Conversation Details screen in 2.2.0 (fixed in 2.2.1). The String
+constants are safe — Kotlin inlines compile-time constants — but any
+**method** call on that class is not. All three call sites
+(`MmsPartExtensions`, `PduPersister`, `SmilHelper`) now use inline
+`startsWith()` checks instead. If anything else in the vendored library
+ever needs a `ContentType` method, inline it rather than calling it.
+
+Note this class of bug is invisible to R8: ProGuard rules only affect
+classes shipped inside the APK and have no bearing on framework
+classes.
+
+### Other real bugs worth remembering
+
+- **`ContactRepositoryImpl.isContact("")`** built
+  `content://com.android.contacts/phone_lookup/` — a trailing slash
+  with nothing after it — which the contacts provider rejects with
+  `IllegalArgumentException` rather than returning no rows. MMS
+  messages routinely carry a blank address. It now short-circuits on a
+  blank address. Anything that appends a user-supplied value to a
+  provider URI should assume it can be empty.
+- **Bulk paths need per-item error isolation.** `ReceiveSmsWorker`
+  always caught classification failures per message and fell back to
+  `UNCLASSIFIED`; the backfill didn't, so one bad row abandoned the
+  whole run and left every conversation in Personal. That asymmetry is
+  why receiving kept working while backfilling didn't.
+- **OTP retention never deleted anything** because the backfill only
+  ever set `category`, never `isOtp` — so messages sorted before the
+  OTP feature existed were invisible to retention forever regardless of
+  the retention setting. `tagOtpMessages` closes that, and
+  `ClassifyExistingMessagesWorker` now applies retention immediately
+  after tagging rather than leaving it to the daily job (otherwise a
+  re-sort appears to do nothing for up to a day).
+
+### Play Console notes
+
+- The app is distributed via `.aab`, so **Play App Signing is active**:
+  Google re-signs with its own key. Sideloaded builds (signed with
+  `my-release-key.keystore`) and Play-delivered builds therefore have
+  different signatures and **cannot update over each other** — Play
+  shows "didn't come from Google Play" and offers Uninstall rather than
+  Update. Switching a device between the two requires uninstall +
+  reinstall; back up first (raw SMS/MMS survive in the system provider,
+  but the app's own Realm data — categories, starred, Trash, sender
+  rules, settings — does not).
+- versionCode collisions have now happened **twice** (2246, 2253) from
+  uploads with no trace in this repo's history. The established fix is
+  a versionCode-only bump keeping the same versionName, built with
+  `publish_release: false` so it lands as a draft and doesn't disturb
+  the existing public tag.
+- The `.aab` embeds R8's mapping file automatically, so Play Console
+  crash reports stay readable now that the app is genuinely obfuscated
+  — nothing to upload manually.
+- Still deferred: **native debug symbols** for Realm's `.so` files
+  (`android.buildTypes.release.ndk.debugSymbolLevel`). A warning, never
+  blocking, but more worthwhile now that there are real users.
+- **Inline Installs** (Play Console → Advanced settings) was
+  investigated and deliberately skipped — it's for other apps/sites
+  triggering an install of this one, which doesn't apply here.
+- **App optimization** (Play-side APK post-processing, same settings
+  page) is off; low risk to enable, just never got turned on.
+
+### Known gaps / open items
+
+- **Android Auto**: two texts appeared in the car but never in the app's
+  own thread. Unreproduced, no log captured yet. If it recurs, the
+  in-app file logger is the tool (long-press About in Settings).
+- **Per-category notification prefs**: notifications and previews are
+  now honoured (`NotificationManagerImpl.categoryOf`, mirroring how the
+  inbox tabs resolve a conversation's category). **Vibration and
+  ringtone are still not wired** — per-conversation and per-category
+  both exist and there's no reliable way to tell an explicitly-set
+  per-conversation value from its default, so the precedence needs a
+  product decision rather than a guess.
+- **Empty `Conversation` rows** aren't cleaned up after all their
+  messages are purged from Trash. Harmless — already invisible via the
+  `lastMessage`/`draft` filter.
+- **Predictive back** is opted out via
+  `enableOnBackInvokedCallback="false"`; a real migration to
+  `OnBackPressedCallback` is still owed eventually.
+- **Custom inbox tabs** (roadmap item 4 above) remains deliberately
+  deferred.
