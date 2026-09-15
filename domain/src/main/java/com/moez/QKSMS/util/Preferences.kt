@@ -148,6 +148,13 @@ class Preferences @Inject constructor(
 
     val autoSortEnabled = rxPrefs.getBoolean("fh_autoSortEnabled", true)
     val initialClassificationDone = rxPrefs.getBoolean("fh_initialClassificationDone", false)
+
+    // Bumping this constant re-runs the emoji reaction reparse once on the next launch, for when
+    // reactions that should have been recognised are sitting in threads as plain "Liked ..." text.
+    // A preference rather than a schema-migration trigger (which is how the original reparse was
+    // driven) so that rolling back to an earlier build stays possible - a Realm schema bump would
+    // make the database unopenable by the previous version.
+    val emojiReparseVersion = rxPrefs.getInteger("fh_emojiReparseVersion", 0)
     val otpRetentionDays = rxPrefs.getInteger("fh_otpRetentionDays", OTP_RETENTION_NEVER)
 
     fun categoryNotifications(category: String): Preference<Boolean> =

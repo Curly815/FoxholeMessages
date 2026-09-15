@@ -64,6 +64,7 @@ import io.realm.RealmResults
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -102,6 +103,11 @@ class MainViewModel @Inject constructor(
         tabUnreadCounts = buildTabUnreadCounts(conversationRepo)
     )
 ) {
+    companion object {
+        // Bump to re-run the emoji reaction reparse once on every device's next launch
+        private const val EMOJI_REPARSE_VERSION = 1
+    }
+
     private var lastArchivedThreadIds = listOf<Long>(0)
 
     init {
@@ -155,6 +161,22 @@ class MainViewModel @Inject constructor(
                 reactions.deleteAndReparseAllEmojiReactions(realm) { /* No progress ui needed here */ }
                 emojiSyncNeeded.deleteFromRealm()
             }
+        }
+
+        // The EmojiSyncNeeded row above is created by a schema migration, so it only ever fires
+        // once per install and can't be used again. This re-runs the same reparse when
+        // EMOJI_REPARSE_VERSION is bumped, to recover reaction messages that were received while
+        // recognition wasn't working and are now sitting in threads as plain text.
+        if (prefs.emojiReparseVersion.get() < EMOJI_REPARSE_VERSION) {
+            Timber.i("Emoji reparse requested (stored=${prefs.emojiReparseVersion.get()}, current=$EMOJI_REPARSE_VERSION)")
+            Realm.getDefaultInstance().executeTransactionAsync({ realm ->
+                reactions.deleteAndReparseAllEmojiReactions(realm) { /* No progress ui needed here */ }
+            }, {
+                prefs.emojiReparseVersion.set(EMOJI_REPARSE_VERSION)
+                Timber.i("Emoji reparse finished")
+            }, { error ->
+                Timber.e(error, "Emoji reparse failed")
+            })
         }
 
         // Sync contacts when we detect a change

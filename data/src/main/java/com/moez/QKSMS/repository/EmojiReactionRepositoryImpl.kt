@@ -144,6 +144,13 @@ class EmojiReactionRepositoryImpl @Inject constructor(
             return result
         }
 
+        // Previously silent, which made "nothing was recognised" and "this isn't a reaction"
+        // indistinguishable in a log. Deliberately logs no message content - length and pattern
+        // counts are enough to tell an unmatched reaction from an empty pattern set.
+        Timber.d(
+            "No reaction pattern matched (body length=${body.length}, " +
+                "reaction patterns=${reactionPatterns.size}, removal patterns=${removalPatterns.size})"
+        )
         return null
     }
 
@@ -292,16 +299,20 @@ class EmojiReactionRepositoryImpl @Inject constructor(
 
         val max = allMessages?.count() ?: 0
         var progress = 0
+        var reactionsParsed = 0
+        var targetsFound = 0
 
         allMessages.forEach { message ->
             val text = message.getText(false)
             val parsedReaction = parseEmojiReaction(text)
             if (parsedReaction != null) {
+                reactionsParsed++
                 val targetMessage = findTargetMessage(
                     message.threadId,
                     parsedReaction.originalMessage,
                     realm
                 )
+                if (targetMessage != null) targetsFound++
                 saveEmojiReaction(
                     message,
                     parsedReaction,
@@ -324,7 +335,13 @@ class EmojiReactionRepositoryImpl @Inject constructor(
         }
 
         val endTime = System.currentTimeMillis()
-        Timber.d("Deleted and reparsed all emoji reactions in ${endTime - startTime}ms")
+        // The three counts are what distinguish the failure modes: nothing parsed means the
+        // patterns aren't matching at all, parsed-but-no-targets means recognition works and the
+        // target lookup is what's failing.
+        Timber.i(
+            "Reparsed emoji reactions in ${endTime - startTime}ms - scanned $max messages, " +
+                "parsed $reactionsParsed reactions, found targets for $targetsFound of them"
+        )
     }
 
 }
