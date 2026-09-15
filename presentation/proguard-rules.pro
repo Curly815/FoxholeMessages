@@ -159,6 +159,15 @@
 #   tapbacks arriving as plain "Liked ..." text instead of being recognised as reactions.
 # - Changeset backs the what's-new dialog; its versionName/versionCode are non-null with no
 #   defaults, so names that don't resolve throw instead, and the dialog comes up empty.
+# Keeping the members above is necessary but, on its own, was not sufficient - the emoji patterns
+# still came back empty with it in place. KotlinJsonAdapterFactory only engages for a class that
+# still carries its kotlin.Metadata annotation; without it Moshi silently falls back to its
+# field-based adapter, and that one cannot see these @Json names at all, because Kotlin puts an
+# annotation on a constructor val onto the *parameter* rather than the field. The result is the
+# same silent all-null object whatever the fields are called, which is why renaming was only half
+# the story.
+-keep class kotlin.Metadata { *; }
+
 -keep class dev.octoshrimpy.quik.util.EmojiPatternStrings { *; }
 -keep class dev.octoshrimpy.quik.manager.ChangelogManagerImpl$Changeset { *; }
 -keep class dev.octoshrimpy.quik.repository.BackupRepositoryImpl$Backup { *; }
