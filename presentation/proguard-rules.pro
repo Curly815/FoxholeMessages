@@ -142,6 +142,30 @@
     <init>(android.content.Context, androidx.work.WorkerParameters);
 }
 
+# Moshi's reflective Kotlin adapter (KotlinJsonAdapterFactory, registered in AppModule) resolves a
+# class's properties through kotlin-reflect at runtime, so whatever property names R8 leaves behind
+# are the JSON keys it reads and writes. The Moshi rules near the top of this file only cover the
+# codegen path - they keep generated **JsonAdapter classes, and every type below is either
+# @JsonClass(generateAdapter = false) or unannotated, so no adapter is generated for it and nothing
+# keeps its members. These were all covered by the app-wide `-keep class dev.octoshrimpy.quik.**
+# { *; }` removed above, which is why three unrelated features broke in the same release:
+#
+# - Backup/BackupMetadata/BackupMessage/BackupPart carry no @Json names at all, so their JSON keys
+#   are the property names verbatim. Obfuscated, a backup is written with renamed keys that aren't
+#   stable between builds, so a backup file can't be restored by a different version of the app.
+# - EmojiPatternStrings holds the per-locale reaction regexes. Every field is nullable and every
+#   use of it is null-safe, so names that don't resolve yield an all-null object that registers no
+#   patterns at all - which logs identically to a successful load, and silently leaves iPhone
+#   tapbacks arriving as plain "Liked ..." text instead of being recognised as reactions.
+# - Changeset backs the what's-new dialog; its versionName/versionCode are non-null with no
+#   defaults, so names that don't resolve throw instead, and the dialog comes up empty.
+-keep class dev.octoshrimpy.quik.util.EmojiPatternStrings { *; }
+-keep class dev.octoshrimpy.quik.manager.ChangelogManagerImpl$Changeset { *; }
+-keep class dev.octoshrimpy.quik.repository.BackupRepositoryImpl$Backup { *; }
+-keep class dev.octoshrimpy.quik.repository.BackupRepositoryImpl$BackupMetadata { *; }
+-keep class dev.octoshrimpy.quik.repository.BackupRepositoryImpl$BackupMessage { *; }
+-keep class dev.octoshrimpy.quik.repository.BackupRepositoryImpl$BackupPart { *; }
+
 # The photoview library's zoom levels are only configurable through package-private setters that
 # reject our target values (see GalleryPagerAdapter's onCreateViewHolder) - working around that
 # means writing directly to these private fields via reflection, which needs their exact names to
