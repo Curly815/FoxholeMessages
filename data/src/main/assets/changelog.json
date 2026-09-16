@@ -1,5 +1,14 @@
 [
   {
+    "versionCode": 2259,
+    "versionName": "2.3.1",
+    "fixed": [
+      "Emoji reactions from iPhones arriving as plain \"Liked ...\"/\"Loved ...\" text instead of showing as a reaction on the message they belong to - reactions already sitting in your threads are converted automatically the first time you open the app",
+      "The \"What's new\" dialog coming up empty after an update",
+      "Backups being written in a form that no other version of the app could restore - if you have a backup made by 2.2.0 or later, take a fresh one"
+    ]
+  },
+  {
     "versionCode": 2258,
     "versionName": "2.3.0",
     "added": [

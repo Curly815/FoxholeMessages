@@ -1176,6 +1176,67 @@ classes.
 - **App optimization** (Play-side APK post-processing, same settings
   page) is off; low risk to enable, just never got turned on.
 
+### Reflective Moshi + R8 — the emoji reaction outage (v2.3.1)
+
+Removing the blanket keeps to satisfy Play's obfuscation threshold broke
+three unrelated features at once, and all three failed **silently**. Any
+type Moshi deserialises here goes through `KotlinJsonAdapterFactory`
+(registered in `AppModule.provideMoshi`), which resolves properties
+reflectively at runtime — so R8 decides what the JSON keys are. There is
+no codegen: every one of these is `@JsonClass(generateAdapter = false)`
+or unannotated, so the Moshi rules already in `proguard-rules.pro` (which
+only keep generated `**JsonAdapter` classes) covered none of them.
+
+- `EmojiPatternStrings` — every field nullable, every use null-safe, so
+  an unresolved name yields an all-null object that registers **zero**
+  patterns while logging exactly like a successful load. iPhone tapbacks
+  arrived as plain "Liked …" text.
+- `ChangelogManagerImpl.Changeset` — `versionName`/`versionCode` are
+  non-null with no defaults, so it throws instead, and the what's-new
+  dialog comes up empty.
+- `BackupRepositoryImpl.Backup*` — no `@Json` names at all, so keys are
+  the property names verbatim. Backups were written with renamed keys
+  that aren't stable between builds, i.e. **unrestorable by any other
+  version**. No visible symptom, because write and read inside one build
+  agree with each other. Backups made by 2.2.0–2.3.0 are not restorable.
+
+**Keeping the members was necessary but not sufficient**, and the reason
+is worth remembering: `KotlinJsonAdapterFactory` only engages for a class
+still carrying its `kotlin.Metadata` annotation. Without it Moshi quietly
+falls back to its field-based adapter, which cannot see these `@Json`
+names at all — Kotlin puts an annotation on a constructor `val` onto the
+*parameter*, not the field. So the names are never consulted and the
+object comes back null-filled no matter what the fields are called.
+Hence `-keep class kotlin.Metadata { *; }`, which the changelog and
+backup types still depend on.
+
+`EmojiPatternStrings` no longer relies on any of that: the asset JSON is
+read as a `Map<String, String>` and the patterns are pulled out by their
+literal names (`parseEmojiPatternsJson`). String literals can't be
+renamed. **Prefer this shape for anything parsed from a bundled asset** —
+it removes the failure mode rather than warding it off with a keep rule.
+
+Process notes, because this cost four build/sideload rounds:
+
+- **A "loaded successfully" log proved nothing.** Twelve locales
+  reporting as loaded was read as ruling obfuscation out; it only meant
+  the files were *read*. Log a count of what actually landed, not that a
+  step ran — `parseEmojiReaction` now prints the live pattern totals, and
+  one integer (`reaction patterns=1`) ended days of speculation
+  instantly.
+- The reaction code was never at fault. It is untouched upstream code
+  and worked exactly as written, with an empty pattern list handed to it.
+- The one-shot reparse is driven by `EMOJI_REPARSE_VERSION` in
+  `MainViewModel` + `Preferences.emojiReparseVersion`. Bump the constant
+  to re-run it (the original `EmojiSyncNeeded` trigger is a migration row
+  and fires once per install, permanently consumed). A preference rather
+  than a schema bump, so rolling back to an earlier build stays possible.
+  Fixing recognition does nothing for reactions already in threads
+  without it. Verified: 30,099 messages scanned, 424 reactions parsed,
+  422 matched to a target, 7.7s. The 2 misses are reactions whose
+  original message is no longer in the thread — `findTargetMessage` only
+  searches messages still present, so that's the floor, not a defect.
+
 ### Known gaps / open items
 
 - **Android Auto**: two texts appeared in the car but never in the app's
@@ -1196,3 +1257,9 @@ classes.
   `OnBackPressedCallback` is still owed eventually.
 - **Custom inbox tabs** (roadmap item 4 above) remains deliberately
   deferred.
+- **`IllegalArgumentException: You must call this method on a background
+  thread`** fires repeatedly from the shortcut-creation path
+  (`ShortcutManagerImpl`, via an RxJava main-thread scheduler — almost
+  certainly a Glide `.get()` for the conversation avatar). It's caught
+  and the shortcut still pushes, so it's cosmetic, but it's real and
+  unfixed; it shows up several times per session in any captured log.
