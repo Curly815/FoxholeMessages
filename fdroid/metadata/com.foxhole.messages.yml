@@ -10,7 +10,7 @@ Categories:
   - Internet
 AntiFeatures: NonFreeNet
 CurrentVersion: "2.3.1"
-CurrentVersionCode: 2259
+CurrentVersionCode: 2260
 Description: |
   Foxhole Messages is an open source replacement for the stock messaging app on Android.
   It displays SMS/MMS conversations, supports scheduled sends, backups, voice

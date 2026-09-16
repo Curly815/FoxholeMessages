@@ -2,3 +2,4 @@ What's new in 2.3.1:
 - Fixed: emoji reactions from iPhones showing up as plain "Liked ..." text instead of as a reaction. Reactions already in your threads are converted automatically the first time you open the app.
 - Fixed: the "What's new" dialog coming up empty after an update.
 - Fixed: backups were being written in a form no other version of the app could restore. If you have a backup made by 2.2.0 or later, take a fresh one.
+- Changed: Android 7.0 is now the minimum supported version, up from Android 6.0.
