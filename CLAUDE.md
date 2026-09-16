@@ -1027,7 +1027,10 @@ draft can be discarded.
 ## v2.x — Play Store release, obfuscation, and the traps found along the way
 
 The app is live on Google Play as of the 2.x line. Current shipped
-version is **`versionCode 2257` / `versionName '2.2.2'`**. Everything
+version is **`versionCode 2260` / `versionName '2.3.1'`** — the public
+GitHub release `v2.3.1` carries 2259, and 2260 is the same tree with
+`minSdk` raised, built as a draft for Play (see the minSdk note under
+Play Console notes). **Next release starts at 2261.** Everything
 between 1.3.2 and here was released through the normal process above;
 what follows is the part worth carrying forward, not a changelog.
 
@@ -1159,6 +1162,17 @@ classes.
   reinstall; back up first (raw SMS/MMS survive in the system provider,
   but the app's own Realm data — categories, starred, Trash, sender
   rules, settings — does not).
+- **Play automatic protection requires `minSdk` 24.** The 2.3.1 bundle
+  was rejected on upload at `minSdk` 23 (the value this fork inherited
+  from QUIK). Raised to 24 in **all five modules**, which spell it two
+  different ways — `minSdk` in `common`/`domain`/`data`,
+  `minSdkVersion` in `presentation`/`android-smsmms` — so grepping for
+  one spelling finds only half of them, and missing a module is what
+  broke the first targetSdk 34 attempt. This drops Android 6.0;
+  existing users below API 24 keep what they have and stop receiving
+  updates. The alternative, if that ever matters more, is turning the
+  protection enhancement off in Console rather than lowering minSdk
+  back.
 - versionCode collisions have now happened **twice** (2246, 2253) from
   uploads with no trace in this repo's history. The established fix is
   a versionCode-only bump keeping the same versionName, built with
@@ -1167,9 +1181,16 @@ classes.
 - The `.aab` embeds R8's mapping file automatically, so Play Console
   crash reports stay readable now that the app is genuinely obfuscated
   — nothing to upload manually.
-- Still deferred: **native debug symbols** for Realm's `.so` files
-  (`android.buildTypes.release.ndk.debugSymbolLevel`). A warning, never
-  blocking, but more worthwhile now that there are real users.
+- **Native debug symbols**: `ndk { debugSymbolLevel 'FULL' }` was added
+  to `presentation/build.gradle` in 2.3.0, but **Play Console still
+  showed the no-symbols warning afterwards**, so treat this as attempted
+  rather than done. A successful build only proves Gradle accepted the
+  config. Unverified leads if it's ever worth chasing: Realm may ship
+  its `.so` files pre-stripped, and no `ndkVersion` is declared, which
+  can make AGP skip symbol extraction entirely. Checking the `.aab` for
+  a `BUNDLE-METADATA/com.android.tools.build.debugsymbols/` entry would
+  settle it. Never blocking, only affects how readable native crashes
+  are in vitals.
 - **Inline Installs** (Play Console → Advanced settings) was
   investigated and deliberately skipped — it's for other apps/sites
   triggering an install of this one, which doesn't apply here.
