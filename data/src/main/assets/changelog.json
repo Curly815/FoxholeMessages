@@ -1,5 +1,16 @@
 [
   {
+    "versionCode": 2261,
+    "versionName": "2.4.0",
+    "added": [
+      "Starred messages now show a star on the message itself in the conversation, so you can see at a glance which one you starred",
+      "\"Pin to top\" is now available in a conversation's Details screen, alongside the existing long-press option on the main list"
+    ],
+    "improved": [
+      "The Starred tab now lists the starred messages themselves rather than the whole conversation each one came from - tap a message to jump to its conversation"
+    ]
+  },
+  {
     "versionCode": 2260,
     "versionName": "2.3.1",
     "fixed": [

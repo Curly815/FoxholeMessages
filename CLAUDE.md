@@ -1027,12 +1027,13 @@ draft can be discarded.
 ## v2.x — Play Store release, obfuscation, and the traps found along the way
 
 The app is live on Google Play as of the 2.x line. Current shipped
-version is **`versionCode 2260` / `versionName '2.3.1'`** — the public
-GitHub release `v2.3.1` carries 2259, and 2260 is the same tree with
-`minSdk` raised, built as a draft for Play (see the minSdk note under
-Play Console notes). **Next release starts at 2261.** Everything
-between 1.3.2 and here was released through the normal process above;
-what follows is the part worth carrying forward, not a changelog.
+version is **`versionCode 2261` / `versionName '2.4.0'`**. (2.3.1 was
+split across two versionCodes: the public GitHub release `v2.3.1`
+carries 2259, and 2260 is the same tree with `minSdk` raised, built as a
+draft for Play — see the minSdk note under Play Console notes.)
+Everything between 1.3.2 and here was released through the normal
+process above; what follows is the part worth carrying forward, not a
+changelog.
 
 ### Obfuscation / R8 — why `proguard-rules.pro` looks the way it does
 
@@ -1257,6 +1258,46 @@ Process notes, because this cost four build/sideload rounds:
   422 matched to a target, 7.7s. The 2 misses are reactions whose
   original message is no longer in the thread — `findTargetMessage` only
   searches messages still present, so that's the floor, not a defect.
+
+### Starring and pinning (v2.4.0)
+
+Two asks that both turned out to be mostly built already — check before
+rebuilding either.
+
+**Pinning was already complete.** `Conversation.pinned` (indexed), the
+`MarkPinned`/`MarkUnpinned` interactors, `markPinned`/`markUnpinned` on
+the repo, and pinned-first sorting in `getConversationsBase` (the sort
+array literally leads with `"pinned"`) are all upstream QKSMS and all
+work. It was reachable by long-pressing a conversation and using the
+toolbar pin icon; v2.4.0 only added a **Pin to top** row to the Details
+screen so it's findable, and kept the long-press route.
+
+**Starring was already per-message too** — `setStarred()` has always
+written `isStarred` on exactly one message. What made it *look*
+thread-wide was everything downstream: the Starred tab resolved each
+starred message's `threadId` and listed the whole conversation, and
+`MessagesAdapter` rendered no star at all, so a starred message was
+visually identical to its neighbours. Worth remembering as a pattern:
+the complaint was about presentation, and the data layer was innocent.
+
+The fix makes **Starred the one inbox tab that isn't a conversation
+list**, which is the thing to know before touching that area:
+
+- `ConversationsPagerAdapter.TabPage` is a **sealed class**
+  (`Conversations` / `Starred`), not the old data class that hardcoded
+  `ConversationsAdapter`.
+- `MainActivity` merges selection and swipe intents over
+  `conversationTabPages` (the three category pages) only — the starred
+  page has no selection mode, so `toggleSelectAll` no-ops on it rather
+  than falling through to a conversation adapter.
+- `MainState.starredMessages` is carried **separately from `tabData`**,
+  since the types differ. It therefore needs merging into the live
+  badge stream by hand; leaving it out means the Starred badge silently
+  stops updating.
+- `getStarredConversations`/`getUnreadStarredCount` moved off
+  `ConversationRepository` onto `MessageRepository` as
+  `getStarredMessages`/`getUnreadStarredCount` — neither was ever about
+  conversations.
 
 ### Known gaps / open items
 

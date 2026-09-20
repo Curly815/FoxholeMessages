@@ -28,8 +28,8 @@ android {
         applicationId 'com.foxhole.messages'
         minSdkVersion 24
         targetSdkVersion 36
-        versionCode 2260
-        versionName '2.3.1'
+        versionCode 2261
+        versionName '2.4.0'
         setProperty("archivesBaseName", "FoxholeMessages-v${versionName}")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

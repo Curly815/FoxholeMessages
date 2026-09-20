@@ -1,0 +1,4 @@
+What's new in 2.4.0:
+- Changed: the Starred tab now lists the starred messages themselves instead of the whole conversation each one came from. Tap a message to jump to its conversation.
+- Added: starred messages now show a star on the message itself in the conversation.
+- Added: "Pin to top" in a conversation's Details screen, alongside the existing long-press option on the main list.
