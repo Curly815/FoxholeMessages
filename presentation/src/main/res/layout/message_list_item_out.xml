@@ -148,6 +148,19 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1" />
 
+                <ImageView
+                    android:id="@+id/star"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_gravity="bottom"
+                    android:layout_marginEnd="4dp"
+                    android:layout_marginBottom="2dp"
+                    android:contentDescription="@string/compose_menu_star"
+                    android:src="@drawable/ic_star_black_24dp"
+                    android:visibility="gone"
+                    app:tint="?android:attr/textColorSecondary"
+                    tools:visibility="visible" />
+
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

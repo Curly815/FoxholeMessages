@@ -128,6 +128,7 @@ class ConversationInfoController(
     override fun backgroundImageLongClicks(): Observable<*> = adapter.backgroundImageLongClicks
     override fun backgroundImageSelected(): Observable<Uri> = backgroundImageSelectedSubject
     override fun markUnreadClicks(): Observable<*> = adapter.markUnreadClicks
+    override fun pinClicks(): Observable<*> = adapter.pinClicks
     override fun archiveClicks(): Observable<*> = adapter.archiveClicks
     override fun blockClicks(): Observable<*> = adapter.blockClicks
     override fun deleteClicks(): Observable<*> = adapter.deleteClicks

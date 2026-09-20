@@ -34,6 +34,7 @@ interface ConversationInfoView : QkViewContract<ConversationInfoState> {
     fun backgroundImageLongClicks(): Observable<*>
     fun backgroundImageSelected(): Observable<Uri>
     fun markUnreadClicks(): Observable<*>
+    fun pinClicks(): Observable<*>
     fun archiveClicks(): Observable<*>
     fun blockClicks(): Observable<*>
     fun deleteClicks(): Observable<*>

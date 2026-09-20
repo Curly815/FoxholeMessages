@@ -13,6 +13,7 @@ sealed class ConversationInfoItem {
         val recipients: RealmList<Recipient>,
         val archived: Boolean,
         val blocked: Boolean,
+        val pinned: Boolean = false,
         val backgroundUri: String = ""
     ) : ConversationInfoItem()
 

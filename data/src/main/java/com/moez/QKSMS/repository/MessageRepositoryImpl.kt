@@ -1344,4 +1344,21 @@ open class MessageRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    override fun getStarredMessages(): RealmResults<Message> =
+        Realm.getDefaultInstance()
+            .where(Message::class.java)
+            .equalTo("isStarred", true)
+            .isNull("deletedAt")
+            .sort("date", Sort.DESCENDING)
+            .findAllAsync()
+
+    override fun getUnreadStarredCount(): Long =
+        Realm.getDefaultInstance().use { realm ->
+            realm.where(Message::class.java)
+                .equalTo("isStarred", true)
+                .equalTo("read", false)
+                .isNull("deletedAt")
+                .count()
+        }
 }

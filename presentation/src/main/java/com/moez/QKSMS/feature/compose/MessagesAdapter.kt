@@ -217,6 +217,7 @@ class MessagesAdapter @Inject constructor(
         val timestamp: TextView
         val simIndex: TextView
         val sim: ImageView
+        val star: ImageView
         val body: TextView
         val parts: androidx.recyclerview.widget.RecyclerView
         val reactions: View
@@ -234,6 +235,7 @@ class MessagesAdapter @Inject constructor(
             timestamp = binding.timestamp
             simIndex = binding.simIndex
             sim = binding.sim
+            star = binding.star
             body = binding.body
             parts = binding.parts
             reactions = binding.reactions
@@ -302,6 +304,7 @@ class MessagesAdapter @Inject constructor(
             timestamp = binding.timestamp
             simIndex = binding.simIndex
             sim = binding.sim
+            star = binding.star
             body = binding.body
             parts = binding.parts
             reactions = binding.reactions
@@ -353,6 +356,10 @@ class MessagesAdapter @Inject constructor(
             else
                 it.truncateWithEllipses(MAX_MESSAGE_DISPLAY_LENGTH)
         }
+
+        // Bind the star. Starring is per-message, so the indicator belongs on the bubble itself -
+        // without it the only evidence a message is starred is the Starred tab.
+        star.setVisible(message.isStarred)
 
         // Bind the message status
         bindStatus(status, isMsgTextTruncated, message, next)

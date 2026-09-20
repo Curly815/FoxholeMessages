@@ -22,22 +22,45 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import dev.octoshrimpy.quik.R
+import dev.octoshrimpy.quik.common.base.QkRealmAdapter
 import dev.octoshrimpy.quik.databinding.ConversationsTabPageBinding
 
 /**
- * Backs the Inbox's per-category ViewPager2 (Personal/Transactions/Promotions/Starred). Each
- * page gets its own [ConversationsAdapter] and [ConversationItemTouchCallback] instance so that
- * selection state and swipe actions stay independent per tab.
+ * Backs the Inbox's per-category ViewPager2 (Personal/Transactions/Promotions/Starred).
+ *
+ * The three category pages list conversations, each with its own [ConversationsAdapter] and
+ * [ConversationItemTouchCallback] instance so that selection state and swipe actions stay
+ * independent per tab. Starred is a different shape entirely - it lists starred messages rather
+ * than conversations - so it carries no selection or swipe behaviour, which is why the two page
+ * kinds are modelled separately rather than forced through one adapter type.
  */
 class ConversationsPagerAdapter(
     private val pages: List<TabPage>
 ) : RecyclerView.Adapter<ConversationsPagerAdapter.PageViewHolder>() {
 
-    data class TabPage(
-        val tab: Tab,
-        val adapter: ConversationsAdapter,
-        val touchCallback: ConversationItemTouchCallback
-    )
+    sealed class TabPage {
+
+        abstract val tab: Tab
+
+        /** The adapter to attach, regardless of what the page lists. */
+        abstract val adapter: QkRealmAdapter<*, *>
+
+        data class Conversations(
+            override val tab: Tab,
+            val conversationsAdapter: ConversationsAdapter,
+            val touchCallback: ConversationItemTouchCallback
+        ) : TabPage() {
+            override val adapter: QkRealmAdapter<*, *> get() = conversationsAdapter
+        }
+
+        data class Starred(
+            override val tab: Tab,
+            val starredAdapter: StarredMessagesAdapter
+        ) : TabPage() {
+            override val adapter: QkRealmAdapter<*, *> get() = starredAdapter
+        }
+    }
 
     class PageViewHolder(val binding: ConversationsTabPageBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -54,7 +77,16 @@ class ConversationsPagerAdapter(
         val page = pages[position]
         holder.binding.recyclerView.adapter = page.adapter
         page.adapter.emptyView = holder.binding.empty
-        page.touchCallback.adapter = page.adapter
-        ItemTouchHelper(page.touchCallback).attachToRecyclerView(holder.binding.recyclerView)
+
+        when (page) {
+            is TabPage.Conversations -> {
+                page.touchCallback.adapter = page.conversationsAdapter
+                ItemTouchHelper(page.touchCallback).attachToRecyclerView(holder.binding.recyclerView)
+            }
+
+            // The shared empty view talks about conversations, which is wrong for a message list
+            is TabPage.Starred ->
+                holder.binding.empty.setText(R.string.tab_starred_empty)
+        }
     }
 }

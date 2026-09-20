@@ -66,6 +66,7 @@ import dev.octoshrimpy.quik.feature.changelog.ChangelogDialog
 import dev.octoshrimpy.quik.feature.conversations.ConversationItemTouchCallback
 import dev.octoshrimpy.quik.feature.conversations.ConversationsAdapter
 import dev.octoshrimpy.quik.feature.conversations.ConversationsPagerAdapter
+import dev.octoshrimpy.quik.feature.conversations.StarredMessagesAdapter
 import dev.octoshrimpy.quik.feature.conversations.Tab
 import dev.octoshrimpy.quik.manager.ChangelogManager
 import dev.octoshrimpy.quik.repository.SyncRepository
@@ -87,6 +88,7 @@ class MainActivity : QkThemedActivity(), MainView {
     @Inject lateinit var itemTouchCallback: ConversationItemTouchCallback
     @Inject lateinit var conversationsAdapterProvider: Provider<ConversationsAdapter>
     @Inject lateinit var itemTouchCallbackProvider: Provider<ConversationItemTouchCallback>
+    @Inject lateinit var starredMessagesAdapter: StarredMessagesAdapter
     @Inject lateinit var viewModelFactory: ViewModelProvider.Factory
 
     private lateinit var binding: MainActivityBinding
@@ -129,22 +131,35 @@ class MainActivity : QkThemedActivity(), MainView {
     override val renameConversationIntent: Subject<String> = PublishSubject.create()
     override val moveToIntent: Subject<String> = PublishSubject.create()
     override val swipeConversationIntent by lazy {
-        Observable.merge(listOf(itemTouchCallback.swipes) + tabPages.map { it.touchCallback.swipes })
+        Observable.merge(listOf(itemTouchCallback.swipes) + conversationTabPages.map { it.touchCallback.swipes })
     }
     override val changelogMoreIntent by lazy { changelogDialog.moreClicks }
     override val undoArchiveIntent: Subject<Unit> = PublishSubject.create()
     override val snackbarButtonIntent: Subject<Unit> = PublishSubject.create()
 
     // Message sorting: the Inbox page shows a ViewPager2 of category tabs instead of the flat
-    // recyclerView above, which remains in use for Archived/Search. Each tab gets its own
-    // adapter/touch callback so selection and swipe state stay independent per tab.
+    // recyclerView above, which remains in use for Archived/Search. Each category tab gets its
+    // own adapter/touch callback so selection and swipe state stay independent per tab; Starred
+    // is a message list rather than a conversation list, so it has neither.
     private val tabPages by lazy {
         Tab.values().map { tab ->
-            ConversationsPagerAdapter.TabPage(tab, conversationsAdapterProvider.get(), itemTouchCallbackProvider.get())
+            when (tab) {
+                // Starred lists the starred messages themselves rather than the conversations
+                // holding them, so it gets its own adapter and no swipe/selection behaviour.
+                Tab.STARRED -> ConversationsPagerAdapter.TabPage.Starred(tab, starredMessagesAdapter)
+                else -> ConversationsPagerAdapter.TabPage.Conversations(
+                    tab, conversationsAdapterProvider.get(), itemTouchCallbackProvider.get()
+                )
+            }
         }
     }
+    private val conversationTabPages by lazy {
+        tabPages.filterIsInstance<ConversationsPagerAdapter.TabPage.Conversations>()
+    }
     private val conversationsPagerAdapter by lazy { ConversationsPagerAdapter(tabPages) }
-    private val allConversationsAdapters by lazy { listOf(conversationsAdapter) + tabPages.map { it.adapter } }
+    private val allConversationsAdapters by lazy {
+        listOf(conversationsAdapter) + conversationTabPages.map { it.conversationsAdapter }
+    }
 
     private val viewModel by lazy {
         ViewModelProviders.of(this, viewModelFactory)[MainViewModel::class.java]
@@ -366,7 +381,14 @@ class MainActivity : QkThemedActivity(), MainView {
                 binding.recyclerView.isVisible = false
                 binding.empty.isVisible = false
                 itemTouchHelper.attachToRecyclerView(null)
-                tabPages.forEach { page -> page.adapter.updateData(state.tabData[page.tab]) }
+                tabPages.forEach { page ->
+                    when (page) {
+                        is ConversationsPagerAdapter.TabPage.Conversations ->
+                            page.conversationsAdapter.updateData(state.tabData[page.tab])
+                        is ConversationsPagerAdapter.TabPage.Starred ->
+                            page.starredAdapter.updateData(state.starredMessages)
+                    }
+                }
                 updateTabBadges(state.tabUnreadCounts)
             }
 
@@ -508,9 +530,17 @@ class MainActivity : QkThemedActivity(), MainView {
     override fun clearSelection() = allConversationsAdapters.forEach { it.clearSelection() }
 
     override fun toggleSelectAll() {
-        val active = tabPages.getOrNull(binding.tabPager.currentItem)?.adapter?.takeIf { binding.tabPager.isVisible }
-            ?: conversationsAdapter
-        active.toggleSelectAll()
+        if (!binding.tabPager.isVisible) {
+            conversationsAdapter.toggleSelectAll()
+            return
+        }
+
+        when (val page = tabPages.getOrNull(binding.tabPager.currentItem)) {
+            is ConversationsPagerAdapter.TabPage.Conversations -> page.conversationsAdapter.toggleSelectAll()
+            // Starred lists messages and has no selection mode of its own
+            is ConversationsPagerAdapter.TabPage.Starred -> Unit
+            null -> conversationsAdapter.toggleSelectAll()
+        }
     }
 
     override fun themeChanged() = binding.recyclerView.scrapViews()

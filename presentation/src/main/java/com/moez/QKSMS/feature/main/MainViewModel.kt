@@ -100,7 +100,8 @@ class MainViewModel @Inject constructor(
     MainState(
         page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get())),
         tabData = buildTabData(conversationRepo, prefs.unreadAtTop.get()),
-        tabUnreadCounts = buildTabUnreadCounts(conversationRepo)
+        starredMessages = messageRepo.getStarredMessages(),
+        tabUnreadCounts = buildTabUnreadCounts(conversationRepo, messageRepo)
     )
 ) {
     companion object {
@@ -211,7 +212,8 @@ class MainViewModel @Inject constructor(
                         copy(
                             page = Inbox(data = conversationRepo.getConversations(prefs.unreadAtTop.get())),
                             tabData = buildTabData(conversationRepo, prefs.unreadAtTop.get()),
-                            tabUnreadCounts = buildTabUnreadCounts(conversationRepo)
+                            starredMessages = messageRepo.getStarredMessages(),
+                            tabUnreadCounts = buildTabUnreadCounts(conversationRepo, messageRepo)
                         )
                     }
                 else if (state.page is Archived)
@@ -684,12 +686,18 @@ class MainViewModel @Inject constructor(
         // badge follows it immediately. tabData's RealmResults are already live (findAllAsync),
         // this just derives the counts from that same live data instead of a one-off snapshot.
         disposables += state
-            .map { it.tabData }
+            .map { it.tabData to it.starredMessages }
             .distinctUntilChanged()
-            .switchMap { tabData -> Observable.merge(tabData.values.filterNotNull().map { it.asObservable() }) }
+            .switchMap { (tabData, starred) ->
+                // Starred lives outside tabData, so it needs merging in separately or its badge
+                // never updates. Mapped to Unit so the two result types can share one stream.
+                val sources = tabData.values.filterNotNull().map { it.asObservable().map { _ -> Unit } } +
+                        listOfNotNull(starred?.asObservable()?.map { _ -> Unit })
+                Observable.merge(sources)
+            }
             .observeOn(Schedulers.io())
             .subscribe {
-                newState { copy(tabUnreadCounts = buildTabUnreadCounts(conversationRepo)) }
+                newState { copy(tabUnreadCounts = buildTabUnreadCounts(conversationRepo, messageRepo)) }
             }
 
         // Refresh tab contents/unread counts on resume too, as a fallback in case data changed
@@ -702,7 +710,8 @@ class MainViewModel @Inject constructor(
                 newState {
                     copy(
                         tabData = buildTabData(conversationRepo, prefs.unreadAtTop.get()),
-                        tabUnreadCounts = buildTabUnreadCounts(conversationRepo)
+                        starredMessages = messageRepo.getStarredMessages(),
+                        tabUnreadCounts = buildTabUnreadCounts(conversationRepo, messageRepo)
                     )
                 }
             }
@@ -710,16 +719,21 @@ class MainViewModel @Inject constructor(
 
 }
 
-// Message sorting: conversations are bucketed into tabs by category (or starred state), rather
-// than through the MainPage sealed class, since tabs coexist with whichever page is showing.
+// Message sorting: conversations are bucketed into tabs by category, rather than through the
+// MainPage sealed class, since tabs coexist with whichever page is showing. Starred is excluded
+// here - it lists messages, not conversations, and is carried separately in MainState.
 private fun buildTabData(conversationRepo: ConversationRepository, unreadAtTop: Boolean): Map<Tab, RealmResults<Conversation>?> =
-    Tab.values().associateWith { tab ->
-        if (tab == Tab.STARRED) conversationRepo.getStarredConversations(unreadAtTop)
-        else conversationRepo.getConversationsByCategory(unreadAtTop, requireNotNull(tab.category))
-    }
+    Tab.values()
+        .filter { tab -> tab.category != null }
+        .associateWith { tab ->
+            conversationRepo.getConversationsByCategory(unreadAtTop, requireNotNull(tab.category))
+        }
 
-private fun buildTabUnreadCounts(conversationRepo: ConversationRepository): Map<Tab, Long> =
+private fun buildTabUnreadCounts(
+    conversationRepo: ConversationRepository,
+    messageRepo: MessageRepository
+): Map<Tab, Long> =
     Tab.values().associateWith { tab ->
-        if (tab == Tab.STARRED) conversationRepo.getUnreadStarredCount()
+        if (tab == Tab.STARRED) messageRepo.getUnreadStarredCount()
         else conversationRepo.getUnreadCountByCategory(requireNotNull(tab.category))
     }

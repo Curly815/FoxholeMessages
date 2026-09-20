@@ -99,10 +99,6 @@ interface ConversationRepository {
 
     fun getUnreadCountByCategory(category: String): Long
 
-    fun getStarredConversations(unreadAtTop: Boolean): RealmResults<Conversation>
-
-    fun getUnreadStarredCount(): Long
-
     fun updateCategoryOverride(threadIds: Collection<Long>, category: String?)
 
 }

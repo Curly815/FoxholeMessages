@@ -527,35 +527,6 @@ class ConversationRepositoryImpl @Inject constructor(
                 .count()
         }
 
-    override fun getStarredConversations(unreadAtTop: Boolean): RealmResults<Conversation> {
-        val realm = Realm.getDefaultInstance()
-        val threadIds = realm.where(Message::class.java)
-            .equalTo("isStarred", true)
-            .distinct("threadId")
-            .findAll()
-            .map { it.threadId }
-            .toLongArray()
-
-        return getConversationsBase(realm, unreadAtTop, false)
-            .anyOf("id", threadIds)
-            .findAllAsync()
-    }
-
-    override fun getUnreadStarredCount(): Long =
-        Realm.getDefaultInstance().use { realm ->
-            val threadIds = realm.where(Message::class.java)
-                .equalTo("isStarred", true)
-                .distinct("threadId")
-                .findAll()
-                .map { it.threadId }
-                .toLongArray()
-
-            getConversationsBase(realm, false, false)
-                .anyOf("id", threadIds)
-                .equalTo("lastMessage.read", false)
-                .count()
-        }
-
     override fun updateCategoryOverride(threadIds: Collection<Long>, category: String?) =
         Realm.getDefaultInstance().use { realm ->
             val conversations = realm.where(Conversation::class.java)

@@ -173,4 +173,13 @@ interface MessageRepository {
     fun updateMessageOtp(messageId: Long, isOtp: Boolean)
 
     fun setStarred(messageId: Long, starred: Boolean)
+
+    /**
+     * The starred messages themselves, newest first, for the Starred inbox tab. Deliberately
+     * messages rather than the conversations holding them: starring is a per-message action, so
+     * surfacing the whole thread would defeat the point of it.
+     */
+    fun getStarredMessages(): RealmResults<Message>
+
+    fun getUnreadStarredCount(): Long
 }

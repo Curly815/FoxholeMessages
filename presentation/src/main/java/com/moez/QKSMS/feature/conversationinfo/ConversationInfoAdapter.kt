@@ -34,6 +34,7 @@ class ConversationInfoAdapter @Inject constructor(
     val backgroundImageClicks: Subject<Unit> = PublishSubject.create()
     val backgroundImageLongClicks: Subject<Unit> = PublishSubject.create()
     val markUnreadClicks: Subject<Unit> = PublishSubject.create()
+    val pinClicks: Subject<Unit> = PublishSubject.create()
     val archiveClicks: Subject<Unit> = PublishSubject.create()
     val blockClicks: Subject<Unit> = PublishSubject.create()
     val deleteClicks: Subject<Unit> = PublishSubject.create()
@@ -74,6 +75,7 @@ class ConversationInfoAdapter @Inject constructor(
                         true
                     }
                     binding.markUnread.clicks().subscribe(markUnreadClicks)
+                    binding.pin.clicks().subscribe(pinClicks)
                     binding.archive.clicks().subscribe(archiveClicks)
                     binding.block.clicks().subscribe(blockClicks)
                     binding.delete.clicks().subscribe(deleteClicks)
@@ -117,6 +119,11 @@ class ConversationInfoAdapter @Inject constructor(
                 binding.groupName.summary = item.name
 
                 binding.notifications.isEnabled = !item.blocked
+
+                binding.pin.title = context.getString(when (item.pinned) {
+                    true -> R.string.main_menu_unpin
+                    false -> R.string.main_menu_pin
+                })
 
                 binding.archive.isEnabled = !item.blocked
                 binding.archive.title = context.getString(when (item.archived) {

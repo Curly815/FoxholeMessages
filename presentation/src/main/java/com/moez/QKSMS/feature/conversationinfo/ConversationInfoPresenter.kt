@@ -34,7 +34,9 @@ import dev.octoshrimpy.quik.feature.conversationinfo.ConversationInfoItem.Conver
 import dev.octoshrimpy.quik.feature.conversationinfo.ConversationInfoItem.ConversationInfoRecipient
 import dev.octoshrimpy.quik.interactor.DeleteConversations
 import dev.octoshrimpy.quik.interactor.MarkArchived
+import dev.octoshrimpy.quik.interactor.MarkPinned
 import dev.octoshrimpy.quik.interactor.MarkUnarchived
+import dev.octoshrimpy.quik.interactor.MarkUnpinned
 import dev.octoshrimpy.quik.interactor.MarkUnread
 import dev.octoshrimpy.quik.manager.PermissionManager
 import dev.octoshrimpy.quik.model.Conversation
@@ -60,6 +62,8 @@ class ConversationInfoPresenter @Inject constructor(
     private val markUnread: MarkUnread,
     private val markArchived: MarkArchived,
     private val markUnarchived: MarkUnarchived,
+    private val markPinned: MarkPinned,
+    private val markUnpinned: MarkUnpinned,
     private val navigator: Navigator,
     private val externalNavigator: ExternalNavigator,
     private val permissionManager: PermissionManager
@@ -105,6 +109,7 @@ class ConversationInfoPresenter @Inject constructor(
                             recipients = conversation.recipients,
                             archived = conversation.archived,
                             blocked = conversation.blocked,
+                            pinned = conversation.pinned,
                             backgroundUri = backgroundUri)
                     data += parts.map(::ConversationInfoMedia)
 
@@ -187,6 +192,19 @@ class ConversationInfoPresenter @Inject constructor(
                 .subscribe {conversation ->
                     markUnread.execute(listOf(conversation.id))
                     navigator.showMainActivity()
+                }
+
+        // Toggle the pinned state of the conversation. Pinned conversations already sort to the
+        // top of the main list - this just surfaces the existing toggle somewhere findable, rather
+        // than only behind a long-press on the conversation.
+        view.pinClicks()
+                .withLatestFrom(conversation) { _, conversation -> conversation }
+                .autoDisposable(view.scope())
+                .subscribe { conversation ->
+                    when (conversation.pinned) {
+                        true -> markUnpinned.execute(listOf(conversation.id))
+                        false -> markPinned.execute(listOf(conversation.id))
+                    }
                 }
 
         // Toggle the archived state of the conversation
