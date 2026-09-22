@@ -1299,6 +1299,49 @@ list**, which is the thing to know before touching that area:
   `getStarredMessages`/`getUnreadStarredCount` — neither was ever about
   conversations.
 
+### Reactions to pictures — shipped but UNVERIFIED
+
+Reported as "RCS emojis broke again", but it was never a regression:
+reactions to **pictures have never worked**. The log proved it in one
+line — `No reaction pattern matched (body length=14 ...)`, and 14 is
+exactly `Loved an image`. That length also rules out Google Messages
+formatting, which embeds invisible zero-width markers and could never be
+that short, so it really is plain unquoted text.
+
+Every pattern in all twelve locale files expects the message being
+reacted to **in curly quotes**. React to a picture and there's nothing to
+quote, so iOS sends `Loved an image` and the whole set misses.
+
+The fix (commit `5f4dead0`, on master since v2.4.0):
+- `en.json` patterns accept either the quoted message **or** a closed set
+  of attachment phrases (`an image`, `a video`, `an audio message`,
+  `a sticker`). The quoted group then comes back empty, which sets
+  `ParsedEmojiReaction.targetsAttachment`.
+- **A closed set, not a catch-all, on purpose.** A match sets
+  `isEmojiReaction`, which *hides* the message — so a false positive
+  silently disappears someone's real text. `Loved that movie!` and
+  `I loved an image of that` are verified not to match. Don't loosen
+  these into `Loved (.+)` without understanding that.
+- `findAttachmentTarget` replaces text matching for these: the most
+  recent attachment in the thread at or before the reaction's own date.
+  iOS names the *kind* of attachment but never *which one*, so this is
+  the only available signal, and it can pick the wrong picture when
+  several arrive close together.
+- `findTargetMessage` now takes `(reactionMessage, reaction, realm)`
+  rather than `(threadId, text, realm)`, since it needs the date and the
+  flag. Three call sites: receive, sync, reparse.
+
+**Status: not device-verified.** Erik sideloaded and the `Loved an
+image` message was still showing as text, but no log was captured, and
+he chose to keep the change and stop rather than chase it — reactions on
+text messages are the common case and those work. So treat this as
+plausible-but-unproven. The most likely explanation is that the real
+phrasing isn't in the closed set: only `an image` was ever
+evidence-backed, the other three are informed guesses. One log line
+would settle it — `No reaction pattern matched` means the phrasing is
+wrong, `No attachment found in thread to attach reaction to` means
+parsing worked and only the lookup missed.
+
 ### Known gaps / open items
 
 - **Android Auto**: two texts appeared in the car but never in the app's
