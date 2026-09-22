@@ -835,8 +835,8 @@ open class MessageRepositoryImpl @Inject constructor(
                 val parsedReaction = reactions.parseEmojiReaction(body)
                 if (parsedReaction != null) {
                     val targetMessage = reactions.findTargetMessage(
-                        savedMessage.threadId,
-                        parsedReaction.originalMessage,
+                        savedMessage,
+                        parsedReaction,
                         realm
                     )
                     realm.executeTransaction {

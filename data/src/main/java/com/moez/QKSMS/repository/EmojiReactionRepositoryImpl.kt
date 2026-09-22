@@ -25,6 +25,7 @@ import dev.octoshrimpy.quik.manager.KeyManager
 import dev.octoshrimpy.quik.model.EmojiReaction
 import dev.octoshrimpy.quik.model.Message
 import dev.octoshrimpy.quik.util.EmojiPatternStrings
+import io.realm.Case
 import io.realm.Realm
 import io.realm.Sort
 import timber.log.Timber
@@ -88,12 +89,18 @@ class EmojiReactionRepositoryImpl @Inject constructor(
             Triple("❓", strings.iosQuestionMarkAdded, strings.iosQuestionMarkRemoved)
         ).forEach { (emoji, added, removed) ->
             added?.let {
-                reactionPatterns[Regex(it)] =
-                    { match -> ParsedEmojiReaction(emoji, match.groupValues[1]) }
+                reactionPatterns[Regex(it)] = { match ->
+                    val original = match.groupValues[1]
+                    ParsedEmojiReaction(emoji, original, targetsAttachment = original.isEmpty())
+                }
             }
             removed?.let {
-                removalPatterns[Regex(it)] =
-                    { match -> ParsedEmojiReaction(emoji, match.groupValues[1], isRemoval = true) }
+                removalPatterns[Regex(it)] = { match ->
+                    val original = match.groupValues[1]
+                    ParsedEmojiReaction(
+                        emoji, original, isRemoval = true, targetsAttachment = original.isEmpty()
+                    )
+                }
             }
         }
 
@@ -101,12 +108,21 @@ class EmojiReactionRepositoryImpl @Inject constructor(
         strings.iosGenericAdded?.let { pattern ->
             reactionPatterns[Regex(pattern)] = { match ->
                 if (match.groupValues.getOrNull(1) == "with a sticker") null // TODO: localize "with a sticker"
-                else ParsedEmojiReaction(match.groupValues[1], match.groupValues[2])
+                else {
+                    val original = match.groupValues[2]
+                    ParsedEmojiReaction(
+                        match.groupValues[1], original, targetsAttachment = original.isEmpty()
+                    )
+                }
             }
         }
         strings.iosGenericRemoved?.let { pattern ->
             removalPatterns[Regex(pattern)] = { match ->
-                ParsedEmojiReaction(match.groupValues[1], match.groupValues[2], isRemoval = true)
+                val original = match.groupValues[2]
+                ParsedEmojiReaction(
+                    match.groupValues[1], original, isRemoval = true,
+                    targetsAttachment = original.isEmpty()
+                )
             }
         }
 
@@ -223,10 +239,14 @@ class EmojiReactionRepositoryImpl @Inject constructor(
      * We'll search recent messages first
      */
     override fun findTargetMessage(
-        threadId: Long,
-        originalMessageText: String,
+        reactionMessage: Message,
+        reaction: ParsedEmojiReaction,
         realm: Realm
     ): Message? {
+        if (reaction.targetsAttachment) return findAttachmentTarget(reactionMessage, realm)
+
+        val threadId = reactionMessage.threadId
+        val originalMessageText = reaction.originalMessage
         val startTime = System.currentTimeMillis()
         val messages = realm.where(Message::class.java)
             .equalTo("threadId", threadId)
@@ -246,6 +266,35 @@ class EmojiReactionRepositoryImpl @Inject constructor(
 
         Timber.w("No target message found for reaction text: '$originalMessageText'")
         return null
+    }
+
+    /**
+     * A reaction to a picture or video arrives as "Loved an image" - iOS names the kind of
+     * attachment but never says *which* one, so there is nothing to match against the way text
+     * reactions match on their quoted body. The closest available signal is the most recent
+     * attachment in the thread at the time the reaction arrived, which is what the sender was
+     * almost certainly looking at. Bounded by the reaction's own date so that re-parsing an old
+     * reaction doesn't attach it to a picture sent later.
+     */
+    private fun findAttachmentTarget(reactionMessage: Message, realm: Realm): Message? {
+        val match = realm.where(Message::class.java)
+            .equalTo("threadId", reactionMessage.threadId)
+            .notEqualTo("id", reactionMessage.id)
+            .lessThanOrEqualTo("date", reactionMessage.date)
+            .beginGroup()
+                .beginsWith("parts.type", "image/", Case.INSENSITIVE)
+                .or()
+                .beginsWith("parts.type", "video/", Case.INSENSITIVE)
+                .or()
+                .beginsWith("parts.type", "audio/", Case.INSENSITIVE)
+            .endGroup()
+            .sort("date", Sort.DESCENDING)
+            .findFirst()
+
+        if (match == null) Timber.w("No attachment found in thread to attach reaction to")
+        else Timber.d("Found attachment reaction target: message ID ${match.id}")
+
+        return match
     }
 
     private fun removeEmojiReaction(
@@ -345,11 +394,7 @@ class EmojiReactionRepositoryImpl @Inject constructor(
             val parsedReaction = parseEmojiReaction(text)
             if (parsedReaction != null) {
                 reactionsParsed++
-                val targetMessage = findTargetMessage(
-                    message.threadId,
-                    parsedReaction.originalMessage,
-                    realm
-                )
+                val targetMessage = findTargetMessage(message, parsedReaction, realm)
                 if (targetMessage != null) targetsFound++
                 saveEmojiReaction(
                     message,

@@ -106,7 +106,7 @@ class MainViewModel @Inject constructor(
 ) {
     companion object {
         // Bump to re-run the emoji reaction reparse once on every device's next launch
-        private const val EMOJI_REPARSE_VERSION = 3
+        private const val EMOJI_REPARSE_VERSION = 4
     }
 
     private var lastArchivedThreadIds = listOf<Long>(0)

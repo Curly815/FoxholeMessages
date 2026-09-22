@@ -21,12 +21,22 @@ package dev.octoshrimpy.quik.repository
 import dev.octoshrimpy.quik.model.Message
 import io.realm.Realm
 
-data class ParsedEmojiReaction(val emoji: String, val originalMessage: String, val isRemoval: Boolean = false)
+/**
+ * [targetsAttachment] is set when the reaction was to a picture, video or similar rather than to
+ * text - iOS sends those as "Loved an image" with no quoted message to match on, so the target has
+ * to be found a different way and [originalMessage] is empty.
+ */
+data class ParsedEmojiReaction(
+    val emoji: String,
+    val originalMessage: String,
+    val isRemoval: Boolean = false,
+    val targetsAttachment: Boolean = false
+)
 
 interface EmojiReactionRepository {
     fun parseEmojiReaction(body: String): ParsedEmojiReaction?
 
-    fun findTargetMessage(threadId: Long, originalMessageText: String, realm: Realm): Message?
+    fun findTargetMessage(reactionMessage: Message, reaction: ParsedEmojiReaction, realm: Realm): Message?
 
     fun saveEmojiReaction(
         reactionMessage: Message,
