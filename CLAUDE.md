@@ -496,6 +496,11 @@ Whenever it's worth it, AGP can generate these automatically via
 
 ### targetSdk 36 (Android 16) — required by Aug 31, 2026
 
+**Before the next bump (to 37):** file the Contacts Permission
+declaration first — see Play Console notes. It only applies to apps
+targeting SDK 37+, so bumping targetSdk is exactly what pulls this app
+into scope.
+
 Play Console flagged the v1.3.0 upload: apps must target Android 16
 (API 36) or higher by Aug 31, 2026, or updates get blocked entirely.
 Unlike the 33→34→35 bumps, this one wasn't a one-line change:
@@ -1197,6 +1202,35 @@ classes.
   triggering an install of this one, which doesn't apply here.
 - **App optimization** (Play-side APK post-processing, same settings
   page) is off; low risk to enable, just never got turned on.
+- **Contacts Permission policy — declaration owed before targetSdk 37.**
+  Google emailed about this on 2026-10-02. It enforces from **Jan 27,
+  2027**, but only against apps that **target Android 17 / SDK 37+** and
+  use `READ_CONTACTS` without a Play Console declaration. This app
+  targets 36, so it is **not in scope today** — it comes into scope the
+  moment the targetSdk bump to 37 happens, which Play's annual
+  requirement forces eventually (historically each August). The
+  declaration must already be filed by then, and this project has been
+  caught late by the 34, 35 *and* 36 deadlines, so file it early rather
+  than at bump time. Declarations are open now: Play Console → Monitor
+  and improve → Policy and programs → App content → Contacts Permission.
+
+  **Declaring is the only viable option — migrating to the Android
+  Contact Picker is not possible here**, and that is worth understanding
+  before anyone suggests it as the "cleaner" route. The picker returns
+  only contacts the user individually selects through a system UI. This
+  app's central use of contacts is the reverse: a message arrives from a
+  bare phone number and has to be resolved to a name and photo with no
+  user interaction at all (`CursorToContactImpl`,
+  `ContactRepositoryImpl`, the per-adapter `ContactCache`s). Recipient
+  search when composing, conversation avatars, and the launcher
+  shortcuts all need the whole address book too. There is no selective
+  -access way to answer "who is this number?".
+
+  The use case — a default SMS handler — is the canonical approved one,
+  and Erik has already been through Play's *stricter* SMS/Call Log
+  permissions declaration, which is the same shape of process. **Do not
+  remove `READ_CONTACTS` from the manifest**; it would break name
+  resolution across the entire app.
 
 ### Reflective Moshi + R8 — the emoji reaction outage (v2.3.1)
 
