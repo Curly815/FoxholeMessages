@@ -79,10 +79,13 @@ import dev.octoshrimpy.quik.common.util.extensions.setTint
 import dev.octoshrimpy.quik.common.util.extensions.setVisible
 import dev.octoshrimpy.quik.common.util.extensions.showKeyboard
 import dev.octoshrimpy.quik.common.widget.MicInputCloudView
+import dev.octoshrimpy.quik.common.widget.QkContextMenuRecyclerView
+import dev.octoshrimpy.quik.extensions.isAudio
 import dev.octoshrimpy.quik.extensions.mapNotNull
 import dev.octoshrimpy.quik.feature.compose.editing.ChipsAdapter
 import dev.octoshrimpy.quik.feature.contacts.ContactsActivity
 import dev.octoshrimpy.quik.model.Attachment
+import dev.octoshrimpy.quik.model.MmsPart
 import dev.octoshrimpy.quik.model.Recipient
 import dev.octoshrimpy.quik.util.GlideApp
 import dev.octoshrimpy.quik.util.tryOrNull
@@ -819,6 +822,14 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     ) {
         super.onCreateContextMenu(menu, v, menuInfo)
         menuInflater.inflate(R.menu.mms_part_menu, menu)
+
+        // "Save to gallery" is wrong for a voice message - audio isn't gallery media and is saved
+        // to Downloads instead - so the option names what it actually does for this part.
+        val part = (menuInfo as? QkContextMenuRecyclerView.ContextMenuInfo<*, *>)
+            ?.viewHolderValue as? MmsPart
+        if (part?.isAudio() == true) {
+            menu?.findItem(R.id.save)?.setTitle(R.string.audio_save)
+        }
     }
 
     override fun onContextItemSelected(item: MenuItem): Boolean {

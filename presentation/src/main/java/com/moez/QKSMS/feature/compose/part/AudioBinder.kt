@@ -25,6 +25,7 @@ import android.media.MediaMetadataRetriever
 import android.media.MediaMetadataRetriever.METADATA_KEY_TITLE
 import android.view.View
 import android.widget.SeekBar
+import androidx.appcompat.widget.TooltipCompat
 import com.moez.QKSMS.common.QkMediaPlayer
 import dev.octoshrimpy.quik.R
 import dev.octoshrimpy.quik.common.Navigator
@@ -114,7 +115,11 @@ class AudioBinder @Inject constructor(colors: Colors, private val context: Conte
 
         // The seek bar and play button fill this card and swallow a long press, so the part
         // context menu's Save is effectively unreachable here - hence an explicit button.
+        // TooltipCompat rather than android:tooltipText so the label shows below API 26 too.
         binding.save.setOnClickListener { saveClicks.onNext(part.id) }
+        TooltipCompat.setTooltipText(
+            binding.save, context.getString(R.string.audio_save)
+        )
 
         // play/pause button click handling
         binding.playPause.setOnClickListener {
