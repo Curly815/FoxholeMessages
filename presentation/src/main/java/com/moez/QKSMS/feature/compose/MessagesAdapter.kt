@@ -114,6 +114,7 @@ class MessagesAdapter @Inject constructor(
 
     // click events passed back to compose view model
     val partClicks: Subject<Long> = PublishSubject.create()
+    val partSaveClicks: Subject<Long> = PublishSubject.create()
     val messageLinkClicks: Subject<Uri> = PublishSubject.create()
     val cancelSendingClicks: Subject<Long> = PublishSubject.create()
     val sendNowClicks: Subject<Long> = PublishSubject.create()
@@ -462,6 +463,7 @@ class MessagesAdapter @Inject constructor(
             setData(message, previous, next, holder, audioState)
             contextMenuValue = message.id
             clicks.subscribe(partClicks)    // part clicks gets passed back to compose view model
+            saveClicks.subscribe(partSaveClicks)
         }
 
         showEmojiReactions(reactions, reactionText, message)

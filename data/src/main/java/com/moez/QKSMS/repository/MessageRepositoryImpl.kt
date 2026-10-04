@@ -253,8 +253,16 @@ open class MessageRepositoryImpl @Inject constructor(
     override fun savePart(id: Long): Uri? {
         val part = getPart(id) ?: return null
 
+        // MimeTypeMap has no entry for plenty of real attachment types - voice messages in
+        // particular arrive as things like audio/amr-wb or audio/x-caf - and returning null here
+        // meant the save silently did nothing while still reporting success. Fall back to the
+        // mime subtype, which is the extension often enough to be useful and is never worse than
+        // not saving at all.
         val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(part.type)
-            ?: return null
+            ?: part.type.substringAfterLast('/').substringBefore('+')
+                .filter { it.isLetterOrDigit() }
+                .takeIf { it.isNotEmpty() }
+            ?: "bin"
         // fileDateAndTime is divided by 1000 in order to remove the extra 0's after date and time
         // This way the file name isn't so long.
         val fileDateAndTime = (part.messages?.first()?.date)?.div(1000)
@@ -292,7 +300,12 @@ open class MessageRepositoryImpl @Inject constructor(
         val uri = context.contentResolver.insert(contentUri, values)
         Timber.v("Saving $fileName (${part.type}) to $uri")
 
-        uri?.let {
+        if (uri == null) {
+            Timber.w("MediaStore refused a row for $fileName (${part.type}) - not saved")
+            return null
+        }
+
+        uri.let {
             context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                 context.contentResolver.openInputStream(part.getUri())?.use { inputStream ->
                     inputStream.copyTo(outputStream, 1024)

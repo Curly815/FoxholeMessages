@@ -51,6 +51,7 @@ interface ComposeView : QkView<ComposeState> {
     val contextItemIntent: Observable<MenuItem>
     val sendAsGroupIntent: Observable<Unit>
     val messagePartClickIntent: Subject<Long>
+    val messagePartSaveIntent: Subject<Long>
     val messagePartContextMenuRegistrar: Subject<View>
     val messagesSelectedIntent: Observable<List<Long>>
     val cancelDelayedIntent: Subject<Long>

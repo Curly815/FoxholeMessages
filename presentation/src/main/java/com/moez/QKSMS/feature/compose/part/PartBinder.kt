@@ -29,6 +29,13 @@ abstract class PartBinder {
 
     val clicks: Subject<Long> = PublishSubject.create()
 
+    /**
+     * Emitted when a part offers its own save affordance. The long-press context menu covers the
+     * other part types, but the audio player fills its card with a seek bar and buttons that
+     * swallow the long press, so there was no way to reach Save on a voice message at all.
+     */
+    val saveClicks: Subject<Long> = PublishSubject.create()
+
     abstract val partLayout: Int
 
     abstract var theme: Colors.Theme

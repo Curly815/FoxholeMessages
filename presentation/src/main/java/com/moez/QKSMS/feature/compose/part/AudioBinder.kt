@@ -112,6 +112,10 @@ class AudioBinder @Inject constructor(colors: Colors, private val context: Conte
         // click on background - passes back to compose view model
         holder.itemView.setOnClickListener { clicks.onNext(part.id) }
 
+        // The seek bar and play button fill this card and swallow a long press, so the part
+        // context menu's Save is effectively unreachable here - hence an explicit button.
+        binding.save.setOnClickListener { saveClicks.onNext(part.id) }
+
         // play/pause button click handling
         binding.playPause.setOnClickListener {
             when (binding.playPause.tag) {

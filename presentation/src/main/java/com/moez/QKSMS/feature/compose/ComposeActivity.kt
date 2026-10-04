@@ -121,6 +121,7 @@ class ComposeActivity : QkThemedActivity(), ComposeView {
     override val scheduleAction: Subject<Boolean> = PublishSubject.create()
     override val sendAsGroupIntent by lazy { binding.sendAsGroupSwitch.clicks() }
     override val messagePartClickIntent: Subject<Long> by lazy { messageAdapter.partClicks }
+    override val messagePartSaveIntent: Subject<Long> by lazy { messageAdapter.partSaveClicks }
     override val messagePartContextMenuRegistrar: Subject<View> by lazy { messageAdapter.partContextMenuRegistrar }
     override val messagesSelectedIntent by lazy { messageAdapter.selectionChanges }
     override val cancelDelayedIntent: Subject<Long> by lazy { messageAdapter.cancelSendingClicks }

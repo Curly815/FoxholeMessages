@@ -20,6 +20,7 @@ package dev.octoshrimpy.quik.interactor
 
 import dev.octoshrimpy.quik.repository.MessageRepository
 import io.reactivex.Flowable
+import java.io.IOException
 import javax.inject.Inject
 
 class SaveImage @Inject constructor(
@@ -28,7 +29,14 @@ class SaveImage @Inject constructor(
 
     override fun buildObservable(params: Long): Flowable<*> {
         return Flowable.just(params)
-                .doOnNext { partId -> messageRepo.savePart(partId) }
+                // savePart returns null when it couldn't write the file. Letting that pass
+                // silently meant the stream completed and callers showed their "Saved" toast for
+                // a file that was never written - so fail the stream instead, which skips the
+                // toast and logs through Interactor's own error handler.
+                .doOnNext { partId ->
+                    messageRepo.savePart(partId)
+                        ?: throw IOException("Couldn't save attachment part $partId")
+                }
     }
 
 }

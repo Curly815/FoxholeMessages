@@ -788,6 +788,15 @@ class ComposeViewModel @Inject constructor(
                     )
                 }
 
+        // Save button on an attachment that carries its own (the audio player). Same interactor
+        // the context menu's Save uses - this just reaches it from somewhere pressable.
+        view.messagePartSaveIntent
+                .filter { permissionManager.hasStorage().also { if (!it) view.requestStoragePermission() } }
+                .autoDisposable(view.scope())
+                .subscribe { partId ->
+                    saveImage.execute(partId) { context.makeToast(R.string.gallery_toast_saved) }
+                }
+
         // Update the State when the message selected count changes
         view.messagesSelectedIntent
                 .map { selectedMessageIds ->

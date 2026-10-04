@@ -54,6 +54,8 @@ class PartsAdapter @Inject constructor(
 
     val clicks: Observable<Long> = Observable.merge(partBinders.map { it.clicks })
 
+    val saveClicks: Observable<Long> = Observable.merge(partBinders.map { it.saveClicks })
+
     private lateinit var message: Message
     private var previous: Message? = null
     private var next: Message? = null

@@ -72,6 +72,20 @@
             app:srcCompat="@drawable/exo_icon_play"
             app:tint="@color/tools_theme" />
 
+        <ImageView
+            android:id="@+id/save"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/circle"
+            android:contentDescription="@string/audio_save"
+            android:elevation="4dp"
+            android:padding="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:srcCompat="@drawable/ic_file_download_black_24dp"
+            app:tint="@color/tools_theme" />
+
         <dev.octoshrimpy.quik.common.widget.QkTextView
             android:id="@+id/metadataTitle"
             style="@style/TextPrimary"
@@ -92,7 +106,7 @@
             android:text="@tools:sample/lorem/random[0]"
             android:textColor="@color/black"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/save"
             app:layout_constraintStart_toEndOf="@id/playPause" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

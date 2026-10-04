@@ -41,6 +41,7 @@
     <string name="menu_info">Details</string>
 
     <string name="menu_mms_part_save">Save to gallery</string>
+    <string name="audio_save">Save voice message</string>
     <string name="menu_mms_part_save_all">Save all to gallery</string>
     <string name="menu_mms_part_share">Share</string>
     <string name="menu_mms_part_forward">Forward</string>
