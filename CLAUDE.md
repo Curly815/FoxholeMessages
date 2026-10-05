@@ -1032,7 +1032,7 @@ draft can be discarded.
 ## v2.x — Play Store release, obfuscation, and the traps found along the way
 
 The app is live on Google Play as of the 2.x line. Current shipped
-version is **`versionCode 2261` / `versionName '2.4.0'`**. (2.3.1 was
+version is **`versionCode 2262` / `versionName '2.4.1'`**. (2.3.1 was
 split across two versionCodes: the public GitHub release `v2.3.1`
 carries 2259, and 2260 is the same tree with `minSdk` raised, built as a
 draft for Play — see the minSdk note under Play Console notes.)
@@ -1346,7 +1346,12 @@ Every pattern in all twelve locale files expects the message being
 reacted to **in curly quotes**. React to a picture and there's nothing to
 quote, so iOS sends `Loved an image` and the whole set misses.
 
-The fix (commit `5f4dead0`, on master since v2.4.0):
+The fix (commit `5f4dead0`) — **first shipped in v2.4.1, not v2.4.0**.
+An earlier version of this note said "on master since v2.4.0", which was
+wrong: the commit landed *after* the v2.4.0 tag, so no user had it until
+2.4.1, and it went out unverified (see Status below). The 2.4.1 release
+notes deliberately do not mention it, since they'd be claiming a fix
+that was never confirmed:
 - `en.json` patterns accept either the quoted message **or** a closed set
   of attachment phrases (`an image`, `a video`, `an audio message`,
   `a sticker`). The quoted group then comes back empty, which sets
@@ -1375,6 +1380,46 @@ evidence-backed, the other three are informed guesses. One log line
 would settle it — `No reaction pattern matched` means the phrasing is
 wrong, `No attachment found in thread to attach reaction to` means
 parsing worked and only the lookup missed.
+
+### Saving voice messages (v2.4.1)
+
+There was no reachable way to save a voice message. Attachments are saved
+from the part **long-press context menu** (`R.menu.mms_part_menu`), which
+does have a Save item — but the audio player fills its whole 280x140dp
+card with a seek bar, a play button and a focusable title, and those
+swallow the long press, so the menu never opens on an audio part. Images
+have no such problem, which is why Save and Save all worked there and the
+gap went unnoticed.
+
+- The player has its own save button (`AudioBinder`), routed through
+  `PartBinder.saveClicks` → `PartsAdapter` → `MessagesAdapter.partSaveClicks`
+  → `ComposeView.messagePartSaveIntent` → `ComposeViewModel`, into the same
+  `SaveImage` interactor the menu uses. `saveClicks` lives on `PartBinder`
+  rather than `AudioBinder` so another part type with the same problem can
+  reuse it.
+- Audio is written to **Downloads/FoxholeMessages**, not the gallery —
+  `savePart` falls through to `MediaStore.Downloads` for anything that
+  isn't an image or video. The toasts say so: `audio_toast_saved` for audio,
+  `gallery_toast_saved` otherwise. The context-menu Save item is retitled
+  per part in `ComposeActivity.onCreateContextMenu`, because one static
+  menu resource serves every attachment type.
+- **Wording is "Save audio file", and that was a deliberate choice.** MMS
+  carries nothing that distinguishes a voice recording from any other audio
+  clip, so every audio attachment gets the same label. "Save voice message"
+  was tried and reverted for exactly that reason.
+
+Two silent failures found on the way, both fixed and both older than this
+feature:
+- `savePart()` returned null when `MimeTypeMap` had no extension for the
+  mime type — which is exactly the voice-message case (`audio/amr` and
+  friends). It now falls back to the mime subtype, then `bin`.
+- `SaveImage` ignored `savePart`'s return value, so **every caller showed
+  its "Saved" toast for a file that was never written**, photos included. It
+  now throws on null, which skips the toast and logs via `Interactor`.
+
+Device-verified: a received `audio/amr` part saved to
+`content://media/external/downloads`. The `audio_toast_saved` wording was
+confirmed building but shipped without a separate on-device check.
 
 ### Known gaps / open items
 

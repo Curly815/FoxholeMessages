@@ -1,0 +1,4 @@
+What's new in 2.4.1:
+- Added: a save button on voice messages, plus "Save audio file" in the long-press menu. Saved audio goes to Downloads/FoxholeMessages.
+- Fixed: saving an attachment could say "Saved" when nothing was written.
+- Fixed: saving a voice message or other attachment type Android doesn't recognise silently did nothing.

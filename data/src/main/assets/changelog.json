@@ -1,5 +1,16 @@
 [
   {
+    "versionCode": 2262,
+    "versionName": "2.4.1",
+    "added": [
+      "Voice messages now have a save button on the player, and \"Save audio file\" in the long-press menu. Saved audio goes to Downloads/FoxholeMessages. Before this there was no way to reach Save on a voice message, because the player swallowed the long press"
+    ],
+    "fixed": [
+      "Saving an attachment could say it had saved when nothing was written. A failed save no longer shows the \"Saved\" confirmation",
+      "Saving an attachment whose file type Android doesn't recognise (voice messages in particular) silently did nothing"
+    ]
+  },
+  {
     "versionCode": 2261,
     "versionName": "2.4.0",
     "added": [
