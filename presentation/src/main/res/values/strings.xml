@@ -226,6 +226,7 @@
     <string name="gallery_error">Couldn\'t load media</string>
     <string name="gallery_counter" translatable="false">%1$d/%2$d</string>
     <string name="gallery_toast_saved">Saved to gallery</string>
+    <string name="audio_toast_saved">Audio file saved</string>
     <plurals name="gallery_toast_saved_all">
         <item quantity="one">Saved %d picture to gallery</item>
         <item quantity="other">Saved %d pictures to gallery</item>

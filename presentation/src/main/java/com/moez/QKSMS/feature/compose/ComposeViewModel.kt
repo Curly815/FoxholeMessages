@@ -49,6 +49,7 @@ import dev.octoshrimpy.quik.common.widget.MicInputCloudView
 import dev.octoshrimpy.quik.common.widget.QkContextMenuRecyclerView
 import dev.octoshrimpy.quik.compat.SubscriptionManagerCompat
 import dev.octoshrimpy.quik.extensions.asObservable
+import dev.octoshrimpy.quik.extensions.isAudio
 import dev.octoshrimpy.quik.extensions.isImage
 import dev.octoshrimpy.quik.extensions.isSmil
 import dev.octoshrimpy.quik.extensions.isText
@@ -622,9 +623,15 @@ class ComposeViewModel @Inject constructor(
             .autoDisposable(view.scope())
             .subscribe {
                 val menuInfo = it.menuInfo as QkContextMenuRecyclerView.ContextMenuInfo<Long, MmsPart>
-                if (menuInfo.viewHolderValue != null)
-                    saveImage.execute(menuInfo.viewHolderValue.id) {
-                        context.makeToast(R.string.gallery_toast_saved)
+                val part = menuInfo.viewHolderValue
+                if (part != null)
+                    saveImage.execute(part.id) {
+                        // Audio goes to Downloads, not the gallery, so saying "Saved to gallery"
+                        // would send you looking in the wrong place.
+                        context.makeToast(
+                            if (part.isAudio()) R.string.audio_toast_saved
+                            else R.string.gallery_toast_saved
+                        )
                     }
             }
 
@@ -794,7 +801,7 @@ class ComposeViewModel @Inject constructor(
                 .filter { permissionManager.hasStorage().also { if (!it) view.requestStoragePermission() } }
                 .autoDisposable(view.scope())
                 .subscribe { partId ->
-                    saveImage.execute(partId) { context.makeToast(R.string.gallery_toast_saved) }
+                    saveImage.execute(partId) { context.makeToast(R.string.audio_toast_saved) }
                 }
 
         // Update the State when the message selected count changes
