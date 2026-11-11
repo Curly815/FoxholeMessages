@@ -344,8 +344,15 @@ class NotificationManagerImpl @Inject constructor(
                                 MessageMarkReceiver.MarkType.Read.getRequestCode(threadId),
                                 intent,
                                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                            // setShowsUserInterface(false): Android Auto's messaging guidelines
+                            // call for it on both the mark-as-read and reply actions, since a car
+                            // can't show UI. NotificationCompat defaults it to true, which is what
+                            // every action here used to get - not confirmed on a car whether that
+                            // was actually stopping Auto from using them.
                             NotificationCompat.Action.Builder(R.drawable.ic_check_white_24dp, actionLabels[action], pi)
-                                    .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ).build()
+                                    .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)
+                                    .setShowsUserInterface(false)
+                                    .build()
                         }
 
                         Preferences.NOTIFICATION_ACTION_REPLY -> {
@@ -481,8 +488,11 @@ class NotificationManagerImpl @Inject constructor(
             remoteInput.setChoices(responseSet)
         }
 
+        // See the mark-as-read action above for why this is false. The reply action is how a
+        // reply sent from Android Auto reaches RemoteMessagingReceiver.
         return NotificationCompat.Action.Builder(R.drawable.ic_reply_white_24dp, title, replyPI)
                 .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+                .setShowsUserInterface(false)
                 .addRemoteInput(remoteInput.build())
                 .build()
     }

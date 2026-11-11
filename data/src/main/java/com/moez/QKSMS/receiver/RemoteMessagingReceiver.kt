@@ -28,6 +28,7 @@ import dev.octoshrimpy.quik.interactor.MarkRead
 import dev.octoshrimpy.quik.interactor.SendNewMessage
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import dev.octoshrimpy.quik.repository.MessageRepository
+import timber.log.Timber
 import javax.inject.Inject
 
 class RemoteMessagingReceiver : BroadcastReceiver() {
@@ -44,6 +45,14 @@ class RemoteMessagingReceiver : BroadcastReceiver() {
         val bundle = intent.extras ?: return
 
         val threadId = bundle.getLong("threadId")
+
+        // Logged because a reply sent from a car and one sent from the notification shade look
+        // identical from here, and with no trace of this line there's no telling whether a car's
+        // reply reached the app at all. Deliberately logs the thread and length, never the text.
+        Timber.i(
+            "Remote reply received for thread $threadId " +
+                "(${remoteInput.getCharSequence("body")?.length ?: 0} chars) - marking thread read"
+        )
 
         val lastMessage = messageRepo.getMessages(threadId).lastOrNull()
         val conversation = conversationRepo.getConversation(threadId) ?: return
