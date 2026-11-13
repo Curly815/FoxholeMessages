@@ -23,7 +23,6 @@ import android.content.Intent
 import android.net.Uri
 import android.telephony.TelephonyManager
 import dagger.android.AndroidInjection
-import dev.octoshrimpy.quik.interactor.MarkRead
 import dev.octoshrimpy.quik.interactor.SendNewMessage
 import dev.octoshrimpy.quik.repository.ConversationRepository
 import timber.log.Timber
@@ -31,7 +30,6 @@ import javax.inject.Inject
 
 class HeadlessSmsSendService : IntentService("HeadlessSmsSendService") {
     @Inject lateinit var conversationRepo: ConversationRepository
-    @Inject lateinit var markRead: MarkRead
     @Inject lateinit var sendNewMessage: SendNewMessage
 
     override fun onHandleIntent(intent: Intent?) {
@@ -43,11 +41,8 @@ class HeadlessSmsSendService : IntentService("HeadlessSmsSendService") {
 
             val conversation = conversationRepo.getOrCreateConversation(recipients)
 
-            // Replying from a car (Bluetooth messaging, e.g. a Tesla) arrives here rather than
-            // through the notification Reply action, so mark the thread read the same way that
-            // action does. Logs the thread only, never the text.
-            Timber.i("Respond-via-message for thread ${conversation?.id} - marking thread read")
-            conversation?.id?.let { markRead.execute(listOf(it)) }
+            // Logs the thread only, never the text. SendNewMessage marks the thread read.
+            Timber.i("Respond-via-message for thread ${conversation?.id}")
 
             sendNewMessage.execute(SendNewMessage.Params(
                 -1, 0, recipients, body, conversation?.sendAsGroup ?: false

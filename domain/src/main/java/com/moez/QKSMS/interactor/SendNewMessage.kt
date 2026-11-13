@@ -32,6 +32,7 @@ class SendNewMessage @Inject constructor(
     private val conversationRepo: ConversationRepository,
     private val messageRepo: MessageRepository,
     private val updateBadge: UpdateBadge,
+    private val markRead: MarkRead,
     private val shortcutManager: ShortcutManager
 ) : Interactor<SendNewMessage.Params>() {
 
@@ -70,6 +71,14 @@ class SendNewMessage @Inject constructor(
         .doOnNext { threadIds ->
             conversationRepo.updateConversations(threadIds)
             conversationRepo.markUnarchived(threadIds)
+
+            // Sending to a thread means the user has dealt with whatever came in on it, so mark it
+            // read. Done here, in the one interactor every send funnels through, rather than in
+            // each entry point (compose screen, notification reply, popup reply, respond-via-
+            // message from a car): replying from a car arrives by a route that never marked the
+            // thread read, and guessing at which entry point it uses didn't work.
+            Timber.i("Marking thread(s) $threadIds read after sending")
+            markRead.execute(threadIds)
 
             AndroidSchedulers.mainThread().scheduleDirect {
                 threadIds.forEach { shortcutManager.getOrCreateShortcut(it) }
