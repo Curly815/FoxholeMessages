@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-build-only components. Merged into the debug manifest only; never in release/fdroid. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Fakes an incoming SMS on devices without a working SIM. See DebugInjectSmsReceiver. -->
+        <receiver
+            android:name="dev.octoshrimpy.quik.receiver.DebugInjectSmsReceiver"
+            android:exported="false" />
+    </application>
+
+</manifest>
