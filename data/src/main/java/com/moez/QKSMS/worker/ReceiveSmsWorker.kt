@@ -66,14 +66,16 @@ class ReceiveSmsWorker(appContext: Context, workerParams: WorkerParameters)
 
         val message = messageRepo.getMessage(messageId) ?: return Result.failure(inputData)
 
-        val category = try {
-            messageCategorizer.categorize(message.address, message.getText())
-        } catch (e: Exception) {
-            Timber.e(e, "classification failed for messageId=${message.id}, falling back to UNCLASSIFIED")
-            Category.UNCLASSIFIED
+        if (prefs.autoSortEnabled.get()) {
+            val category = try {
+                messageCategorizer.categorize(message.address, message.getText())
+            } catch (e: Exception) {
+                Timber.e(e, "classification failed for messageId=${message.id}, falling back to UNCLASSIFIED")
+                Category.UNCLASSIFIED
+            }
+            Timber.v("classified. messageId=${message.id} category=$category")
+            messageRepo.updateMessageCategory(message.id, category.name)
         }
-        Timber.v("classified. messageId=${message.id} category=$category")
-        messageRepo.updateMessageCategory(message.id, category.name)
 
         if (otpDetector.isOtp(message.getText())) {
             messageRepo.updateMessageOtp(message.id, true)

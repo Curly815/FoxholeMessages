@@ -39,10 +39,9 @@ fun <T> tryOrNull(logOnError: Boolean = true, body: () -> T?): T? {
     }
 }
 
-fun nonDebugPackageName(packageName: String): String {
-    return if (packageName.endsWith(".debug")) packageName.removeSuffix(".debug")
-    else packageName
-}
+// The Java package that app classes live in. It differs from the applicationId
+// (com.foxhole.messages, plus .debug/.fdroid suffixes), so class names must be built from this.
+const val CODE_PACKAGE = "dev.octoshrimpy.quik"
 
 fun sha256(input: String): String {
     val digest = sha256Digest.get()

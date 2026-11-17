@@ -44,6 +44,9 @@ class BlockThreadReceiver : BroadcastReceiver() {
 
         Timber.v("received")
 
+        // goAsync() must be called before onReceive returns; calling it later from the async
+        // callback returns an already-finished result (or null), which crashes the process.
+        val pendingResult = goAsync()
         val threadId = intent.getLongExtra("threadId", 0)
 
         blockingClient
@@ -59,14 +62,7 @@ class BlockThreadReceiver : BroadcastReceiver() {
                     MarkBlocked.Params(listOf(threadId), prefs.blockingManager.get(), null)
                 )
             )
-            .subscribe(
-                {
-                    goAsync().finish()
-                },
-                { error ->
-                    Timber.e("BlockThreadReceiver", "blocking failed")
-                    goAsync().finish()
-                }
-            )
+            .doFinally { pendingResult.finish() }
+            .subscribe({}, { error -> Timber.e(error, "blocking failed") })
     }
 }

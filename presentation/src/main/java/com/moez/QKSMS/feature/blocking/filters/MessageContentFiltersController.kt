@@ -20,6 +20,7 @@ package dev.octoshrimpy.quik.feature.blocking.filters
 
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import com.jakewharton.rxbinding2.view.clicks
 import com.uber.autodispose.android.lifecycle.scope
@@ -101,6 +102,10 @@ class MessageContentFiltersController : QkController<MessageContentFiltersContro
                     if (!text.isBlank()) {
                         val regexChecked = layout.regexp.checkbox?.isChecked ?: false
                         if (!regexChecked) text = text.trim()
+                        if (regexChecked && runCatching { Regex(text) }.isFailure) {
+                            Toast.makeText(activity, R.string.message_content_filters_invalid_regex, Toast.LENGTH_LONG).show()
+                            return@setPositiveButton
+                        }
                         saveFilterSubject.onNext(
                             MessageContentFilterData(
                                 text,

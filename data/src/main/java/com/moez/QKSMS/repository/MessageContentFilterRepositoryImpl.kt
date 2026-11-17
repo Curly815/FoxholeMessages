@@ -22,10 +22,10 @@ import dev.octoshrimpy.quik.model.MessageContentFilter
 import dev.octoshrimpy.quik.model.MessageContentFilterData
 import io.realm.Realm
 import io.realm.RealmResults
+import timber.log.Timber
 import javax.inject.Inject
 
 class MessageContentFilterRepositoryImpl @Inject constructor() : MessageContentFilterRepository {
-    override fun createFilter(data: MessageContentFilterData) {
     override fun exportFilters(): List<MessageContentFilterData> = Realm.getDefaultInstance().use { realm ->
         realm.where(MessageContentFilter::class.java).findAll().map {
             MessageContentFilterData(it.value, it.caseSensitive, it.isRegex, it.includeContacts)
@@ -49,6 +49,7 @@ class MessageContentFilterRepositoryImpl @Inject constructor() : MessageContentF
         additions.size
     }
 
+    override fun createFilter(data: MessageContentFilterData) {
         Realm.getDefaultInstance().use { realm ->
             realm.refresh()
             val maxId = realm.where(MessageContentFilter::class.java)
@@ -83,7 +84,14 @@ class MessageContentFilterRepositoryImpl @Inject constructor() : MessageContentF
                     if (isContact && !filter.includeContacts) {
                         false
                     } else if (filter.isRegex) {
-                        Regex(filter.value).matches(messageBody)
+                        // An invalid saved pattern must not throw here: this runs on the receive
+                        // path, and an exception stops the incoming message from being processed.
+                        try {
+                            Regex(filter.value).matches(messageBody)
+                        } catch (e: IllegalArgumentException) {
+                            Timber.w(e, "Skipping invalid regex content filter id=${filter.id}")
+                            false
+                        }
                     } else if (filter.caseSensitive) {
                         val regexp = "[\\s\\S]*\\b" + Regex.escape(filter.value) + "\\b[\\s\\S]*"
                         Regex(regexp).matches(messageBody)
