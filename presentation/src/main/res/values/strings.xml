@@ -402,6 +402,11 @@
     <string name="settings_delay_duration_hint">Enter duration (seconds)</string>
 
     <string name="blocking_title">Blocking</string>
+    <string name="blocking_export_rules">Export blocking rules</string>
+    <string name="blocking_import_rules">Import blocking rules</string>
+    <string name="blocking_rules_exported">Blocking rules exported</string>
+    <string name="blocking_rules_imported">Imported %1$d blocked numbers and %2$d filters</string>
+    <string name="blocking_rules_import_error">Could not import blocking rules. Check that the file is valid.</string>
     <string name="blocking_drop_title">Drop messages</string>
     <string name="blocking_drop_summary">Drop incoming messages from blocked senders instead of hiding them</string>
 

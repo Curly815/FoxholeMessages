@@ -26,6 +26,29 @@ import javax.inject.Inject
 
 class MessageContentFilterRepositoryImpl @Inject constructor() : MessageContentFilterRepository {
     override fun createFilter(data: MessageContentFilterData) {
+    override fun exportFilters(): List<MessageContentFilterData> = Realm.getDefaultInstance().use { realm ->
+        realm.where(MessageContentFilter::class.java).findAll().map {
+            MessageContentFilterData(it.value, it.caseSensitive, it.isRegex, it.includeContacts)
+        }
+    }
+
+    override fun importFilters(filters: List<MessageContentFilterData>): Int = Realm.getDefaultInstance().use { realm ->
+        realm.refresh()
+        val existing = realm.where(MessageContentFilter::class.java).findAll().map {
+            listOf(it.value, it.caseSensitive, it.isRegex, it.includeContacts)
+        }.toSet()
+        val additions = filters.distinct().filter { filter ->
+            listOf(filter.value, filter.caseSensitive, filter.isRegex, filter.includeContacts) !in existing
+        }
+        val maxId = realm.where(MessageContentFilter::class.java).max("id")?.toLong() ?: -1
+        realm.executeTransaction {
+            realm.insert(additions.mapIndexed { index, filter ->
+                MessageContentFilter(maxId + 1 + index, filter.value, filter.caseSensitive, filter.isRegex, filter.includeContacts)
+            })
+        }
+        additions.size
+    }
+
         Realm.getDefaultInstance().use { realm ->
             realm.refresh()
             val maxId = realm.where(MessageContentFilter::class.java)

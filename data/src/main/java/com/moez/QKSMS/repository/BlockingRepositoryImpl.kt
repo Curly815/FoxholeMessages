@@ -55,6 +55,29 @@ class BlockingRepositoryImpl @Inject constructor(
                 .findAllAsync()
     }
 
+    override fun exportBlockedAddresses(): List<String> = Realm.getDefaultInstance().use { realm ->
+        realm.where(BlockedNumber::class.java).findAll().map { it.address }
+    }
+
+    override fun importBlockedAddresses(addresses: List<String>): Int {
+        Realm.getDefaultInstance().use { realm ->
+            realm.refresh()
+            val current = realm.where(BlockedNumber::class.java).findAll().map { it.address }.toMutableList()
+            val additions = mutableListOf<String>()
+            addresses.forEach { address ->
+                if (address.isNotBlank() && current.none { phoneNumberUtils.compare(it, address) }) {
+                    current.add(address)
+                    additions.add(address)
+                }
+            }
+            val maxId = realm.where(BlockedNumber::class.java).max("id")?.toLong() ?: -1
+            realm.executeTransaction {
+                realm.insert(additions.mapIndexed { index, address -> BlockedNumber(maxId + 1 + index, address) })
+            }
+            return additions.size
+        }
+    }
+
     override fun getBlockedNumber(id: Long): BlockedNumber? {
         return Realm.getDefaultInstance()
                 .where(BlockedNumber::class.java)

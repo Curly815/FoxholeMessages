@@ -46,6 +46,18 @@
             app:title="@string/message_content_filters_title" />
 
         <dev.octoshrimpy.quik.common.widget.PreferenceView
+            android:id="@+id/exportBlockingRules"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:title="@string/blocking_export_rules" />
+
+        <dev.octoshrimpy.quik.common.widget.PreferenceView
+            android:id="@+id/importBlockingRules"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:title="@string/blocking_import_rules" />
+
+        <dev.octoshrimpy.quik.common.widget.PreferenceView
             android:id="@+id/drop"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
