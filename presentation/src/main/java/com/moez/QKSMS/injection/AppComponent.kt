@@ -49,6 +49,7 @@ import dev.octoshrimpy.quik.feature.trash.TrashController
 import dev.octoshrimpy.quik.feature.widget.WidgetAdapter
 import dev.octoshrimpy.quik.injection.android.ActivityBuilderModule
 import dev.octoshrimpy.quik.injection.android.BroadcastReceiverBuilderModule
+import dev.octoshrimpy.quik.injection.android.BuildTypeReceiverModule
 import dev.octoshrimpy.quik.injection.android.ServiceBuilderModule
 import javax.inject.Singleton
 
@@ -58,6 +59,7 @@ import javax.inject.Singleton
     AppModule::class,
     ActivityBuilderModule::class,
     BroadcastReceiverBuilderModule::class,
+    BuildTypeReceiverModule::class,
     ServiceBuilderModule::class])
 interface AppComponent {
 

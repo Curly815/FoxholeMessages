@@ -34,7 +34,6 @@ import dev.octoshrimpy.quik.receiver.SendScheduledMessageReceiver
 import dev.octoshrimpy.quik.receiver.MessageDeliveredReceiver
 import dev.octoshrimpy.quik.receiver.SmsProviderChangedReceiver
 import dev.octoshrimpy.quik.receiver.SmsReceivedReceiver
-import dev.octoshrimpy.quik.receiver.DebugInjectSmsReceiver
 import dev.octoshrimpy.quik.receiver.MessageMarkReceiver
 import dev.octoshrimpy.quik.receiver.MessageSentReceiver
 import dev.octoshrimpy.quik.receiver.ResendMessageReceiver
@@ -108,12 +107,6 @@ abstract class BroadcastReceiverBuilderModule {
     @ActivityScope
     @ContributesAndroidInjector
     abstract fun bindSmsReceivedReceiver(): SmsReceivedReceiver
-
-    // Only declared in the debug manifest; see DebugInjectSmsReceiver.
-    @ActivityScope
-    @ContributesAndroidInjector
-    abstract fun bindDebugInjectSmsReceiver(): DebugInjectSmsReceiver
-
     @ActivityScope
     @ContributesAndroidInjector
     abstract fun bindMessageSentReceiver(): MessageSentReceiver

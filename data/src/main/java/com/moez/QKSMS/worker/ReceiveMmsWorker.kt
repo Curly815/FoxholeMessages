@@ -159,16 +159,17 @@ class ReceiveMmsWorker(appContext: Context, workerParams: WorkerParameters)
                     val message = syncRepo.syncMessage(messageUri)
                         ?: return Result.failure(inputData)
 
-                    if (prefs.autoSortEnabled.get()) {
-                        val category = try {
-                            messageCategorizer.categorize(message.address, message.getText())
-                        } catch (e: Exception) {
-                            Timber.e(e, "classification failed for messageId=${message.id}, falling back to UNCLASSIFIED")
-                            Category.UNCLASSIFIED
-                        }
-                        Timber.v("classified. messageId=${message.id} category=$category")
-                        messageRepo.updateMessageCategory(message.id, category.name)
+                    // Same auto-sort handling as ReceiveSmsWorker.
+                    val autoSort = prefs.autoSortEnabled.get()
+                    val category = try {
+                        if (autoSort) messageCategorizer.categorize(message.address, message.getText())
+                        else messageCategorizer.manualCategory(message.address)
+                    } catch (e: Exception) {
+                        Timber.e(e, "classification failed for messageId=${message.id}")
+                        if (autoSort) Category.UNCLASSIFIED else null
                     }
+                    Timber.v("classified. messageId=${message.id} autoSort=$autoSort category=$category")
+                    category?.let { messageRepo.updateMessageCategory(message.id, it.name) }
 
                     if (otpDetector.isOtp(message.getText())) {
                         messageRepo.updateMessageOtp(message.id, true)

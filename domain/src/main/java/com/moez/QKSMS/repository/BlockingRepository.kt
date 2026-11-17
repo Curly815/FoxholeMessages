@@ -19,6 +19,7 @@
 package dev.octoshrimpy.quik.repository
 
 import dev.octoshrimpy.quik.model.BlockedNumber
+import dev.octoshrimpy.quik.model.MessageContentFilterData
 import io.realm.RealmResults
 
 interface BlockingRepository {
@@ -29,7 +30,11 @@ interface BlockingRepository {
 
     fun exportBlockedAddresses(): List<String>
 
-    fun importBlockedAddresses(addresses: List<String>): Int
+    /**
+     * Adds the given blocked numbers and content filters in a single transaction, skipping any that
+     * are already saved. Returns how many numbers and filters were added.
+     */
+    fun importBlockingRules(addresses: List<String>, filters: List<MessageContentFilterData>): Pair<Int, Int>
 
     fun getBlockedNumber(id: Long): BlockedNumber?
 

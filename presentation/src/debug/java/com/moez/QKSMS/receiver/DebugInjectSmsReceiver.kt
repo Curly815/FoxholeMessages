@@ -20,6 +20,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import dagger.android.AndroidInjection
@@ -34,9 +35,10 @@ import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * Test hook for devices that cannot receive real SMS. Declared ONLY in the debug manifest
- * (presentation/src/debug/AndroidManifest.xml), non-exported, so it is unreachable in release builds
- * and only the app's own uid can trigger it, e.g.:
+ * Test hook for devices that cannot receive real SMS. Lives in the debug source set, with its manifest
+ * entry (src/debug/AndroidManifest.xml) and Dagger binding (BuildTypeReceiverModule) alongside, so
+ * release and fdroid builds don't contain it at all. Non-exported: only the app's own uid can
+ * trigger it, e.g.:
  *
  *   adb shell run-as com.foxhole.messages.debug am broadcast --user 0 \
  *     -n com.foxhole.messages.debug/dev.octoshrimpy.quik.receiver.DebugInjectSmsReceiver \
@@ -76,6 +78,7 @@ class DebugInjectSmsReceiver : BroadcastReceiver() {
                 WorkManager.getInstance(context).enqueue(
                     OneTimeWorkRequestBuilder<ReceiveSmsWorker>()
                         .setInputData(workDataOf(INPUT_DATA_KEY_MESSAGE_ID to messageId))
+                        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                         .build()
                 )
             }, { Timber.e(it, "debug: sms inject failed") })

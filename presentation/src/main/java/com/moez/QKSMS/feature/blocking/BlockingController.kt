@@ -40,12 +40,11 @@ import dev.octoshrimpy.quik.feature.blocking.filters.MessageContentFiltersContro
 import dev.octoshrimpy.quik.injection.appComponent
 import dev.octoshrimpy.quik.repository.BlockingRepository
 import dev.octoshrimpy.quik.repository.MessageContentFilterRepository
-import dev.octoshrimpy.quik.model.MessageContentFilterData
 import dev.octoshrimpy.quik.databinding.BlockingControllerBinding
-import io.reactivex.Observable
+import androidx.appcompat.app.AlertDialog
+import io.reactivex.Single
+import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
-import org.json.JSONArray
-import org.json.JSONObject
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -96,79 +95,68 @@ class BlockingController : QkController<BlockingControllerBinding, BlockingView,
         showBackButton(true)
     }
 
+    // Both transfers run on io and read nothing from the controller's activity there: the activity
+    // can be replaced (rotation) or gone (user left) mid-transfer. The resolver comes from the
+    // application context, captured up front; results are shown on the main thread against
+    // whatever activity is current by then.
     private fun exportRules(uri: Uri) {
-        Observable.fromCallable {
-            val numbers = blockingRepository.exportBlockedAddresses()
-            val filters = filterRepository.exportFilters()
-            val json = JSONObject().put("format", "foxhole-blocking-rules").put("version", 1)
-                .put("blockedNumbers", JSONArray(numbers))
-                .put("filters", JSONArray().apply {
-                    filters.forEach { filter -> put(JSONObject().put("value", filter.value)
-                        .put("caseSensitive", filter.caseSensitive).put("isRegex", filter.isRegex)
-                        .put("includeContacts", filter.includeContacts)) }
-                }).toString()
-            requireNotNull(activity).contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(json) }
+        val appContext = applicationContext ?: return
+        val resolver = appContext.contentResolver
+        Single.fromCallable {
+            val json = BlockingRulesFile.toJson(blockingRepository.exportBlockedAddresses(), filterRepository.exportFilters())
+            resolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(json) }
                 ?: error("Unable to open destination")
-        }.subscribeOn(Schedulers.io()).subscribe({
-            activity?.runOnUiThread { Toast.makeText(activity, R.string.blocking_rules_exported, Toast.LENGTH_SHORT).show() }
-        }, { error ->
-            Timber.e(error, "blocking rules export failed")
-            showTransferError(R.string.blocking_rules_export_error)
-        })
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                Toast.makeText(appContext, R.string.blocking_rules_exported, Toast.LENGTH_SHORT).show()
+            }, { error ->
+                Timber.e(error, "blocking rules export failed")
+                Toast.makeText(appContext, R.string.blocking_rules_export_error, Toast.LENGTH_LONG).show()
+            })
     }
 
     private fun importRules(uri: Uri) {
-        Observable.fromCallable {
-            val raw = requireNotNull(activity).contentResolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
+        val appContext = applicationContext ?: return
+        val resolver = appContext.contentResolver
+        Single.fromCallable {
+            val raw = resolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
                 val text = StringBuilder()
                 val buffer = CharArray(8192)
                 while (true) {
                     val count = reader.read(buffer)
                     if (count < 0) break
-                    require(text.length + count <= 2 * 1024 * 1024) { "File too large" }
+                    require(text.length + count <= BlockingRulesFile.MAX_FILE_CHARS) { "File too large" }
                     text.append(buffer, 0, count)
                 }
                 text.toString()
             } ?: error("Unable to open file")
-            val root = JSONObject(raw)
-            require(root.optString("format") == "foxhole-blocking-rules" && root.optInt("version") == 1) { "Unsupported format" }
-            val numberArray = root.getJSONArray("blockedNumbers")
-            val numbers = (0 until numberArray.length()).map { numberArray.getString(it).trim() }
-            require(numbers.all { it.isNotBlank() && it.length <= 100 }) { "Invalid number" }
-            val filterArray = root.getJSONArray("filters")
-            // A structurally bad file is rejected as a whole, but an invalid regex is skipped: older
-            // builds let one be saved and exported, and failing on it would make that whole backup
-            // impossible to restore.
-            var skippedRegexes = 0
-            val filters = (0 until filterArray.length()).mapNotNull { index ->
-                val item = filterArray.getJSONObject(index)
-                require(item.get("caseSensitive") is Boolean && item.get("isRegex") is Boolean && item.get("includeContacts") is Boolean)
-                val value = item.getString("value")
-                require(value.isNotBlank() && value.length <= 1000)
-                val regex = item.getBoolean("isRegex")
-                if (regex && runCatching { Regex(value) }.isFailure) {
-                    skippedRegexes++
-                    return@mapNotNull null
-                }
-                MessageContentFilterData(value, item.getBoolean("caseSensitive") && !regex, regex, item.getBoolean("includeContacts"))
-            }
-            val addedNumbers = blockingRepository.importBlockedAddresses(numbers)
-            val addedFilters = filterRepository.importFilters(filters)
-            Triple(addedNumbers, addedFilters, skippedRegexes)
-        }.subscribeOn(Schedulers.io()).subscribe({ (numbers, filters, skipped) ->
-            activity?.let { activity ->
-                val message = if (skipped == 0) activity.getString(R.string.blocking_rules_imported, numbers, filters)
-                else activity.getString(R.string.blocking_rules_imported_skipped, numbers, filters, skipped)
-                activity.runOnUiThread { Toast.makeText(activity, message, Toast.LENGTH_LONG).show() }
-            }
-        }, { error ->
-            Timber.e(error, "blocking rules import failed")
-            showTransferError(R.string.blocking_rules_import_error)
-        })
-    }
+            val parsed = BlockingRulesFile.parse(raw)
+            val (addedNumbers, addedFilters) = blockingRepository.importBlockingRules(parsed.numbers, parsed.filters)
+            Triple(addedNumbers, addedFilters, parsed.skipped)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ (numbers, filters, skipped) ->
+                val res = appContext.resources
+                var message = res.getString(R.string.blocking_rules_imported,
+                    res.getQuantityString(R.plurals.blocking_rules_numbers, numbers, numbers),
+                    res.getQuantityString(R.plurals.blocking_rules_filters, filters, filters))
+                if (skipped > 0) message += "\n\n" + res.getQuantityString(R.plurals.blocking_rules_skipped, skipped, skipped)
 
-    private fun showTransferError(messageRes: Int) {
-        activity?.runOnUiThread { Toast.makeText(activity, messageRes, Toast.LENGTH_LONG).show() }
+                // A dialog rather than a toast: Android 12+ cuts toasts off after two lines.
+                activity?.let { activity ->
+                    AlertDialog.Builder(activity)
+                        .setTitle(R.string.blocking_rules_imported_title)
+                        .setMessage(message)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                } ?: Toast.makeText(appContext, message, Toast.LENGTH_LONG).show()
+            }, { error ->
+                Timber.e(error, "blocking rules import failed")
+                Toast.makeText(appContext, R.string.blocking_rules_import_error, Toast.LENGTH_LONG).show()
+            })
     }
 
     override fun render(state: BlockingState) {
