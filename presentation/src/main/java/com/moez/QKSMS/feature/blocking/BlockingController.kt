@@ -46,6 +46,7 @@ import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import org.json.JSONArray
 import org.json.JSONObject
+import timber.log.Timber
 import javax.inject.Inject
 
 class BlockingController : QkController<BlockingControllerBinding, BlockingView, BlockingState, BlockingPresenter>(), BlockingView {
@@ -99,20 +100,21 @@ class BlockingController : QkController<BlockingControllerBinding, BlockingView,
         Observable.fromCallable {
             val numbers = blockingRepository.exportBlockedAddresses()
             val filters = filterRepository.exportFilters()
-            JSONObject().put("format", "foxhole-blocking-rules").put("version", 1)
+            val json = JSONObject().put("format", "foxhole-blocking-rules").put("version", 1)
                 .put("blockedNumbers", JSONArray(numbers))
                 .put("filters", JSONArray().apply {
                     filters.forEach { filter -> put(JSONObject().put("value", filter.value)
                         .put("caseSensitive", filter.caseSensitive).put("isRegex", filter.isRegex)
                         .put("includeContacts", filter.includeContacts)) }
                 }).toString()
-        }.subscribeOn(Schedulers.io()).subscribe({ json ->
-            try {
-                requireNotNull(activity).contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(json) }
-                    ?: error("Unable to open destination")
-                activity?.runOnUiThread { Toast.makeText(activity, R.string.blocking_rules_exported, Toast.LENGTH_SHORT).show() }
-            } catch (_: Exception) { showTransferError() }
-        }, { showTransferError() })
+            requireNotNull(activity).contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(json) }
+                ?: error("Unable to open destination")
+        }.subscribeOn(Schedulers.io()).subscribe({
+            activity?.runOnUiThread { Toast.makeText(activity, R.string.blocking_rules_exported, Toast.LENGTH_SHORT).show() }
+        }, { error ->
+            Timber.e(error, "blocking rules export failed")
+            showTransferError(R.string.blocking_rules_export_error)
+        })
     }
 
     private fun importRules(uri: Uri) {
@@ -134,29 +136,39 @@ class BlockingController : QkController<BlockingControllerBinding, BlockingView,
             val numbers = (0 until numberArray.length()).map { numberArray.getString(it).trim() }
             require(numbers.all { it.isNotBlank() && it.length <= 100 }) { "Invalid number" }
             val filterArray = root.getJSONArray("filters")
-            val filters = (0 until filterArray.length()).map { index ->
+            // A structurally bad file is rejected as a whole, but an invalid regex is skipped: older
+            // builds let one be saved and exported, and failing on it would make that whole backup
+            // impossible to restore.
+            var skippedRegexes = 0
+            val filters = (0 until filterArray.length()).mapNotNull { index ->
                 val item = filterArray.getJSONObject(index)
                 require(item.get("caseSensitive") is Boolean && item.get("isRegex") is Boolean && item.get("includeContacts") is Boolean)
                 val value = item.getString("value")
                 require(value.isNotBlank() && value.length <= 1000)
                 val regex = item.getBoolean("isRegex")
-                if (regex) Regex(value)
+                if (regex && runCatching { Regex(value) }.isFailure) {
+                    skippedRegexes++
+                    return@mapNotNull null
+                }
                 MessageContentFilterData(value, item.getBoolean("caseSensitive") && !regex, regex, item.getBoolean("includeContacts"))
             }
             val addedNumbers = blockingRepository.importBlockedAddresses(numbers)
             val addedFilters = filterRepository.importFilters(filters)
-            Pair(addedNumbers, addedFilters)
-        }.subscribeOn(Schedulers.io()).subscribe({ (numbers, filters) ->
+            Triple(addedNumbers, addedFilters, skippedRegexes)
+        }.subscribeOn(Schedulers.io()).subscribe({ (numbers, filters, skipped) ->
             activity?.let { activity ->
-                activity.runOnUiThread {
-                    Toast.makeText(activity, activity.getString(R.string.blocking_rules_imported, numbers, filters), Toast.LENGTH_LONG).show()
-                }
+                val message = if (skipped == 0) activity.getString(R.string.blocking_rules_imported, numbers, filters)
+                else activity.getString(R.string.blocking_rules_imported_skipped, numbers, filters, skipped)
+                activity.runOnUiThread { Toast.makeText(activity, message, Toast.LENGTH_LONG).show() }
             }
-        }, { showTransferError() })
+        }, { error ->
+            Timber.e(error, "blocking rules import failed")
+            showTransferError(R.string.blocking_rules_import_error)
+        })
     }
 
-    private fun showTransferError() {
-        activity?.runOnUiThread { Toast.makeText(activity, R.string.blocking_rules_import_error, Toast.LENGTH_LONG).show() }
+    private fun showTransferError(messageRes: Int) {
+        activity?.runOnUiThread { Toast.makeText(activity, messageRes, Toast.LENGTH_LONG).show() }
     }
 
     override fun render(state: BlockingState) {
