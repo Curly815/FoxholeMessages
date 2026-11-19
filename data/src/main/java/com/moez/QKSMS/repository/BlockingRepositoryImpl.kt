@@ -20,6 +20,8 @@ package dev.octoshrimpy.quik.repository
 
 import dev.octoshrimpy.quik.extensions.anyOf
 import dev.octoshrimpy.quik.model.BlockedNumber
+import dev.octoshrimpy.quik.model.MessageContentFilter
+import dev.octoshrimpy.quik.model.MessageContentFilterData
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
 import io.realm.Realm
 import io.realm.RealmResults
@@ -31,17 +33,18 @@ class BlockingRepositoryImpl @Inject constructor(
 
     override fun blockNumber(vararg addresses: String) {
         Realm.getDefaultInstance().use { realm ->
-            realm.refresh()
-
-            val blockedNumbers = realm.where(BlockedNumber::class.java).findAll()
-            val newAddresses = addresses.filter { address ->
-                blockedNumbers.none { number -> phoneNumberUtils.compare(number.address, address) }
-            }
-
-            val maxId = realm.where(BlockedNumber::class.java)
-                    .max("id")?.toLong() ?: -1
-
+            // Read the existing numbers and the next id inside the write transaction: it holds the
+            // write lock and sees the latest data, so a concurrent insert (e.g. the notification
+            // Block action) can't take the same primary key between the read and the insert.
             realm.executeTransaction {
+                val blockedNumbers = realm.where(BlockedNumber::class.java).findAll()
+                val newAddresses = addresses.filter { address ->
+                    blockedNumbers.none { number -> phoneNumberUtils.compare(number.address, address) }
+                }
+
+                val maxId = realm.where(BlockedNumber::class.java)
+                        .max("id")?.toLong() ?: -1
+
                 realm.insert(newAddresses.mapIndexed { index, address ->
                     BlockedNumber(maxId + 1 + index, address)
                 })
@@ -53,6 +56,46 @@ class BlockingRepositoryImpl @Inject constructor(
         return Realm.getDefaultInstance()
                 .where(BlockedNumber::class.java)
                 .findAllAsync()
+    }
+
+    override fun exportBlockedAddresses(): List<String> = Realm.getDefaultInstance().use { realm ->
+        // A background thread can be handed a cached instance pinned to an old version (some getters
+        // never close theirs), so refresh to include rules added moments ago on another thread.
+        realm.refresh()
+        realm.where(BlockedNumber::class.java).findAll().map { it.address }
+    }
+
+    override fun importBlockingRules(
+        addresses: List<String>,
+        filters: List<MessageContentFilterData>
+    ): Pair<Int, Int> = Realm.getDefaultInstance().use { realm ->
+        var result = Pair(0, 0)
+        // One transaction for numbers and filters, so a failure part-way leaves nothing behind, and
+        // existing rows and next ids are read under the write lock (see blockNumber).
+        realm.executeTransaction {
+            val existingNumbers = realm.where(BlockedNumber::class.java).findAll().map { it.address }
+            // Fuzzy-compare against the saved list (usually short); within the file, dedupe on the
+            // normalized form only, so a large file doesn't cost a full pairwise phone-number match.
+            val seenInFile = HashSet<String>()
+            val newAddresses = addresses.filter { address ->
+                seenInFile.add(phoneNumberUtils.normalizeNumber(address).lowercase()) &&
+                        existingNumbers.none { phoneNumberUtils.compare(it, address) }
+            }
+            val maxNumberId = realm.where(BlockedNumber::class.java).max("id")?.toLong() ?: -1
+            realm.insert(newAddresses.mapIndexed { index, address -> BlockedNumber(maxNumberId + 1 + index, address) })
+
+            val existingFilters = realm.where(MessageContentFilter::class.java).findAll()
+                .map { MessageContentFilterData(it.value, it.caseSensitive, it.isRegex, it.includeContacts) }
+                .toSet()
+            val newFilters = filters.distinct().filter { it !in existingFilters }
+            val maxFilterId = realm.where(MessageContentFilter::class.java).max("id")?.toLong() ?: -1
+            realm.insert(newFilters.mapIndexed { index, filter ->
+                MessageContentFilter(maxFilterId + 1 + index, filter.value, filter.caseSensitive, filter.isRegex, filter.includeContacts)
+            })
+
+            result = Pair(newAddresses.size, newFilters.size)
+        }
+        result
     }
 
     override fun getBlockedNumber(id: Long): BlockedNumber? {

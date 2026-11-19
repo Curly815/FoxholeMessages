@@ -61,7 +61,13 @@ class MessageSortingPresenter @Inject constructor(
             .autoDisposable(view.scope())
             .subscribe { preference ->
                 when (preference.id) {
-                    R.id.autoSort -> prefs.autoSortEnabled.set(!prefs.autoSortEnabled.get())
+                    R.id.autoSort -> {
+                        val enabled = !prefs.autoSortEnabled.get()
+                        prefs.autoSortEnabled.set(enabled)
+                        // Messages that arrived while auto-sort was off have no category; sort them
+                        // now (the backfill only touches uncategorized messages).
+                        if (enabled) ClassifyExistingMessagesWorker.trigger(context)
+                    }
                     R.id.notificationsPersonal -> navigator.showCategoryNotificationSettings(Category.PERSONAL.name)
                     R.id.notificationsPromotional -> navigator.showCategoryNotificationSettings(Category.PROMOTIONAL.name)
                     R.id.notificationsTransactional -> navigator.showCategoryNotificationSettings(Category.TRANSACTIONAL.name)

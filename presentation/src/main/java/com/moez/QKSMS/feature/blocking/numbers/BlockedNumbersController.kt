@@ -28,6 +28,7 @@ import dev.octoshrimpy.quik.common.base.QkController
 import dev.octoshrimpy.quik.common.util.Colors
 import dev.octoshrimpy.quik.common.util.extensions.setBackgroundTint
 import dev.octoshrimpy.quik.common.util.extensions.setTint
+import dev.octoshrimpy.quik.feature.blocking.BlockingRulesFile
 import dev.octoshrimpy.quik.injection.appComponent
 import dev.octoshrimpy.quik.util.PhoneNumberUtils
 import io.reactivex.Observable
@@ -83,11 +84,27 @@ class BlockedNumbersController : QkController<BlockedNumbersControllerBinding, B
         val textWatcher = BlockedNumberTextWatcher(layout.input, phoneNumberUtils)
         val dialog = AlertDialog.Builder(activity!!)
                 .setView(layout.root)
-                .setPositiveButton(R.string.blocked_numbers_dialog_block) { _, _ ->
-                    saveAddressSubject.onNext(layout.input.text.toString())
-                }
-                .setNegativeButton(R.string.button_cancel) { _, _ -> }
+                .setPositiveButton(R.string.blocked_numbers_dialog_block, null)
+                .setNegativeButton(R.string.button_cancel, null)
                 .setOnDismissListener { textWatcher.dispose() }
+                .create()
+
+        // Handle the positive button ourselves: an empty entry is ignored (it used to be saved as a
+        // blank blocked number), and an over-long one keeps the dialog open with the reason shown.
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val number = layout.input.text.toString().trim()
+                when {
+                    number.isBlank() -> dialog.dismiss()
+                    !BlockingRulesFile.isValidNumber(number) -> layout.input.error = layout.root.context
+                        .getString(R.string.blocked_numbers_too_long, BlockingRulesFile.MAX_NUMBER_LENGTH)
+                    else -> {
+                        saveAddressSubject.onNext(number)
+                        dialog.dismiss()
+                    }
+                }
+            }
+        }
         dialog.show()
     }
 

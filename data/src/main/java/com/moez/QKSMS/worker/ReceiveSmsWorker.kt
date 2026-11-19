@@ -66,14 +66,18 @@ class ReceiveSmsWorker(appContext: Context, workerParams: WorkerParameters)
 
         val message = messageRepo.getMessage(messageId) ?: return Result.failure(inputData)
 
+        // With auto-sort off only the user's own choices (trusted senders, "Move to" rules) apply.
+        // Anything left without a category is sorted by the backfill when auto-sort is turned back on.
+        val autoSort = prefs.autoSortEnabled.get()
         val category = try {
-            messageCategorizer.categorize(message.address, message.getText())
+            if (autoSort) messageCategorizer.categorize(message.address, message.getText())
+            else messageCategorizer.manualCategory(message.address)
         } catch (e: Exception) {
-            Timber.e(e, "classification failed for messageId=${message.id}, falling back to UNCLASSIFIED")
-            Category.UNCLASSIFIED
+            Timber.e(e, "classification failed for messageId=${message.id}")
+            if (autoSort) Category.UNCLASSIFIED else null
         }
-        Timber.v("classified. messageId=${message.id} category=$category")
-        messageRepo.updateMessageCategory(message.id, category.name)
+        Timber.v("classified. messageId=${message.id} autoSort=$autoSort category=$category")
+        category?.let { messageRepo.updateMessageCategory(message.id, it.name) }
 
         if (otpDetector.isOtp(message.getText())) {
             messageRepo.updateMessageOtp(message.id, true)

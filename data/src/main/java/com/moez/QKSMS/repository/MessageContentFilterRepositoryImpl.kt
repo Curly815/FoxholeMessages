@@ -22,16 +22,24 @@ import dev.octoshrimpy.quik.model.MessageContentFilter
 import dev.octoshrimpy.quik.model.MessageContentFilterData
 import io.realm.Realm
 import io.realm.RealmResults
+import timber.log.Timber
 import javax.inject.Inject
 
 class MessageContentFilterRepositoryImpl @Inject constructor() : MessageContentFilterRepository {
+    override fun exportFilters(): List<MessageContentFilterData> = Realm.getDefaultInstance().use { realm ->
+        // See BlockingRepositoryImpl.exportBlockedAddresses: the instance may be pinned to an old version.
+        realm.refresh()
+        realm.where(MessageContentFilter::class.java).findAll().map {
+            MessageContentFilterData(it.value, it.caseSensitive, it.isRegex, it.includeContacts)
+        }
+    }
+
     override fun createFilter(data: MessageContentFilterData) {
         Realm.getDefaultInstance().use { realm ->
-            realm.refresh()
-            val maxId = realm.where(MessageContentFilter::class.java)
-                .max("id")?.toLong() ?: -1
-
+            // Next id read inside the write transaction so a concurrent insert can't take it first.
             realm.executeTransaction {
+                val maxId = realm.where(MessageContentFilter::class.java)
+                    .max("id")?.toLong() ?: -1
                 realm.insert(MessageContentFilter(maxId + 1, data.value, data.caseSensitive, data.isRegex, data.includeContacts))
             }
         }
@@ -60,7 +68,14 @@ class MessageContentFilterRepositoryImpl @Inject constructor() : MessageContentF
                     if (isContact && !filter.includeContacts) {
                         false
                     } else if (filter.isRegex) {
-                        Regex(filter.value).matches(messageBody)
+                        // An invalid saved pattern must not throw here: this runs on the receive
+                        // path, and an exception stops the incoming message from being processed.
+                        try {
+                            Regex(filter.value).matches(messageBody)
+                        } catch (e: IllegalArgumentException) {
+                            Timber.w(e, "Skipping invalid regex content filter id=${filter.id}")
+                            false
+                        }
                     } else if (filter.caseSensitive) {
                         val regexp = "[\\s\\S]*\\b" + Regex.escape(filter.value) + "\\b[\\s\\S]*"
                         Regex(regexp).matches(messageBody)

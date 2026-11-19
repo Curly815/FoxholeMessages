@@ -107,7 +107,6 @@ abstract class BroadcastReceiverBuilderModule {
     @ActivityScope
     @ContributesAndroidInjector
     abstract fun bindSmsReceivedReceiver(): SmsReceivedReceiver
-
     @ActivityScope
     @ContributesAndroidInjector
     abstract fun bindMessageSentReceiver(): MessageSentReceiver

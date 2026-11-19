@@ -37,6 +37,14 @@ class MessageCategorizer @Inject constructor(
     private val classifier: MessageClassifier
 ) {
 
+    /**
+     * Only the categories the user chose themselves - a trusted sender, then a manual rule - or null
+     * if neither applies. Used when automatic sorting is turned off, so the user's explicit choices
+     * still hold while the keyword classifier is skipped.
+     */
+    fun manualCategory(address: String): Category? =
+        if (trustedSenderRepo.isTrusted(address)) Category.PERSONAL else ruleOf(address)
+
     fun categorize(address: String, body: String): Category = categorize(
         body,
         isTrusted = { trustedSenderRepo.isTrusted(address) },

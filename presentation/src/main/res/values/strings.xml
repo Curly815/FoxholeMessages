@@ -402,6 +402,25 @@
     <string name="settings_delay_duration_hint">Enter duration (seconds)</string>
 
     <string name="blocking_title">Blocking</string>
+    <string name="blocking_export_rules">Export blocking rules</string>
+    <string name="blocking_import_rules">Import blocking rules</string>
+    <string name="blocking_rules_exported">Blocking rules exported</string>
+    <string name="blocking_rules_imported_title">Blocking rules imported</string>
+    <string name="blocking_rules_imported">Added %1$s and %2$s.</string>
+    <plurals name="blocking_rules_numbers">
+        <item quantity="one">%d blocked number</item>
+        <item quantity="other">%d blocked numbers</item>
+    </plurals>
+    <plurals name="blocking_rules_filters">
+        <item quantity="one">%d content filter</item>
+        <item quantity="other">%d content filters</item>
+    </plurals>
+    <plurals name="blocking_rules_skipped">
+        <item quantity="one">%d entry was skipped because it was empty, too long, or not a valid regular expression.</item>
+        <item quantity="other">%d entries were skipped because they were empty, too long, or not valid regular expressions.</item>
+    </plurals>
+    <string name="blocking_rules_import_error">Could not import blocking rules. Check that the file is valid.</string>
+    <string name="blocking_rules_export_error">Could not export blocking rules. Try a different location.</string>
     <string name="blocking_drop_title">Drop messages</string>
     <string name="blocking_drop_summary">Drop incoming messages from blocked senders instead of hiding them</string>
 
@@ -416,6 +435,7 @@
     <string name="blocked_numbers_dialog_title">Block texts from</string>
     <string name="blocked_numbers_dialog_hint">Phone number</string>
     <string name="blocked_numbers_dialog_block">Block</string>
+    <string name="blocked_numbers_too_long">Numbers can be at most %d characters</string>
 
     <string name="message_content_filters_title">Message content filters</string>
     <string name="message_content_filters_empty">Your message content filters will appear here</string>
@@ -426,6 +446,8 @@
     <string name="message_content_filters_dialog_regex_switch">Regular expression</string>
     <string name="message_content_filters_dialog_contacts_switch">Include contacts</string>
     <string name="message_content_filters_dialog_create">Create</string>
+    <string name="message_content_filters_invalid_regex">This is not a valid regular expression</string>
+    <string name="message_content_filters_too_long">Filters can be at most %d characters</string>
 
     <string name="blocked_messages_title">Blocked messages</string>
     <string name="trash_title">Trash</string>

@@ -28,6 +28,8 @@ interface MessageContentFilterRepository {
 
     fun getMessageContentFilters(): RealmResults<MessageContentFilter>
 
+    fun exportFilters(): List<MessageContentFilterData>
+
     fun getMessageContentFilter(id: Long): MessageContentFilter?
 
     fun isBlocked(messageBody: String, address: String, contactsRepo: ContactRepository): Boolean

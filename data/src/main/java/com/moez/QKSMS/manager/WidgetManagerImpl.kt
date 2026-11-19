@@ -24,7 +24,7 @@ import android.content.Context
 import android.content.Intent
 import com.klinker.android.send_message.BroadcastUtils
 import dev.octoshrimpy.quik.util.Preferences
-import dev.octoshrimpy.quik.util.nonDebugPackageName
+import dev.octoshrimpy.quik.util.CODE_PACKAGE
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import java.util.concurrent.TimeUnit
@@ -62,7 +62,7 @@ class WidgetManagerImpl @Inject constructor(private val context: Context, prefs:
             .getAppWidgetIds(
                 ComponentName(
                     context.packageName,
-                    "${nonDebugPackageName(context.packageName)}.feature.widget.WidgetProvider"
+                    "$CODE_PACKAGE.feature.widget.WidgetProvider"
                 )
             )
 

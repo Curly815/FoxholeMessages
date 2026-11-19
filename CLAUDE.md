@@ -49,7 +49,22 @@ Finalizing v1.0 (`versionCode 2239`, `versionName '1.0.0'`, bumped in
    server is in the URL, which the Block setting exists to prevent,
    so it was tied to that instead of adding a new toggle.
 
-All four v1.0 items above are now done and device-verified.
+   **Correction (2026-11-17): previews cannot load in any build.** The
+   app has no `INTERNET` permission — upstream QUIK commented it out in
+   `presentation/src/main/AndroidManifest.xml` on 2024-02-25
+   (`415968ea`, "removes internet permission"), before this fork added
+   previews, and no library re-adds it (checked the merged debug
+   manifest). Every fetch fails and `LinkPreviewRepository` swallows it
+   as "no preview", so the "verified on device" claim above was wrong.
+   Decided to **leave previews disabled** rather than add `INTERNET`:
+   with the default link handling ("Ask") previews fetch automatically
+   when a thread is opened, which reveals the reader's IP/read-time to
+   whoever controls the URL, there is no filter against local-network
+   addresses, and it would change Play's Data Safety answers. If ever
+   re-enabled: add `INTERNET`, fetch only under "Allow", and refuse
+   private/loopback hosts.
+
+The other three v1.0 items above are done and device-verified.
 
 Verification workflow: this sandbox has no Android SDK and no device
 attached, and Google/JitPack Maven access is blocked by network
@@ -769,11 +784,10 @@ inline under each item as they're completed.
    `ConversationRepositoryImpl.updateConversations`'s `lastMessage`
    lookup both now filter `isNull("deletedAt")`, so trashed messages
    disappear from the thread and from conversation snippets/dates
-   immediately. (Narrower queries used for notification-building —
-   `getUnreadMessages`/`getUnreadUnseenMessages`/
-   `getLastIncomingMessage` — were *not* updated for time reasons;
-   low risk since trashing only ever applies to messages the user
-   already had in front of them, but noted here as a known gap.)
+   immediately. The narrower notification-building queries
+   (`getUnreadMessages`/`getUnreadUnseenMessages`/
+   `getLastIncomingMessage`) were originally left unfiltered, but all
+   three now filter `deletedAt` too (verified 2026-11-17).
 
    New `RestoreMessages` interactor (mirrors `DeleteMessages`) clears
    `deletedAt` and calls `updateConversations`. New

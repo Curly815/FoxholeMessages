@@ -25,6 +25,7 @@ import com.jakewharton.rxbinding2.view.clicks
 import com.uber.autodispose.android.lifecycle.scope
 import com.uber.autodispose.autoDisposable
 import dev.octoshrimpy.quik.R
+import dev.octoshrimpy.quik.feature.blocking.BlockingRulesFile
 import dev.octoshrimpy.quik.common.base.QkController
 import dev.octoshrimpy.quik.common.util.Colors
 import dev.octoshrimpy.quik.common.util.extensions.setBackgroundTint
@@ -96,11 +97,24 @@ class MessageContentFiltersController : QkController<MessageContentFiltersContro
 
         val dialog = AlertDialog.Builder(activity!!)
                 .setView(layout.root)
-                .setPositiveButton(R.string.message_content_filters_dialog_create) { _, _ ->
-                    var text = layout.input.text.toString();
-                    if (!text.isBlank()) {
-                        val regexChecked = layout.regexp.checkbox?.isChecked ?: false
-                        if (!regexChecked) text = text.trim()
+                .setPositiveButton(R.string.message_content_filters_dialog_create, null)
+                .setNegativeButton(R.string.button_cancel, null)
+                .create()
+
+        // Handle the positive button ourselves so a rejected filter keeps the dialog (and what the
+        // user typed) open with the reason shown, instead of dismissing and discarding it.
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val regexChecked = layout.regexp.checkbox?.isChecked ?: false
+                val text = layout.input.text.toString().let { if (regexChecked) it else it.trim() }
+                val context = layout.root.context
+                when (BlockingRulesFile.filterProblem(text, regexChecked)) {
+                    BlockingRulesFile.FilterProblem.BLANK -> dialog.dismiss()
+                    BlockingRulesFile.FilterProblem.TOO_LONG -> layout.input.error =
+                        context.getString(R.string.message_content_filters_too_long, BlockingRulesFile.MAX_FILTER_LENGTH)
+                    BlockingRulesFile.FilterProblem.INVALID_REGEX -> layout.input.error =
+                        context.getString(R.string.message_content_filters_invalid_regex)
+                    null -> {
                         saveFilterSubject.onNext(
                             MessageContentFilterData(
                                 text,
@@ -109,9 +123,11 @@ class MessageContentFiltersController : QkController<MessageContentFiltersContro
                                 layout.contacts.checkbox?.isChecked == true
                             )
                         )
+                        dialog.dismiss()
                     }
                 }
-                .setNegativeButton(R.string.button_cancel) { _, _ -> }
+            }
+        }
         dialog.show()
     }
 
