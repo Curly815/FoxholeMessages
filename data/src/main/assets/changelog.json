@@ -1,5 +1,20 @@
 [
   {
+    "versionCode": 2263,
+    "versionName": "2.4.2",
+    "added": [
+      "Export and import your blocking rules (blocked numbers and message content filters) from the Blocking screen, so you can back them up or move them to a new phone. Importing the same file twice adds nothing twice, and a few bad entries are skipped instead of failing the whole file"
+    ],
+    "fixed": [
+      "Tapping a conversation in the home-screen widget crashed the app, and the widget's colors didn't follow the app theme",
+      "Tapping Block on a message notification crashed the app",
+      "A broken regular-expression content filter could stop new texts from being processed. Broken patterns are now ignored, and the filter screen no longer saves them",
+      "The Auto-sort messages switch did nothing. With it off, texts are no longer sorted by their wording; senders you moved or trusted still go where you put them, and turning it back on sorts anything that arrived meanwhile",
+      "Two blocked-number or filter saves at the same moment could collide",
+      "The Block and filter dialogs now ignore an empty entry and explain why an invalid one can't be saved, instead of saving it"
+    ]
+  },
+  {
     "versionCode": 2262,
     "versionName": "2.4.1",
     "added": [

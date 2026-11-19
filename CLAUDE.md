@@ -1435,6 +1435,59 @@ Device-verified: a received `audio/amr` part saved to
 `content://media/external/downloads`. The `audio_toast_saved` wording was
 confirmed building but shipped without a separate on-device check.
 
+### Replying from a car (v2.4.2) — shipped but UNVERIFIED
+
+Ask: mark a thread read when the user replies from their vehicle (a
+Tesla). **Not device-verified; the fix is in 2.4.2 but the release notes
+deliberately don't mention it.**
+
+What was established, because two guesses were wrong first:
+- A Tesla has no Android Auto. It uses Bluetooth messaging, so the
+  notification Reply action (`RemoteMessagingReceiver`) is **not** its route.
+  A build that logged that path (`Remote reply received for thread`) never
+  logged it during a real car reply.
+- `HeadlessSmsSendService` (RESPOND_VIA_MESSAGE) was the next guess and was
+  also wrong for that build: its log line (`Respond-via-message for thread`)
+  never appeared either. Confirmed the tested build was the one containing
+  that line, so it isn't a stale-APK mix-up.
+- What the logs *did* show: the reply was sent by the app's own pipeline
+  (`sendNewMessages` logs "sending message(s)", and only `SendNewMessage`
+  calls it), then `MessageSentReceiver` sent/delivered. So the reply reaches
+  the app's send code by a route not yet identified.
+
+The fix therefore doesn't depend on the route: `SendNewMessage` now calls
+`MarkRead` for the thread(s) it sent to, and logs `Marking thread(s) … read
+after sending`. Every sender in the app funnels through that interactor
+(compose screen, notification reply, popup reply, respond-via-message).
+Side effect: sending from the compose screen also marks the thread read,
+which is normal messaging behaviour.
+
+Not covered: if a car ever sends over Bluetooth *without* involving the app,
+no app code runs and this does nothing (the app has no ContentObserver on the
+SMS provider). If the `Marking thread(s) … read after sending` line is
+absent from a log after a car reply, that is the case.
+
+### External contribution: PR #3 (v2.4.2)
+
+Merged `jloutsch`'s PR #3 (merge commit, authorship kept): blocking-rules
+export/import (`BlockingRulesFile`), widget crash fix (`CODE_PACKAGE` replaces
+`nonDebugPackageName`, since class names live under `dev.octoshrimpy.quik`
+not the applicationId), `BlockThreadReceiver` `goAsync()` crash, invalid-regex
+content filters no longer throw on the receive path, Auto-sort switch now
+honoured (`MessageCategorizer.manualCategory`), Realm id race in
+`blockNumber`/`createFilter`, plus a debug-only `DebugInjectSmsReceiver`
+(per-build-type `BuildTypeReceiverModule`; `fdroid` is a build *type* here,
+not a flavor, so release/fdroid/debug each get exactly one). Reviewed
+line-by-line before merging; no new permissions, dependencies, workflows or
+manifest entries outside debug. Its `CLAUDE.md` edits (link previews never
+loaded because `INTERNET` is commented out; notification queries already
+filter `deletedAt`) were checked against the code and are correct.
+
+**Build workflow gotcha:** `build-and-release.yml` refuses any ref not already
+in `master`. To build a PR before merging, push its head as a branch
+(`git fetch origin pull/N/head:name`) and dispatch `build-on-pull.yml` on it;
+that debug APK installs alongside the Play build.
+
 ### Known gaps / open items
 
 - **Android Auto**: two texts appeared in the car but never in the app's

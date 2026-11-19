@@ -1,0 +1,5 @@
+What's new in 2.4.2:
+- Added: export and import your blocking rules (blocked numbers and content filters) to back them up or move to a new phone.
+- Fixed: tapping a conversation in the widget, or Block on a notification, crashed the app.
+- Fixed: the Auto-sort switch did nothing; it now works.
+- Fixed: a broken content-filter pattern could stop new texts from being processed.
